@@ -11,7 +11,7 @@ import os
 from io import BytesIO
 
 # ================= CONFIGURATION =================
-TOKEN = os.environ.get('TELEGRAM_TOKEN', "TON_TOKEN_ICI")
+TOKEN = os.environ.get('TELEGRAM_TOKEN', "8616503037:AAFWEZB1w2ml3_OumTwEZLIHAf7zdOyXCpk")
 
 # Logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -43,45 +43,36 @@ def calculate_bollinger(data, period=20, std=2):
 # ================= GRAPHIQUE =================
 
 def create_chart(symbol, data):
-    """Crée un graphique avec prix, RSI, MACD"""
+    """Crée un graphique simple avec matplotlib"""
     
-    # Préparer les données pour mplfinance
-    df = data.copy()
-    df.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+    import matplotlib.pyplot as plt
+    from io import BytesIO
     
-    # Calculer les indicateurs
-    rsi = calculate_rsi(df['Close'])
-    macd_line, signal_line, histogram = calculate_macd(df['Close'])
-    bb_upper, bb_middle, bb_lower = calculate_bollinger(df['Close'])
+    # Prendre les 50 dernières périodes
+    df = data.tail(50).copy()
+    
+    # Créer la figure
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Tracer le prix
+    ax.plot(df.index, df['Close'], label='Prix', color='blue', linewidth=2)
     
     # Ajouter les bandes de Bollinger
-    df['BB_upper'] = bb_upper
-    df['BB_middle'] = bb_middle
-    df['BB_lower'] = bb_lower
+    sma = df['Close'].rolling(20).mean()
+    std = df['Close'].rolling(20).std()
+    ax.fill_between(df.index, sma + 2*std, sma - 2*std, alpha=0.2, color='gray', label='Bandes Bollinger')
     
-    # Créer les panels supplémentaires
-    apds = [
-        mpf.make_addplot(rsi, panel=1, color='purple', ylabel='RSI'),
-        mpf.make_addplot(macd_line, panel=2, color='blue', ylabel='MACD'),
-        mpf.make_addplot(signal_line, panel=2, color='red'),
-        mpf.make_addplot(histogram, panel=2, type='bar', color='green', alpha=0.5),
-        mpf.make_addplot(bb_upper, panel=0, color='gray', linestyle='--'),
-        mpf.make_addplot(bb_lower, panel=0, color='gray', linestyle='--')
-    ]
+    ax.set_title(f'{symbol} - Dernières 50 périodes')
+    ax.set_ylabel('Prix ($)')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
     
-    # Créer le graphique
-    fig, axes = mpf.plot(df, 
-                          type='candle',
-                          volume=False,
-                          addplot=apds,
-                          style='charles',
-                          title=f'{symbol} - Dernières 100 périodes',
-                          ylabel='Prix ($)',
-                          returnfig=True)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
     
-    # Sauvegarder dans un buffer mémoire
+    # Sauvegarder
     buffer = BytesIO()
-    plt.savefig(buffer, format='png', bbox_inches='tight', dpi=100)
+    plt.savefig(buffer, format='png', dpi=100)
     buffer.seek(0)
     plt.close()
     
