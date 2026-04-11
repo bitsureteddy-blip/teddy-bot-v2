@@ -3,3 +3,5 @@ pandas
 numpy
 python-telegram-bot
 ta
+matplotlib
+mplfinance
