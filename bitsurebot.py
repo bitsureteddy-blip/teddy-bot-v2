@@ -105,11 +105,19 @@ def calculate_bollinger(data, period=20, std=2):
 # ================= DEVISES =================
 
 def get_currency_symbol(symbol):
+    """Retourne le symbole de devise approprié pour TOUTES les devises"""
     symbol_upper = symbol.upper()
+    
+    # Cryptos
     if symbol_upper.endswith("-USD"):
         return "$"
+    
+    # Forex : format XXXYYY=X
     if symbol_upper.endswith("=X") and len(symbol_upper) >= 6:
+        # Extraire les 3 premières lettres (devise de base)
         base_currency = symbol_upper[:3]
+        
+        # Symboles des devises
         currency_symbols = {
             "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥",
             "CHF": "CHF", "CAD": "C$", "AUD": "A$", "NZD": "NZ$",
@@ -119,9 +127,19 @@ def get_currency_symbol(symbol):
             "HKD": "HK$", "SEK": "kr", "NOK": "kr", "DKK": "kr",
             "TRY": "₺", "MXN": "MX$"
         }
-        return currency_symbols.get(base_currency, base_currency)
+        
+        # Si la devise de base est dans le dictionnaire, retourne son symbole
+        if base_currency in currency_symbols:
+            return currency_symbols[base_currency]
+        else:
+            # Sinon, retourne le code (ex: "BIF", "RWF")
+            return base_currency
+    
+    # Or, argent, pétrole
     if symbol_upper in ["GC=F", "SI=F", "CL=F"]:
         return "$"
+    
+    # Actions et autres
     return "$"
 
 # ================= GRAPHIQUE =================
