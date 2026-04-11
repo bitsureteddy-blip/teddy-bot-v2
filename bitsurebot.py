@@ -10,7 +10,7 @@ import os
 from io import BytesIO
 
 # ================= CONFIGURATION =================
-TOKEN = os.environ.get('TELEGRAM_TOKEN', "8616503037:AAFWEZB1w2ml3_OumTwEZLIHAf7zdOyXCpk")
+TOKEN = os.environ.get('TELEGRAM_TOKEN')
 
 # Dictionnaire pour stocker la langue de chaque utilisateur
 user_language = {}
