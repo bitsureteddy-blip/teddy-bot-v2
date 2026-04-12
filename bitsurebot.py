@@ -1542,7 +1542,7 @@ def main():
     app.add_handler(CommandHandler("broadcast", broadcast_command))
     app.add_handler(CommandHandler("reload", reload_command))
     app.add_handler(CommandHandler("stats", stats_command))
-
+"/myid – Get your Telegram user ID\n"
     app.job_queue.run_repeating(check_alerts_job, interval=30, first=10)
 
     logger.info("Bitsure Teddy v2.3 starting with HOURLY intraday analysis...")
