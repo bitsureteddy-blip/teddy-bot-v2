@@ -263,13 +263,65 @@ def df_from_yfinance(ticker_symbol: str) -> pd.DataFrame:
     hist = hist.rename(columns=rename_map)
     wanted = [c for c in ["Open","High","Low","Close","Volume"] if c in hist.columns]
     return hist[wanted].dropna(subset=["Close"]).reset_index(drop=True)
-
+def df_from_fcs_history(symbol: str) -> pd.DataFrame:
+    if not FCS_API_KEY:
+        return pd.DataFrame()
+    params = {
+        "access_key": FCS_API_KEY,
+        "symbol": realmarket_symbol(symbol),
+        "period": "1D"
+    }
+    cls = market_class(symbol)
+    if cls == "commodity":
+        params["type"] = "commodity"
+    elif cls == "forex":
+        params["synthetic"] = "1"
+    try:
+        resp = requests.get("https://fcsapi.com/api-v4/forex/history", params=params, timeout=15)
+        if resp.status_code != 200:
+            return pd.DataFrame()
+        data = resp.json()
+        if data.get("code") != 200:
+            return pd.DataFrame()
+        records = data.get("response", [])
+        if not records:
+            return pd.DataFrame()
+        rows = []
+        for item in records:
+            c = safe_float(item.get("c"))
+            if c is None:
+                continue
+            rows.append({
+                "Open": safe_float(item.get("o")),
+                "High": safe_float(item.get("h")) or c,
+                "Low": safe_float(item.get("l")) or c,
+                "Close": c,
+                "Volume": 0
+            })
+        df = pd.DataFrame(rows)
+        return df[["Open","High","Low","Close","Volume"]].dropna(subset=["Close"]).reset_index(drop=True)
+    except Exception as e:
+        logger.warning(f"FCS history failed for {symbol}: {e}")
+        return pd.DataFrame()
 def get_history(symbol: str) -> pd.DataFrame:
     symbol_clean = clean_symbol(symbol)
     cached = _history_cache.get(symbol_clean)
     if cached and now_ts() - cached["ts"] <= HISTORY_CACHE_TTL:
         return cached["df"].copy()
+    
     df = pd.DataFrame()
+    
+    # Try FCS API first for forex and commodities
+    if market_class(symbol_clean) in {"forex", "commodity"} and FCS_API_KEY:
+        try:
+            df = df_from_fcs_history(symbol_clean)
+            if not df.empty and len(df) >= 20:
+                _history_cache[symbol_clean] = {"ts": now_ts(), "df": df.copy()}
+                return df
+        except Exception as e:
+            logger.warning(f"FCS history failed: {e}")
+    
+    # Fallback to Yahoo Finance
     for candidate in yahoo_symbol_candidates(symbol_clean):
         try:
             df = df_from_yfinance(candidate)
@@ -277,8 +329,10 @@ def get_history(symbol: str) -> pd.DataFrame:
                 break
         except Exception:
             continue
+    
     if df.empty:
         return df
+    
     for col in ["Open","High","Low","Close","Volume"]:
         if col not in df.columns:
             df[col] = np.nan
@@ -286,6 +340,7 @@ def get_history(symbol: str) -> pd.DataFrame:
     for col in ["Open","High","Low","Close","Volume"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     df = df.dropna(subset=["Close"]).reset_index(drop=True)
+    
     _history_cache[symbol_clean] = {"ts": now_ts(), "df": df.copy()}
     return df
 
