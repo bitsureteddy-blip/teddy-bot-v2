@@ -1,4 +1,3 @@
-
 import logging
 import yfinance as yf
 import pandas as pd
@@ -14,7 +13,6 @@ TOKEN = os.environ.get('TELEGRAM_TOKEN')
 user_language = {}
 
 # ================= TRADUCTIONS COMPLÈTES =================
-
 texts = {
     "fr": {
         "buy": "🟢 ACHETER",
@@ -71,34 +69,25 @@ def get_text(user_id, key):
     return texts[lang].get(key, key)
 
 # ================= DEVISES =================
-
 def get_display_currency(symbol):
     sym = symbol.upper()
-
     if sym.endswith("-USD"):
         return "$"
-
     if sym.endswith("=X") and len(sym) >= 6:
         base = sym[:3]
         target = sym[3:6]
-
         curr = target if base == "USD" else base
-
         symbols = {
             "EUR": "€", "GBP": "£", "USD": "$", "JPY": "¥",
             "CHF": "CHF", "CAD": "C$", "AUD": "A$", "NZD": "NZ$",
             "CNY": "¥", "BIF": "BIF", "RWF": "RWF", "TZS": "TZS"
         }
-
         return symbols.get(curr, curr)
-
     if sym in ["GC=F", "SI=F", "CL=F"]:
         return "$"
-
     return "$"
 
 # ================= INDICATEURS =================
-
 def calculate_rsi(data, period=14):
     delta = data.diff()
     gain = delta.clip(lower=0).rolling(period).mean()
@@ -119,14 +108,12 @@ def calculate_bollinger(data):
     return sma + 2*std, sma, sma - 2*std
 
 # ================= SUPPORT / RÉSISTANCE =================
-
 def calculate_support_resistance(data, lookback=50):
     high = data['High'].tail(lookback)
     low = data['Low'].tail(lookback)
     return {"support": low.min(), "resistance": high.max()}
 
 # ================= ADVICE =================
-
 def generate_advice(trend_up, trend_down, rsi, bb_zone, score, user_id):
     if score >= 6:
         return get_text(user_id, "advice_strong_buy")
@@ -152,7 +139,6 @@ def get_score_text(score, user_id):
     return get_text(user_id, "score_medium")
 
 # ================= ANALYSIS =================
-
 def get_analysis(symbol):
     data = yf.Ticker(symbol).history(period="1mo", interval="1h")
     if data.empty:
@@ -188,12 +174,10 @@ def get_analysis(symbol):
         score += 2
     elif trend_down:
         score -= 2
-
     if macd_up:
         score += 1
     else:
         score -= 1
-
     if rsi < 30:
         score += 2
     elif rsi < 60:
@@ -202,7 +186,6 @@ def get_analysis(symbol):
         score -= 2
     elif rsi > 65:
         score -= 1
-
     if bb_zone == "basse":
         score += 1
     elif bb_zone == "haute":
@@ -235,7 +218,6 @@ def get_analysis(symbol):
     }
 
 # ================= CHART =================
-
 def create_chart(symbol, data):
     df = data.tail(50)
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -258,14 +240,95 @@ def create_chart(symbol, data):
     plt.savefig(buf, format='png', dpi=100)
     buf.seek(0)
     plt.close()
-
     return buf
 
-# ================= MAIN =================
+# ================= COMMANDES =================
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    await update.message.reply_text(get_text(user_id, "start"), parse_mode='Markdown')
 
+async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("🇫🇷 Français", callback_data="lang_fr")],
+        [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(get_text(update.effective_user.id, "lang_prompt"), parse_mode='Markdown', reply_markup=reply_markup)
+
+async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+    if query.data == "lang_fr":
+        user_language[user_id] = "fr"
+        await query.edit_message_text("✅ Langue changée pour le français !")
+    else:
+        user_language[user_id] = "en"
+        await query.edit_message_text("✅ Language changed to English!")
+
+async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not context.args:
+        await update.message.reply_text("Ex: /analyse BTC-USD")
+        return
+
+    symbol = context.args[0].upper()
+    status_msg = await update.message.reply_text(get_text(user_id, "analyzing").format(symbol), parse_mode='Markdown')
+    result = get_analysis(symbol)
+    if not result:
+        await status_msg.edit_text(get_text(user_id, "not_found").format(symbol))
+        return
+
+    currency = get_display_currency(symbol)
+    signal = get_text(user_id, result['signal'])
+    advice = generate_advice(result['trend_up'], result['trend_down'], result['rsi'], result['bb_zone'], result['score'], user_id)
+    score_text = get_score_text(result['score'], user_id)
+
+    sr_text = ""
+    if result['support'] > 0 and result['resistance'] > 0 and result['support'] != result['resistance']:
+        sr_text = f"\n📊 *Niveaux clés :*\n🟢 Support : {currency}{result['support']:.2f}\n🔴 Résistance : {currency}{result['resistance']:.2f}"
+
+    msg = f"""
+📈 *{result['symbol']}*
+💰 {currency}{result['price']:.2f}{sr_text}
+
+📊 RSI: {result['rsi']:.1f}
+📊 MACD: {result['macd']:.4f}
+
+📈 SMA20: {currency}{result['sma20']:.2f}
+📉 SMA50: {currency}{result['sma50']:.2f}
+
+🎯 *{signal}*
+📊 Score: {result['score']}/10 ({score_text})
+
+🧠 {advice}
+"""
+    await status_msg.edit_text(msg, parse_mode='Markdown')
+    await update.message.reply_text(get_text(user_id, "chart"))
+    chart = create_chart(symbol, result['data'])
+    await update.message.reply_photo(chart)
+
+async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not context.args:
+        await update.message.reply_text("Ex: /price BTC-USD")
+        return
+
+    symbol = context.args[0].upper()
+    status_msg = await update.message.reply_text(f"💰 *Fetching price for {symbol}...*", parse_mode='Markdown')
+    ticker = yf.Ticker(symbol)
+    data = ticker.history(period="1d")
+    if data.empty:
+        await status_msg.edit_text(get_text(user_id, "not_found").format(symbol))
+        return
+
+    price = data['Close'].iloc[-1]
+    currency = get_display_currency(symbol)
+    await status_msg.edit_text(get_text(user_id, "price_cmd").format(symbol, currency, price), parse_mode='Markdown')
+
+# ================= MAIN =================
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("analyse", analyse))
     app.add_handler(CommandHandler("price", price))
@@ -273,5 +336,5 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("language", language))
     app.add_handler(CallbackQueryHandler(language_callback))
 
-    print("🚀 Bitsure Teddy Bot - Version corrigée démarrée !")
+    print("🚀 Bitsure Teddy Bot - Version finale opérationnelle démarrée !")
     app.run_polling()
