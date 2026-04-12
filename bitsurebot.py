@@ -1,4 +1,4 @@
-Voici la version corrigé de ChatGPT 
+
 import logging
 import yfinance as yf
 import pandas as pd
