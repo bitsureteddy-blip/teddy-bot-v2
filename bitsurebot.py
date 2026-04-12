@@ -28,9 +28,14 @@ texts = {
         "advice_wait_pullback": "⚠️ Attendre un retracement",
         "advice_good_entry": "✅ Bon point d'entrée",
         "advice_sell_pressure": "🔻 Pression vendeuse",
-        "advice_price_high": "⚠️ Prix élevé",
-        "advice_bounce": "📈 Zone de rebond",
-        "advice_observation": "📊 Observation"
+        "advice_price_high": "⚠️ Prix élevé, risque de baisse",
+        "advice_bounce": "📈 Zone de rebond probable",
+        "advice_observation": "📊 Observation, pas de signal clair",
+        "advice_strong_buy": "🔥 Signal FORT d'achat",
+        "advice_strong_sell": "💀 Signal FORT de vente",
+        "score_low": "📉 Score faible, éviter de trader",
+        "score_medium": "📊 Score moyen, risque modéré",
+        "score_high": "📈 Score élevé, bonne opportunité"
     },
     "en": {
         "buy": "🟢 BUY",
@@ -46,9 +51,14 @@ texts = {
         "advice_wait_pullback": "⚠️ Wait for a pullback",
         "advice_good_entry": "✅ Good entry point",
         "advice_sell_pressure": "🔻 Selling pressure",
-        "advice_price_high": "⚠️ Price high",
-        "advice_bounce": "📈 Bounce zone",
-        "advice_observation": "📊 Observation"
+        "advice_price_high": "⚠️ Price high, downside risk",
+        "advice_bounce": "📈 Bounce zone likely",
+        "advice_observation": "📊 No clear signal",
+        "advice_strong_buy": "🔥 STRONG BUY signal",
+        "advice_strong_sell": "💀 STRONG SELL signal",
+        "score_low": "📉 Low score, avoid trading",
+        "score_medium": "📊 Medium score, moderate risk",
+        "score_high": "📈 High score, good opportunity"
     }
 }
 
@@ -58,7 +68,6 @@ def get_text(user_id, key):
 
 # ================= DEVISES =================
 def get_forex_currency(symbol):
-    """Retourne la devise cible pour une paire Forex (ex: USDBIF=X → BIF)"""
     symbol_upper = symbol.upper()
     if symbol_upper.endswith("=X") and len(symbol_upper) >= 6:
         return symbol_upper[3:6]
@@ -93,10 +102,34 @@ def calculate_bollinger(data):
     std = data.rolling(20).std()
     return sma + 2*std, sma, sma - 2*std
 
-# ================= ADVICE =================
+# ================= SUPPORT / RÉSISTANCE =================
 
-def generate_advice(trend_up, trend_down, rsi, bb_zone, user_id):
-    if trend_up and rsi > 65:
+def calculate_support_resistance(data, lookback=50):
+    close = data['Close'].tail(lookback)
+    high = data['High'].tail(lookback)
+    low = data['Low'].tail(lookback)
+    
+    resistance = high.max()
+    support = low.min()
+    resistance2 = high.nlargest(2).iloc[-1] if len(high) >= 2 else resistance
+    support2 = low.nsmallest(2).iloc[-1] if len(low) >= 2 else support
+    
+    return {
+        "support": support,
+        "support2": support2,
+        "resistance": resistance,
+        "resistance2": resistance2
+    }
+
+# ================= ADVICE INTELLIGENT =================
+
+def generate_smart_advice(trend_up, trend_down, rsi, bb_zone, score, user_id):
+    # Score interprété
+    if score >= 6:
+        return get_text(user_id, "advice_strong_buy")
+    elif score <= -6:
+        return get_text(user_id, "advice_strong_sell")
+    elif trend_up and rsi > 65:
         return get_text(user_id, "advice_wait_pullback")
     elif trend_up and rsi < 40:
         return get_text(user_id, "advice_good_entry")
@@ -106,7 +139,16 @@ def generate_advice(trend_up, trend_down, rsi, bb_zone, user_id):
         return get_text(user_id, "advice_price_high")
     elif bb_zone == "basse":
         return get_text(user_id, "advice_bounce")
-    return get_text(user_id, "advice_observation")
+    else:
+        return get_text(user_id, "advice_observation")
+
+def get_score_interpretation(score, user_id):
+    if score >= 5:
+        return get_text(user_id, "score_high")
+    elif score <= -5:
+        return get_text(user_id, "score_low")
+    else:
+        return get_text(user_id, "score_medium")
 
 # ================= ANALYSIS =================
 
@@ -174,6 +216,9 @@ def get_analysis(symbol):
     else:
         signal_key = "wait"
 
+    # Calcul des niveaux SR
+    sr_levels = calculate_support_resistance(data)
+
     return {
         "symbol": symbol,
         "price": price,
@@ -186,6 +231,10 @@ def get_analysis(symbol):
         "trend_up": trend_up,
         "trend_down": trend_down,
         "bb_zone": bb_zone,
+        "support": sr_levels["support"],
+        "support2": sr_levels["support2"],
+        "resistance": sr_levels["resistance"],
+        "resistance2": sr_levels["resistance2"],
         "data": data
     }
 
@@ -259,7 +308,8 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     signal = get_text(user_id, result['signal'])
-    advice = generate_advice(result['trend_up'], result['trend_down'], result['rsi'], result['bb_zone'], user_id)
+    advice = generate_smart_advice(result['trend_up'], result['trend_down'], result['rsi'], result['bb_zone'], result['score'], user_id)
+    score_text = get_score_interpretation(result['score'], user_id)
     
     # Détection de la devise cible
     forex_currency = get_forex_currency(symbol)
@@ -268,18 +318,26 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         currency = get_currency_symbol(symbol)
 
-    msg = f"""
-📈 *{symbol}*
-💰 {currency}{result['price']:.2f}
+    # Construction du message avec niveaux SR
+    sr_text = ""
+    if result['support'] > 0 and result['resistance'] > 0:
+        sr_text = f"""
+📊 *Niveaux clés :*
+🟢 Support : {currency}{result['support']:.2f}
+🔴 Résistance : {currency}{result['resistance']:.2f}"""
 
+    msg = f"""
+📈 *{result['symbol']}*
+💰 {currency}{result['price']:.2f}
+{sr_text}
 📊 RSI: {result['rsi']:.1f}
-📊 MACD: {result['macd']:.2f}
+📊 MACD: {result['macd']:.4f}
 
 📈 SMA20: {currency}{result['sma20']:.2f}
 📉 SMA50: {currency}{result['sma50']:.2f}
 
 🎯 *{signal}*
-📊 Score: {result['score']} / 10
+📊 Score: {result['score']}/10 ({score_text})
 
 🧠 {advice}
 """
@@ -328,6 +386,6 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("language", language))
     app.add_handler(CallbackQueryHandler(language_callback))
 
-    print("🚀 Bitsure Teddy Bot - Version Améliorée démarrée !")
+    print("🚀 Bitsure Teddy Bot - Version Premium démarrée !")
     print("👉 Commandes: /analyse, /price, /langue")
     app.run_polling()
