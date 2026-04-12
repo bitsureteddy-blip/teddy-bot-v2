@@ -45,7 +45,6 @@ if REALMARKET_API_KEY:
 def get_fcs_price(symbol):
     if not FCS_API_KEY:
         return None
-    # Convertir le symbole Yahoo en format FCS (ex: GBPJPY=X -> GBP/JPY)
     sym = symbol.upper().replace('=X', '')
     if '/' not in sym and len(sym) == 6:
         sym = sym[:3] + '/' + sym[3:]
@@ -94,30 +93,29 @@ def get_display_currency(symbol):
         return symbols.get(base, base)
     return "$"
 
+# ================= ANALYSIS (CORRIGÉE) =================
 def get_analysis(symbol):
-    # 1. Récupérer les données historiques (Yahoo) pour les indicateurs
     data = yf.Ticker(symbol).history(period="2mo", interval="1h")
     if data.empty:
         return None
 
     close = data['Close']
-    price = close.iloc[-1]  # fallback
+    price = close.iloc[-1]
 
-    # 2. Essayer d'abord le prix temps réel (WebSocket)
+    # Prix temps réel via WebSocket
     if symbol in realtime_prices:
         price = realtime_prices[symbol]
     else:
-        # 3. Sinon, utiliser FCS API (forex uniquement)
         fcs_price = get_fcs_price(symbol)
         if fcs_price:
             price = fcs_price
-        # 4. Sinon garder le dernier prix Yahoo
 
     rsi = calculate_rsi(close).iloc[-1]
     macd, signal = calculate_macd(close)
     macd_val = macd.iloc[-1]
     signal_val = signal.iloc[-1]
-    macd_hist = macd_val - signal_val
+    macd_hist_series = macd - signal
+    macd_hist = macd_hist_series.iloc[-1]
 
     upper, mid, lower = calculate_bollinger(close)
     bb_pos = (price - lower.iloc[-1]) / (upper.iloc[-1] - lower.iloc[-1])
@@ -139,8 +137,8 @@ def get_analysis(symbol):
                           rsi_series.iloc[-5] < rsi_series.iloc[-1])
 
     # MACD cross
-    macd_cross_up = (macd_hist > 0 and macd_hist.shift(1).iloc[-1] <= 0)
-    macd_cross_down = (macd_hist < 0 and macd_hist.shift(1).iloc[-1] >= 0)
+    macd_cross_up = (macd_hist_series.iloc[-1] > 0 and macd_hist_series.iloc[-2] <= 0)
+    macd_cross_down = (macd_hist_series.iloc[-1] < 0 and macd_hist_series.iloc[-2] >= 0)
 
     # Signal decision
     signal_key = "WAIT"
@@ -289,7 +287,6 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     symbol = context.args[0].upper()
     status_msg = await update.message.reply_text(f"💰 Fetching price for {symbol}...", parse_mode='Markdown')
     
-    # On essaie d'abord le prix temps réel
     if symbol in realtime_prices:
         price = realtime_prices[symbol]
     else:
