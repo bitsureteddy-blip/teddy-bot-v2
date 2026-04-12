@@ -695,3 +695,46 @@ def teddy_score(df: pd.DataFrame, action: str, metrics: Dict[str, Any]) -> int:
         score = min(score, 40)
 
     return max(0, min(100, int(score)))
+
+# =========================
+# Command handlers
+# =========================
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Commande /start"""
+    await update.message.reply_text(
+        f"🐻 Bonjour ! Je suis {BOT_NAME}\n"
+        "Je suis votre assistant d'analyse de marché.\n\n"
+        "Commandes disponibles:\n"
+        "/price <symbole> - Prix actuel\n"
+        "/signal <symbole> - Signal d'achat/vente\n"
+        "/help - Aide"
+    )
+
+# =========================
+# Main
+# =========================
+
+def main():
+    """Point d'entrée principal du bot"""
+    print("Bitsure Teddy bot starting...")
+    logger.info("Bot starting...")
+    
+    # Vérifier le token
+    if not TELEGRAM_TOKEN:
+        logger.error("TELEGRAM_TOKEN non défini!")
+        print("ERREUR: TELEGRAM_TOKEN non défini")
+        return
+    
+    # Créer l'application
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
+    
+    # Ajouter les handlers
+    application.add_handler(CommandHandler("start", start))
+    
+    # Démarrer le bot
+    logger.info("Bot démarré, en attente des messages...")
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
