@@ -1379,6 +1379,25 @@ async def setlanguage_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     set_user_setting(update.effective_chat.id, "language", lang)
     await update.message.reply_text(f"✅ Language set to {lang}.")
 
+async def myid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Affiche l'ID Telegram de l'utilisateur."""
+    user = update.effective_user
+    chat_id = update.effective_chat.id
+    
+    message = (
+        f"🆔 **Your Telegram Info**\n\n"
+        f"User ID: `{user.id}`\n"
+        f"Chat ID: `{chat_id}`\n"
+        f"Username: @{user.username if user.username else 'None'}\n"
+        f"First Name: {user.first_name or 'None'}\n"
+    )
+    
+    # Indiquer si l'utilisateur est admin
+    if user.id in ADMIN_IDS:
+        message += "\n👑 **You are a bot administrator**"
+    
+    await update.message.reply_text(message, parse_mode="Markdown")
+
 # ------------------------------------------------------------------
 # Info & Admin Commands
 # ------------------------------------------------------------------
@@ -1427,7 +1446,7 @@ async def symbolinfo_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         info += "Price unavailable"
     await update.message.reply_text(info, parse_mode="Markdown")
 
-ADMIN_IDS = {123456789}  # Replace with actual admin Telegram IDs
+ADMIN_IDS = {8376348929}  # Replace with actual admin Telegram IDs
 
 async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id not in ADMIN_IDS:
@@ -1485,6 +1504,7 @@ def main():
     app.add_handler(CommandHandler("usage", usage_command))
     app.add_handler(CommandHandler("analyse", analyse_command))
     app.add_handler(CommandHandler("price", price_command))
+    app.add_handler(CommandHandler("myid", myid_command))
 
     # Scalping
     app.add_handler(CommandHandler("scalp", scalp_command))
