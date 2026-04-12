@@ -1,472 +1,472 @@
-#!/usr/bin/env python3
-"""
-Bitsure Teddy - Professional Trading Signals Bot
-Version finale stable - Données quotidiennes, FCS + Yahoo fallback.
-Déploiement Railway : TELEGRAM_TOKEN, FCS_API_KEY, REALMARKET_API_KEY
-"""
+import asyncio import json import logging import math import os import threading import time from dataclasses import dataclass, asdict from datetime import datetime, timezone from io import BytesIO from pathlib import Path from typing import Any, Dict, List, Optional, Tuple
 
-import os
-import re
-import time
-import json
-import logging
-import threading
-from io import BytesIO
-from datetime import datetime
-from typing import Optional, Tuple, List, Dict, Any
+import matplotlib matplotlib.use('Agg') import matplotlib.pyplot as plt import numpy as np import pandas as pd import requests import yfinance as yf from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update from telegram.constants import ChatAction, ParseMode from telegram.ext import ( Application, ApplicationBuilder, CallbackContext, CommandHandler, ContextTypes, MessageHandler, filters, )
 
-import numpy as np
-import pandas as pd
-import requests
-import yfinance as yf
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+try: import websocket except Exception: websocket = None
 
-try:
-    from websocket import WebSocketApp
-except Exception:
-    WebSocketApp = None
+=========================
 
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+Configuration
 
-# ------------------------------------------------------------------
-# Configuration
-# ------------------------------------------------------------------
+=========================
 
-logging.basicConfig(
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    level=logging.INFO
-)
-logger = logging.getLogger("BitsureTeddy")
+BOT_NAME = os.getenv('BOT_NAME', 'Bitsure Teddy') TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN', '').strip() FCS_API_KEY = os.getenv('FCS_API_KEY', '').strip() REALMARKET_API_KEY = os.getenv('REALMARKET_API_KEY', '').strip() REALMARKET_WS_URL = os.getenv('REALMARKET_WS_URL', '').strip() FCS_BASE_URL = os.getenv('FCS_BASE_URL', 'https://fcsapi.com/api-v3').strip() COINGECKO_BASE_URL = os.getenv('COINGECKO_BASE_URL', 'https://api.coingecko.com/api/v3').strip() YAHOO_MAX_PERIOD = os.getenv('YAHOO_MAX_PERIOD', '2mo') ADMIN_ID = int(os.getenv('ADMIN_TELEGRAM_ID', '8376348929')) DATA_DIR = Path(os.getenv('DATA_DIR', '/data')) DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-FCS_API_KEY = os.environ.get("FCS_API_KEY")
-REALMARKET_API_KEY = os.environ.get("REALMARKET_API_KEY")
-FCS_BASE_URL = "https://fcsapi.com/api-v4"
+USERS_FILE = DATA_DIR / 'users.json' WATCHLIST_FILE = DATA_DIR / 'watchlists.json' ALERTS_FILE = DATA_DIR / 'alerts.json' SETTINGS_FILE = DATA_DIR / 'settings.json' USAGE_FILE = DATA_DIR / 'usage.json' CACHE_FILE = DATA_DIR / 'cache.json' STATS_FILE = DATA_DIR / 'stats.json'
 
-HISTORY_PERIOD = "2mo"
-HISTORY_INTERVAL = "1d"
-REALTIME_FRESH_SECONDS = 120
-PRICE_CACHE_TTL = 15
-HISTORY_CACHE_TTL = 300
-MAX_WEBSOCKET_RETRY_DELAY = 30
+logging.basicConfig( format='%(asctime)s %(levelname)s %(name)s %(message)s', level=logging.INFO, ) logger = logging.getLogger('bitsure-teddy')
 
-ADMIN_IDS = {8376348929}
+=========================
 
-COMMON_CRYPTO_BASES = {"BTC", "ETH", "XRP", "LTC", "BCH", "ADA", "SOL", "DOGE", "AVAX", "LINK", "MATIC"}
-COMMON_FOREX_QUOTES = {"USD", "JPY", "EUR", "GBP", "CHF", "CAD", "AUD", "NZD", "BIF"}
-COMMODITY_CODES = {"XAUUSD", "XAGUSD", "WTI", "BRENT", "OIL", "USOIL", "UKOIL"}
+Helpers
 
-# ------------------------------------------------------------------
-# Global State
-# ------------------------------------------------------------------
+=========================
 
-realtime_prices: Dict[str, Dict[str, Any]] = {}
-realtime_lock = threading.Lock()
-_price_cache: Dict[str, Dict[str, Any]] = {}
-_history_cache: Dict[str, Dict[str, Any]] = {}
-_started_ws_symbols: set = set()
-_ws_lock = threading.Lock()
+def now_ts() -> float: return time.time()
 
-# ------------------------------------------------------------------
-# Utilities
-# ------------------------------------------------------------------
+def utc_now_str() -> str: return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
-def now_ts() -> float:
-    return time.time()
+def safe_float(x: Any) -> Optional[float]: try: if x is None: return None v = float(x) if math.isnan(v) or math.isinf(v): return None return v except Exception: return None
 
-def clean_symbol(raw: str) -> str:
-    return re.sub(r"\s+", "", raw.strip().upper())
+def load_json(path: Path, default): try: if not path.exists(): return default with open(path, 'r', encoding='utf-8') as f: return json.load(f) except Exception: return default
 
-def safe_float(val: Any) -> Optional[float]:
+def save_json(path: Path, data) -> None: tmp = path.with_suffix('.tmp') with open(tmp, 'w', encoding='utf-8') as f: json.dump(data, f, ensure_ascii=False, indent=2) tmp.replace(path)
+
+def ensure_dict_file(path: Path) -> Dict[str, Any]: data = load_json(path, {}) if not isinstance(data, dict): data = {} return data
+
+def normalize_symbol(symbol: str) -> str: return symbol.strip().upper().replace(' ', '')
+
+def day_key() -> str: return datetime.now(timezone.utc).strftime('%Y-%m-%d')
+
+def start_of_day_ts() -> float: dt = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) return dt.timestamp()
+
+=========================
+
+Persistent state
+
+=========================
+
+state_lock = threading.Lock() cache_lock = threading.Lock() ws_lock = threading.Lock()
+
+USERS = ensure_dict_file(USERS_FILE) WATCHLISTS = ensure_dict_file(WATCHLIST_FILE) ALERTS = load_json(ALERTS_FILE, []) if not isinstance(ALERTS, list): ALERTS = [] SETTINGS = ensure_dict_file(SETTINGS_FILE) USAGE = ensure_dict_file(USAGE_FILE) CACHE = load_json(CACHE_FILE, {}) if not isinstance(CACHE, dict): CACHE = {} STATS = ensure_dict_file(STATS_FILE) if 'requests_total' not in STATS: STATS['requests_total'] = 0 if 'signals' not in STATS: STATS['signals'] = {'BUY': 0, 'SELL': 0, 'WAIT': 0}
+
+DEFAULT_USER_SETTINGS = { 'timeframe': '1d', 'risk': 'medium', 'language': 'en', 'premium': False, }
+
+FREE_DAILY_LIMIT = 10
+
+=========================
+
+Market data providers
+
+=========================
+
+@dataclass class MarketSnapshot: symbol: str price: Optional[float] = None bid: Optional[float] = None ask: Optional[float] = None source: str = 'unknown' timestamp: float = 0.0 extra: Dict[str, Any] = None
+
+def __post_init__(self):
+    if self.extra is None:
+        self.extra = {}
+
+class RealMarketCache: def init(self): self.prices: Dict[str, MarketSnapshot] = {} self.last_message: Dict[str, Any] = {} self.connected = False self.last_update = 0.0 self.ws = None
+
+def update(self, symbol: str, price: Optional[float], bid: Optional[float], ask: Optional[float], source='realmarket', extra=None):
+    with ws_lock:
+        self.prices[symbol] = MarketSnapshot(
+            symbol=symbol,
+            price=price,
+            bid=bid,
+            ask=ask,
+            source=source,
+            timestamp=now_ts(),
+            extra=extra or {},
+        )
+        self.last_update = now_ts()
+
+def get(self, symbol: str) -> Optional[MarketSnapshot]:
+    with ws_lock:
+        return self.prices.get(symbol)
+
+REALMARKET = RealMarketCache()
+
+class DataProvider: @staticmethod def get_price(symbol: str) -> MarketSnapshot: symbol = normalize_symbol(symbol) snap = REALMARKET.get(symbol) if snap and snap.price is not None and (now_ts() - snap.timestamp) <= 15: return snap
+
+snap = FCSProvider.get_price(symbol)
+    if snap and snap.price is not None:
+        return snap
+
+    snap = CoinGeckoProvider.get_price(symbol)
+    if snap and snap.price is not None:
+        return snap
+
+    snap = YahooProvider.get_price(symbol)
+    if snap and snap.price is not None:
+        return snap
+
+    return MarketSnapshot(symbol=symbol, source='none', timestamp=now_ts())
+
+@staticmethod
+def get_history(symbol: str, period='2mo', interval='1d') -> pd.DataFrame:
+    symbol = normalize_symbol(symbol)
+    cache_key = f'history:{symbol}:{period}:{interval}'
+    cached = get_cache(cache_key)
+    if cached is not None:
+        return cached
+
+    providers = [FCSProvider.get_history, CoinGeckoProvider.get_history, YahooProvider.get_history]
+    df = pd.DataFrame()
+    for fn in providers:
+        try:
+            df = fn(symbol, period=period, interval=interval)
+            if df is not None and not df.empty:
+                break
+        except Exception as e:
+            logger.info('History provider failed for %s: %s', symbol, e)
+
+    if df is None:
+        df = pd.DataFrame()
+    if not df.empty:
+        set_cache(cache_key, df, ttl=300)
+    return df
+
+class FCSProvider: @staticmethod def headers() -> Dict[str, str]: return {'Authorization': f'Bearer {FCS_API_KEY}'} if FCS_API_KEY else {}
+
+@staticmethod
+def get_price(symbol: str) -> Optional[MarketSnapshot]:
+    if not FCS_API_KEY:
+        return None
+    url = f'{FCS_BASE_URL}/latest'
+    params = {'symbol': symbol}
     try:
-        return float(val) if val and (not isinstance(val, str) or val.strip()) else None
-    except:
+        r = requests.get(url, params=params, headers=FCSProvider.headers(), timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        price = FCSProvider._extract_price(data)
+        bid = safe_float(data.get('bid')) if isinstance(data, dict) else None
+        ask = safe_float(data.get('ask')) if isinstance(data, dict) else None
+        if price is None:
+            return None
+        return MarketSnapshot(symbol=symbol, price=price, bid=bid, ask=ask, source='fcs', timestamp=now_ts(), extra={'raw': data})
+    except Exception as e:
+        logger.info('FCS price failed for %s: %s', symbol, e)
         return None
 
-def is_forex_like(symbol: str) -> bool:
-    s = clean_symbol(symbol).replace("=X", "")
-    return len(s) == 6 and s[:3].isalpha() and s[3:] in COMMON_FOREX_QUOTES
-
-def is_crypto_like(symbol: str) -> bool:
-    s = clean_symbol(symbol).replace("-", "").replace("_", "").replace("USD", "")
-    return s in COMMON_CRYPTO_BASES
-
-def is_commodity_like(symbol: str) -> bool:
-    s = clean_symbol(symbol)
-    return s in COMMODITY_CODES or s.startswith("XAU") or s.startswith("XAG")
-
-def market_class(symbol: str) -> str:
-    if is_forex_like(symbol): return "forex"
-    if is_commodity_like(symbol): return "commodity"
-    if is_crypto_like(symbol): return "crypto"
-    return "stock"
-
-def realmarket_symbol(symbol: str) -> str:
-    return clean_symbol(symbol).replace("=X", "").replace("-", "").replace("/", "")
-
-# ------------------------------------------------------------------
-# Data Sources
-# ------------------------------------------------------------------
-
-def get_fcs_history(symbol: str) -> pd.DataFrame:
-    if not FCS_API_KEY: return pd.DataFrame()
-    params = {"access_key": FCS_API_KEY, "symbol": realmarket_symbol(symbol), "period": "1D"}
-    cls = market_class(symbol)
-    if cls == "commodity": params["type"] = "commodity"
-    elif cls == "crypto": params["type"] = "crypto"
-    elif cls == "forex": params["synthetic"] = "1"
+@staticmethod
+def get_history(symbol: str, period='2mo', interval='1d') -> pd.DataFrame:
+    if not FCS_API_KEY:
+        return pd.DataFrame()
+    url = f'{FCS_BASE_URL}/historical'
+    params = {'symbol': symbol, 'period': period, 'interval': interval}
     try:
-        resp = requests.get(f"{FCS_BASE_URL}/forex/history", params=params, timeout=15)
-        if resp.status_code != 200: return pd.DataFrame()
-        data = resp.json()
-        if data.get("code") != 200: return pd.DataFrame()
-        rows = []
-        for item in data.get("response", []):
-            c = safe_float(item.get("c"))
-            if c:
-                rows.append({
-                    "Open": safe_float(item.get("o")) or c,
-                    "High": safe_float(item.get("h")) or c,
-                    "Low": safe_float(item.get("l")) or c,
-                    "Close": c,
-                    "Volume": 0
-                })
-        return pd.DataFrame(rows).dropna() if rows else pd.DataFrame()
+        r = requests.get(url, params=params, headers=FCSProvider.headers(), timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        rows = data.get('response') if isinstance(data, dict) else None
+        if not rows:
+            return pd.DataFrame()
+        df = pd.DataFrame(rows)
+        return standardize_history_df(df)
     except Exception as e:
-        logger.warning(f"FCS history error: {e}")
+        logger.info('FCS history failed for %s: %s', symbol, e)
         return pd.DataFrame()
 
-def get_yahoo_history(symbol: str) -> pd.DataFrame:
+@staticmethod
+def _extract_price(data: Any) -> Optional[float]:
+    if isinstance(data, dict):
+        for key in ['price', 'close', 'last', 'bid', 'ask']:
+            v = safe_float(data.get(key))
+            if v is not None:
+                return v
+        if 'response' in data and isinstance(data['response'], dict):
+            return FCSProvider._extract_price(data['response'])
+        if 'response' in data and isinstance(data['response'], list) and data['response']:
+            return FCSProvider._extract_price(data['response'][0])
+    return None
+
+class CoinGeckoProvider: SYMBOL_MAP = { 'BTCUSD': 'bitcoin', 'ETHUSD': 'ethereum', 'SOLUSD': 'solana', 'XRPUSD': 'ripple', 'BNBUSD': 'binancecoin', 'ADAUSD': 'cardano', 'DOGEUSD': 'dogecoin', }
+
+@staticmethod
+def _coin_id(symbol: str) -> Optional[str]:
+    s = normalize_symbol(symbol)
+    if s in CoinGeckoProvider.SYMBOL_MAP:
+        return CoinGeckoProvider.SYMBOL_MAP[s]
+    if s.endswith('USD'):
+        base = s[:-3].lower()
+        return base
+    return None
+
+@staticmethod
+def get_price(symbol: str) -> Optional[MarketSnapshot]:
+    coin_id = CoinGeckoProvider._coin_id(symbol)
+    if not coin_id:
+        return None
+    url = f'{COINGECKO_BASE_URL}/simple/price'
+    params = {'ids': coin_id, 'vs_currencies': 'usd'}
     try:
-        ticker = yf.Ticker(symbol)
-        df = ticker.history(period=HISTORY_PERIOD, interval=HISTORY_INTERVAL)
-        if df.empty: return pd.DataFrame()
-        df = df.rename(columns={"Open": "Open", "High": "High", "Low": "Low", "Close": "Close", "Volume": "Volume"})
-        return df[["Open", "High", "Low", "Close", "Volume"]].dropna()
-    except:
+        r = requests.get(url, params=params, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        price = safe_float(data.get(coin_id, {}).get('usd'))
+        if price is None:
+            return None
+        return MarketSnapshot(symbol=symbol, price=price, source='coingecko', timestamp=now_ts(), extra={'coin_id': coin_id})
+    except Exception as e:
+        logger.info('CoinGecko price failed for %s: %s', symbol, e)
+        return None
+
+@staticmethod
+def get_history(symbol: str, period='2mo', interval='1d') -> pd.DataFrame:
+    coin_id = CoinGeckoProvider._coin_id(symbol)
+    if not coin_id:
+        return pd.DataFrame()
+    days = 60 if period == '2mo' else 30
+    try:
+        url = f'{COINGECKO_BASE_URL}/coins/{coin_id}/market_chart'
+        params = {'vs_currency': 'usd', 'days': days, 'interval': 'daily'}
+        r = requests.get(url, params=params, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        prices = data.get('prices', [])
+        if not prices:
+            return pd.DataFrame()
+        df = pd.DataFrame(prices, columns=['timestamp_ms', 'Close'])
+        df['Date'] = pd.to_datetime(df['timestamp_ms'], unit='ms')
+        df = df.drop(columns=['timestamp_ms'])
+        df['Open'] = df['Close']
+        df['High'] = df['Close']
+        df['Low'] = df['Close']
+        df['Volume'] = np.nan
+        return standardize_history_df(df)
+    except Exception as e:
+        logger.info('CoinGecko history failed for %s: %s', symbol, e)
         return pd.DataFrame()
 
-def get_history(symbol: str) -> pd.DataFrame:
-    symbol_clean = clean_symbol(symbol)
-    cached = _history_cache.get(symbol_clean)
-    if cached and now_ts() - cached["ts"] <= HISTORY_CACHE_TTL:
-        return cached["df"].copy()
-    
-    # Essayer FCS d'abord pour forex/commodities/crypto
-    if market_class(symbol_clean) != "stock":
-        df = get_fcs_history(symbol_clean)
-        if not df.empty and len(df) >= 20:
-            _history_cache[symbol_clean] = {"ts": now_ts(), "df": df.copy()}
-            return df
-    
-    # Fallback Yahoo
-    df = get_yahoo_history(symbol_clean)
-    if not df.empty and len(df) >= 20:
-        _history_cache[symbol_clean] = {"ts": now_ts(), "df": df.copy()}
-        return df
-    
+class YahooProvider: @staticmethod def _ticker_candidates(symbol: str) -> List[str]: s = normalize_symbol(symbol) candidates = [s] if not any(ch in s for ch in ['=', '.', '^']): if s.endswith('USD'): base = s[:-3] candidates.extend([f'{base}-USD', f'{base}=X']) elif len(s) <= 6: candidates.extend([f'{s}=X', f'{s}-USD']) if s in ['XAUUSD', 'GOLD']: candidates.append('GC=F') if s in ['XAGUSD', 'SILVER']: candidates.append('SI=F') if s in ['OIL', 'USOIL', 'WTI']: candidates.append('CL=F') return list(dict.fromkeys(candidates))
+
+@staticmethod
+def get_price(symbol: str) -> Optional[MarketSnapshot]:
+    for candidate in YahooProvider._ticker_candidates(symbol):
+        try:
+            t = yf.Ticker(candidate)
+            info = {}
+            try:
+                info = t.fast_info if hasattr(t, 'fast_info') else {}
+            except Exception:
+                info = {}
+            price = None
+            if isinstance(info, dict):
+                for k in ['last_price', 'lastPrice', 'regularMarketPrice']:
+                    price = safe_float(info.get(k))
+                    if price is not None:
+                        break
+            if price is None:
+                hist = t.history(period='1d', interval='1m')
+                if hist is not None and not hist.empty:
+                    price = safe_float(hist['Close'].iloc[-1])
+            if price is not None:
+                return MarketSnapshot(symbol=candidate, price=price, source='yahoo', timestamp=now_ts())
+        except Exception as e:
+            logger.info('Yahoo price failed for %s/%s: %s', symbol, candidate, e)
+            continue
+    return None
+
+@staticmethod
+def get_history(symbol: str, period='2mo', interval='1d') -> pd.DataFrame:
+    for candidate in YahooProvider._ticker_candidates(symbol):
+        try:
+            df = yf.download(candidate, period=period, interval=interval, auto_adjust=False, progress=False, threads=False)
+            if df is not None and not df.empty:
+                df = df.reset_index()
+                return standardize_history_df(df)
+        except Exception as e:
+            logger.info('Yahoo history failed for %s/%s: %s', symbol, candidate, e)
+            continue
     return pd.DataFrame()
 
-def get_fcs_price(symbol: str) -> Optional[float]:
-    if not FCS_API_KEY: return None
-    params = {"access_key": FCS_API_KEY, "symbol": realmarket_symbol(symbol)}
-    cls = market_class(symbol)
-    if cls == "commodity": params["type"] = "commodity"
-    elif cls == "crypto": params["type"] = "crypto"
-    elif cls == "forex": params["synthetic"] = "1"
-    try:
-        resp = requests.get(f"{FCS_BASE_URL}/forex/latest", params=params, timeout=10)
-        if resp.status_code != 200: return None
-        data = resp.json()
-        if data.get("code") != 200: return None
-        for item in data.get("response", []):
-            p = safe_float(item.get("c"))
-            if p: return p
-    except:
-        pass
-    return None
+=========================
 
-def get_yahoo_price(symbol: str) -> Optional[float]:
-    try:
-        ticker = yf.Ticker(symbol)
-        return safe_float(ticker.fast_info.last_price) or safe_float(ticker.history(period="1d")["Close"].iloc[-1])
-    except:
-        return None
+WebSocket ingestion
 
-def get_current_price(symbol: str) -> Tuple[Optional[float], str]:
-    symbol_clean = clean_symbol(symbol)
-    cached = _price_cache.get(symbol_clean)
-    if cached and now_ts() - cached["ts"] <= PRICE_CACHE_TTL:
-        return cached["price"], cached.get("source", "cache")
-    
-    # WebSocket
-    with realtime_lock:
-        data = realtime_prices.get(realmarket_symbol(symbol_clean))
-        if data and now_ts() - data["ts"] <= REALTIME_FRESH_SECONDS:
-            p = data["price"]
-            _price_cache[symbol_clean] = {"ts": now_ts(), "price": p, "source": "real-time"}
-            return p, "real-time"
-    
-    # FCS
-    p = get_fcs_price(symbol_clean)
-    if p:
-        _price_cache[symbol_clean] = {"ts": now_ts(), "price": p, "source": "fcs"}
-        return p, "fcs"
-    
-    # Yahoo
-    p = get_yahoo_price(symbol_clean)
-    if p:
-        _price_cache[symbol_clean] = {"ts": now_ts(), "price": p, "source": "yahoo"}
-        return p, "yahoo"
-    
-    return None, "none"
+=========================
 
-# ------------------------------------------------------------------
-# WebSocket
-# ------------------------------------------------------------------
+class RealMarketWebSocketThread(threading.Thread): def init(self): super().init(daemon=True) self.stop_event = threading.Event()
 
-def start_realtime_feed(symbol: str):
-    if not REALMARKET_API_KEY or WebSocketApp is None: return
-    sym = realmarket_symbol(symbol)
-    with _ws_lock:
-        if sym in _started_ws_symbols: return
-        _started_ws_symbols.add(sym)
-    threading.Thread(target=_ws_worker, args=(sym,), daemon=True).start()
-
-def _ws_worker(symbol: str):
-    delay = 1.0
-    while True:
+def run(self):
+    if websocket is None or not REALMARKET_WS_URL:
+        logger.info('RealMarket WS not configured.')
+        return
+    while not self.stop_event.is_set():
         try:
-            def on_message(ws, msg):
-                try:
-                    data = json.loads(msg)
-                    candle = data[0] if isinstance(data, list) else data
-                    p = safe_float(candle.get("ClosePrice") or candle.get("close") or candle.get("c"))
-                    if p:
-                        with realtime_lock:
-                            realtime_prices[symbol] = {"price": p, "ts": now_ts()}
-                except: pass
-            ws = WebSocketApp(
-                f"wss://api.realmarketapi.com/price?apiKey={REALMARKET_API_KEY}&symbolCode={symbol}&timeFrame=M1",
-                on_message=on_message
+            ws = websocket.WebSocketApp(
+                REALMARKET_WS_URL,
+                on_open=self.on_open,
+                on_message=self.on_message,
+                on_error=self.on_error,
+                on_close=self.on_close,
             )
+            REALMARKET.ws = ws
+            REALMARKET.connected = True
             ws.run_forever(ping_interval=30, ping_timeout=10)
-        except: pass
-        time.sleep(delay)
-        delay = min(delay * 2, MAX_WEBSOCKET_RETRY_DELAY)
+        except Exception as e:
+            logger.exception('WS loop error: %s', e)
+        REALMARKET.connected = False
+        time.sleep(5)
 
-# ------------------------------------------------------------------
-# Indicators
-# ------------------------------------------------------------------
+def on_open(self, ws):
+    logger.info('RealMarket WS connected')
+    if REALMARKET_API_KEY:
+        try:
+            ws.send(json.dumps({'type': 'auth', 'api_key': REALMARKET_API_KEY}))
+        except Exception:
+            pass
+    try:
+        ws.send(json.dumps({'type': 'subscribe', 'channels': ['prices', 'ticks']}))
+    except Exception:
+        pass
 
-def compute_sma(s: pd.Series, w: int) -> pd.Series:
-    return s.rolling(w).mean()
-
-def compute_rsi(s: pd.Series, p: int = 14) -> pd.Series:
-    delta = s.diff()
-    gain = delta.clip(lower=0).ewm(alpha=1/p, adjust=False).mean()
-    loss = (-delta.clip(upper=0)).ewm(alpha=1/p, adjust=False).mean()
-    return 100 - (100 / (1 + gain / loss.replace(0, np.nan)))
-
-def compute_macd(s: pd.Series):
-    e12 = s.ewm(span=12, adjust=False).mean()
-    e26 = s.ewm(span=26, adjust=False).mean()
-    macd = e12 - e26
-    sig = macd.ewm(span=9, adjust=False).mean()
-    return macd, sig, macd - sig
-
-def compute_bollinger(s: pd.Series, w: int = 20):
-    sma = s.rolling(w).mean()
-    std = s.rolling(w).std()
-    return sma + 2*std, sma, sma - 2*std
-
-def detect_divergence(p: pd.Series, r: pd.Series, lb: int = 5) -> Optional[str]:
-    if len(p) < lb: return None
-    pv, rv = p.iloc[-lb:].values, r.iloc[-lb:].values
-    if pv[-1] < pv[0] and rv[-1] > rv[0]: return "bullish"
-    if pv[-1] > pv[0] and rv[-1] < rv[0]: return "bearish"
-    return None
-
-def generate_signal(df: pd.DataFrame) -> Tuple[str, str, Dict[str, Any]]:
-    close = df["Close"]
-    rsi = compute_rsi(close)
-    macd, sig, hist = compute_macd(close)
-    sma20 = compute_sma(close, 20)
-    sma50 = compute_sma(close, 50)
-    upper, mid, lower = compute_bollinger(close)
-    
-    last = close.iloc[-1]
-    last_rsi = rsi.iloc[-1]
-    last_macd, prev_macd = macd.iloc[-1], macd.iloc[-2]
-    last_sig, prev_sig = sig.iloc[-1], sig.iloc[-2]
-    last_hist = hist.iloc[-1]
-    
-    support, resistance = close.tail(50).min(), close.tail(50).max()
-    div = detect_divergence(close, rsi)
-    
-    signal = "ATTENDRE"
-    advice = "📊 No clear signal – wait for better setup"
-    
-    if div == "bullish":
-        signal, advice = "ACHETER", "🔥 Bullish divergence"
-    elif div == "bearish":
-        signal, advice = "VENDRE", "🔥 Bearish divergence"
-    elif last_rsi < 30 and last_hist > 0:
-        signal, advice = "ACHETER", "RSI oversold & MACD turning up"
-    elif last_rsi > 70 and last_hist < 0:
-        signal, advice = "VENDRE", "RSI overbought & MACD turning down"
-    elif last <= support * 1.01 and last_rsi < 40:
-        signal, advice = "ACHETER", "Price near support, RSI low"
-    elif last >= resistance * 0.99 and last_rsi > 60:
-        signal, advice = "VENDRE", "Price near resistance, RSI high"
-    elif prev_macd < prev_sig and last_macd > last_sig:
-        signal, advice = "ACHETER", "MACD bullish crossover"
-    elif prev_macd > prev_sig and last_macd < last_sig:
-        signal, advice = "VENDRE", "MACD bearish crossover"
-    elif last > sma20.iloc[-1] > sma50.iloc[-1] and last_rsi < 50:
-        signal, advice = "ACHETER", "Bullish trend pullback"
-    elif last < sma20.iloc[-1] < sma50.iloc[-1] and last_rsi > 50:
-        signal, advice = "VENDRE", "Bearish trend pullback"
-    
-    details = {
-        "price": last, "rsi": round(last_rsi, 2),
-        "macd": round(last_macd, 4), "signal": round(last_sig, 4),
-        "histogram": round(last_hist, 4),
-        "sma20": round(sma20.iloc[-1], 4), "sma50": round(sma50.iloc[-1], 4),
-        "support": round(support, 4), "resistance": round(resistance, 4)
-    }
-    return signal, advice, details
-
-def generate_chart(df: pd.DataFrame, symbol: str) -> BytesIO:
-    plt.style.use('dark_background')
-    fig, ax = plt.subplots(figsize=(10, 5))
-    close = df["Close"]
-    sma20 = compute_sma(close, 20)
-    sma50 = compute_sma(close, 50)
-    upper, mid, lower = compute_bollinger(close)
-    x = range(len(close))
-    ax.plot(x, close, 'white', linewidth=1.5, label='Price')
-    ax.plot(x, sma20, 'orange', linestyle='--', alpha=0.8, label='SMA20')
-    ax.plot(x, sma50, 'cyan', linestyle='--', alpha=0.8, label='SMA50')
-    ax.plot(x, upper, 'gray', linestyle=':', alpha=0.5)
-    ax.plot(x, lower, 'gray', linestyle=':', alpha=0.5)
-    ax.fill_between(x, lower, upper, color='gray', alpha=0.1)
-    ax.set_title(f"{symbol} – Daily Chart", color='white')
-    ax.set_xlabel("Days ago")
-    ax.legend(loc='upper left')
-    plt.tight_layout()
-    buf = BytesIO()
-    plt.savefig(buf, format='png', dpi=100)
-    buf.seek(0)
-    plt.close()
-    return buf
-
-# ------------------------------------------------------------------
-# Telegram Handlers
-# ------------------------------------------------------------------
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🤖 **Bitsure Teddy**\n/help for commands", parse_mode="Markdown")
-
-async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "**Commands**\n"
-        "/analyse SYMBOL – Full analysis + chart\n"
-        "/price SYMBOL – Real-time price\n"
-        "/trend SYMBOL – Trend direction\n"
-    )
-    await update.message.reply_text(text, parse_mode="Markdown")
-
-async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("❌ /price SYMBOL")
+def on_message(self, ws, message):
+    try:
+        data = json.loads(message)
+    except Exception:
         return
-    symbol = context.args[0].strip()
-    price, source = get_current_price(symbol)
-    if price:
-        await update.message.reply_text(f"💰 {symbol.upper()}: {price:.4f} ({source})")
+    symbol = normalize_symbol(str(data.get('symbol') or data.get('pair') or data.get('ticker') or ''))
+    price = safe_float(data.get('price') or data.get('last') or data.get('close'))
+    bid = safe_float(data.get('bid'))
+    ask = safe_float(data.get('ask'))
+    if symbol and price is not None:
+        REALMARKET.update(symbol, price=price, bid=bid, ask=ask, extra=data)
+
+def on_error(self, ws, error):
+    logger.info('RealMarket WS error: %s', error)
+
+def on_close(self, ws, close_status_code, close_msg):
+    logger.info('RealMarket WS closed: %s %s', close_status_code, close_msg)
+
+=========================
+
+Cache
+
+=========================
+
+def get_cache(key: str): with cache_lock: entry = CACHE.get(key) if not entry: return None if now_ts() > entry.get('expires_at', 0): CACHE.pop(key, None) save_json(CACHE_FILE, CACHE) return None t = entry.get('type') if t == 'dataframe': try: return pd.read_json(entry['value'], orient='split') except Exception: return None return entry.get('value')
+
+def set_cache(key: str, value, ttl: int = 60): with cache_lock: entry = {'expires_at': now_ts() + ttl} if isinstance(value, pd.DataFrame): entry['type'] = 'dataframe' entry['value'] = value.to_json(orient='split', date_format='iso') else: entry['type'] = 'value' entry['value'] = value CACHE[key] = entry save_json(CACHE_FILE, CACHE)
+
+=========================
+
+History normalization
+
+=========================
+
+def standardize_history_df(df: pd.DataFrame) -> pd.DataFrame: if df is None or df.empty: return pd.DataFrame() df = df.copy() cols = {c.lower(): c for c in df.columns}
+
+def getcol(name):
+    return cols.get(name.lower())
+
+rename = {}
+for want in ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']:
+    if getcol(want):
+        rename[getcol(want)] = want
+if rename:
+    df = df.rename(columns=rename)
+
+if 'Date' not in df.columns:
+    for alt in ['Datetime', 'date', 'timestamp', 'Time']:
+        if alt in df.columns:
+            df['Date'] = pd.to_datetime(df[alt])
+            break
+if 'Date' not in df.columns:
+    if isinstance(df.index, pd.DatetimeIndex):
+        df = df.reset_index().rename(columns={'index': 'Date'})
     else:
-        await update.message.reply_text(f"❌ {symbol} not found")
+        df['Date'] = pd.RangeIndex(len(df))
 
-async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("❌ /analyse SYMBOL")
-        return
-    symbol = context.args[0].strip()
-    await update.message.chat.send_action("typing")
-    
-    df = get_history(symbol)
-    if df.empty or len(df) < 20:
-        await update.message.reply_text(f"❌ {symbol} not found or insufficient data")
-        return
-    
-    signal, advice, details = generate_signal(df)
-    live_price, source = get_current_price(symbol)
-    if not live_price:
-        live_price, source = details["price"], "close"
-    
-    msg = (
-        f"📊 **{symbol.upper()}**\n"
-        f"💰 {live_price:.4f} ({source})\n"
-        f"📈 RSI: {details['rsi']}\n"
-        f"📉 MACD: {details['macd']} | Sig: {details['signal']}\n"
-        f"📊 SMA20: {details['sma20']} | SMA50: {details['sma50']}\n"
-        f"🛡️ S: {details['support']} | R: {details['resistance']}\n\n"
-        f"🚦 **{signal}**\n💡 {advice}"
-    )
-    
-    chart = generate_chart(df, symbol)
-    await update.message.reply_photo(chart, caption=msg, parse_mode="Markdown")
+if not np.issubdtype(df['Date'].dtype, np.datetime64):
+    try:
+        df['Date'] = pd.to_datetime(df['Date'])
+    except Exception:
+        pass
 
-async def trend(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args: return
-    symbol = context.args[0].strip()
-    df = get_history(symbol)
-    if df.empty:
-        await update.message.reply_text(f"❌ {symbol} not found")
-        return
-    close = df["Close"]
-    sma20 = compute_sma(close, 20).iloc[-1]
-    sma50 = compute_sma(close, 50).iloc[-1]
-    last = close.iloc[-1]
-    if last > sma20 > sma50:
-        t = "📈 Strong Uptrend"
-    elif last < sma20 < sma50:
-        t = "📉 Strong Downtrend"
-    else:
-        t = "↔️ Neutral"
-    await update.message.reply_text(f"**{symbol}**: {t}", parse_mode="Markdown")
+for c in ['Open', 'High', 'Low', 'Close', 'Volume']:
+    if c not in df.columns:
+        df[c] = np.nan
+    df[c] = pd.to_numeric(df[c], errors='coerce')
 
-async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    msg = f"🆔 `{uid}`"
-    if uid in ADMIN_IDS:
-        msg += "\n👑 Admin"
-    await update.message.reply_text(msg, parse_mode="Markdown")
+df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume']].sort_values('Date').reset_index(drop=True)
+df = df.dropna(subset=['Close'])
+return df
 
-# ------------------------------------------------------------------
-# Main
-# ------------------------------------------------------------------
+=========================
 
-def main():
-    if not TELEGRAM_TOKEN:
-        logger.error("TELEGRAM_TOKEN missing")
-        return
-    
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-    
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
-    app.add_handler(CommandHandler("analyse", analyse))
-    app.add_handler(CommandHandler("price", price))
-    app.add_handler(CommandHandler("trend", trend))
-    app.add_handler(CommandHandler("myid", myid))
-    
-    logger.info("Bitsure Teddy starting...")
-    app.run_polling()
+Indicators (manual)
 
-if __name__ == "__main__":
-    main()
+=========================
+
+def sma(series: pd.Series, period: int) -> pd.Series: return series.rolling(period).mean()
+
+def ema(series: pd.Series, period: int) -> pd.Series: return series.ewm(span=period, adjust=False).mean()
+
+def rsi(series: pd.Series, period: int = 14) -> pd.Series: delta = series.diff() gain = delta.clip(lower=0) loss = -delta.clip(upper=0) avg_gain = gain.ewm(alpha=1 / period, adjust=False).mean() avg_loss = loss.ewm(alpha=1 / period, adjust=False).mean() rs = avg_gain / avg_loss.replace(0, np.nan) out = 100 - (100 / (1 + rs)) return out.fillna(method='bfill').fillna(50)
+
+def macd(series: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> Tuple[pd.Series, pd.Series, pd.Series]: macd_line = ema(series, fast) - ema(series, slow) signal_line = ema(macd_line, signal) hist = macd_line - signal_line return macd_line, signal_line, hist
+
+def bollinger(series: pd.Series, period: int = 20, num_std: float = 2.0) -> Tuple[pd.Series, pd.Series, pd.Series]: mid = sma(series, period) std = series.rolling(period).std() upper = mid + num_std * std lower = mid - num_std * std return mid, upper, lower
+
+def atr(df: pd.DataFrame, period: int = 14) -> pd.Series: high = df['High'] low = df['Low'] close = df['Close'] prev_close = close.shift(1) tr = pd.concat([ high - low, (high - prev_close).abs(), (low - prev_close).abs(), ], axis=1).max(axis=1) return tr.ewm(alpha=1 / period, adjust=False).mean()
+
+def divergence(df: pd.DataFrame, lookback: int = 5) -> str: if len(df) < lookback + 3: return 'none' close = df['Close'].reset_index(drop=True) r = rsi(close, 14).reset_index(drop=True) p0, p1 = close.iloc[-lookback], close.iloc[-1] r0, r1 = r.iloc[-lookback], r.iloc[-1] if p1 < p0 and r1 > r0: return 'bullish' if p1 > p0 and r1 < r0: return 'bearish' return 'none'
+
+def support_resistance(df: pd.DataFrame, lookback: int = 50) -> Tuple[Optional[float], Optional[float]]: tail = df.tail(lookback) if tail.empty: return None, None return safe_float(tail['Low'].min()), safe_float(tail['High'].max())
+
+=========================
+
+Signal engine
+
+=========================
+
+@dataclass class SignalResult: action: str label: str reason: str risk_tip: str teddy_score: int price: Optional[float] support: Optional[float] resistance: Optional[float] metrics: Dict[str, Any]
+
+RISK_TIPS = { 'BUY': '⚠️ Wait for a pullback before buying', 'SELL': '🔻 Selling pressure, downside risk', 'WAIT': '📈 Bounce zone likely', }
+
+def teddy_score(df: pd.DataFrame, action: str, metrics: Dict[str, Any]) -> int: score = 50 r = metrics.get('rsi') hist = metrics.get('macd_hist') trend = metrics.get('trend') div = metrics.get('divergence') price = metrics.get('price') support = metrics.get('support') resistance = metrics.get('resistance')
+
+if r is is not None:
+        if r < 30:
+            score += 15   # survente - haussier
+        elif r > 70:
+            score -= 15   # surachat - baissier
+        elif 40 < r < 60:
+            score += 5    # neutre
+
+    # MACD histogramme
+    if hist is not None:
+        if hist > 0:
+            score += 10
+        else:
+            score -= 10
+
+    # Divergence
+    if div == 'bullish':
+        score += 20
+    elif div == 'bearish':
+        score -= 20
+
+    # Tendance
+    if trend == 'up':
+        score += 10
+    elif trend == 'down':
+        score -= 10
+
+    # Support/Résistance
+    if support and price:
+        if price <= support * 1.02:
+            score += 15
+    if resistance and price:
+        if price >= resistance * 0.98:
+            score -= 15
+
+    # Action suggérée
+    if action == 'BUY':
+        score = max(score, 60)
+    elif action == 'SELL':
+        score = min(score, 40)
+
+    return max(0, min(100, int(score)))
