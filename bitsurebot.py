@@ -24,26 +24,21 @@ from telegram.ext import (
     Application, ApplicationBuilder, CallbackContext, CommandHandler,
     ContextTypes, MessageHandler, filters,
 )
-def main():
-    """Point d'entrée principal du bot"""
-    print("Bitsure Teddy bot starting...")
-    logger.info("Bot starting...")
-    
-    # Créer l'application
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
-    
-    # Ajouter les handlers (à compléter)
-    # application.add_handler(CommandHandler("start", start_command))
-    
-    # Démarrer le bot
-    application.run_polling()
 
-if __name__ == "__main__":
-    main()
 try:
     import websocket
 except Exception:
     websocket = None
+
+# =========================
+# Logging
+# =========================
+
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+    level=logging.INFO,
+)
+logger = logging.getLogger('bitsure-teddy')
 
 # =========================
 # Configuration
@@ -68,12 +63,6 @@ SETTINGS_FILE = DATA_DIR / 'settings.json'
 USAGE_FILE = DATA_DIR / 'usage.json'
 CACHE_FILE = DATA_DIR / 'cache.json'
 STATS_FILE = DATA_DIR / 'stats.json'
-
-logging.basicConfig(
-    format='%(asctime)s %(levelname)s %(name)s %(message)s',
-    level=logging.INFO,
-)
-logger = logging.getLogger('bitsure-teddy')
 
 # =========================
 # Helpers
