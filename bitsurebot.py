@@ -264,6 +264,7 @@ def df_from_yfinance(ticker_symbol: str) -> pd.DataFrame:
     wanted = [c for c in ["Open","High","Low","Close","Volume"] if c in hist.columns]
     return hist[wanted].dropna(subset=["Close"]).reset_index(drop=True)
 def df_from_fcs_history(symbol: str) -> pd.DataFrame:
+    """Fetch historical data from FCS API."""
     if not FCS_API_KEY:
         return pd.DataFrame()
     params = {
@@ -292,7 +293,7 @@ def df_from_fcs_history(symbol: str) -> pd.DataFrame:
             if c is None:
                 continue
             rows.append({
-                "Open": safe_float(item.get("o")),
+                "Open": safe_float(item.get("o")) or c,
                 "High": safe_float(item.get("h")) or c,
                 "Low": safe_float(item.get("l")) or c,
                 "Close": c,
@@ -301,8 +302,10 @@ def df_from_fcs_history(symbol: str) -> pd.DataFrame:
         df = pd.DataFrame(rows)
         return df[["Open","High","Low","Close","Volume"]].dropna(subset=["Close"]).reset_index(drop=True)
     except Exception as e:
-        logger.warning(f"FCS history failed for {symbol}: {e}")
+        logger.warning(f"FCS history failed: {e}")
         return pd.DataFrame()
+
+
 def get_history(symbol: str) -> pd.DataFrame:
     symbol_clean = clean_symbol(symbol)
     cached = _history_cache.get(symbol_clean)
@@ -313,13 +316,17 @@ def get_history(symbol: str) -> pd.DataFrame:
     
     # Try FCS API first for forex and commodities
     if market_class(symbol_clean) in {"forex", "commodity"} and FCS_API_KEY:
-        try:
-            df = df_from_fcs_history(symbol_clean)
-            if not df.empty and len(df) >= 20:
-                _history_cache[symbol_clean] = {"ts": now_ts(), "df": df.copy()}
-                return df
-        except Exception as e:
-            logger.warning(f"FCS history failed: {e}")
+        df = df_from_fcs_history(symbol_clean)
+        if not df.empty and len(df) >= 20:
+            for col in ["Open","High","Low","Close","Volume"]:
+                if col not in df.columns:
+                    df[col] = np.nan
+            df = df[["Open","High","Low","Close","Volume"]].copy()
+            for col in ["Open","High","Low","Close","Volume"]:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            df = df.dropna(subset=["Close"]).reset_index(drop=True)
+            _history_cache[symbol_clean] = {"ts": now_ts(), "df": df.copy()}
+            return df
     
     # Fallback to Yahoo Finance
     for candidate in yahoo_symbol_candidates(symbol_clean):
@@ -343,7 +350,6 @@ def get_history(symbol: str) -> pd.DataFrame:
     
     _history_cache[symbol_clean] = {"ts": now_ts(), "df": df.copy()}
     return df
-
 # ------------------------------------------------------------------
 # Current Price
 # ------------------------------------------------------------------
