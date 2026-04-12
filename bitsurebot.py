@@ -923,7 +923,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/status – Bot & API status\n"
         "/about – About this bot\n"
         "/symbolinfo SYMBOL – Metadata\n"
-    )
+        "/myid – Get your Telegram user ID\n"  # ← ICI, dans le texte
+)
     await update.message.reply_text(text, parse_mode="Markdown")
 
 async def usage_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1536,13 +1537,14 @@ def main():
     app.add_handler(CommandHandler("setlanguage", setlanguage_command))
 
     # Info & Admin
+        # Info & Admin
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("about", about_command))
     app.add_handler(CommandHandler("symbolinfo", symbolinfo_command))
+    app.add_handler(CommandHandler("myid", myid_command))  # ← AJOUTEZ CETTE LIGNE
     app.add_handler(CommandHandler("broadcast", broadcast_command))
     app.add_handler(CommandHandler("reload", reload_command))
     app.add_handler(CommandHandler("stats", stats_command))
-"/myid – Get your Telegram user ID\n"
     app.job_queue.run_repeating(check_alerts_job, interval=30, first=10)
 
     logger.info("Bitsure Teddy v2.3 starting with HOURLY intraday analysis...")
