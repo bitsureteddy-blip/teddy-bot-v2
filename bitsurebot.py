@@ -20,15 +20,16 @@ texts = {
         "wait": "🟡 ATTENDRE",
         "no_signal": "Aucun signal",
         "chart": "📊 Génération du graphique...",
-        "start": "🤖 *Bitsure Teddy – Assistant Trading*\n\nJ'analyse crypto, actions, forex et or.\n\n*Commandes:*\n/analyse BTC-USD\n/price BTC-USD\n/langue",
-        "price_cmd": "💰 *{}* : {}{:.4f}",
+        "start": "🤖 Bitsure Teddy – Assistant Trading\n\nJ'analyse crypto, actions, forex et or en temps réel.\n\nCommandes:\n/analyse BTC-USD – Analyse complète + graphique\n/price BTC-USD – Prix uniquement\n/langue – Changer la langue\n\nExemples:\n/analyse EURUSD=X\n/analyse USDBIF=X (USD → BIF)\n/analyse GC=F (or)\n\n📊 Pas un conseil financier – juste des données.",
+        "price_cmd": "💰 {} : {}{:.4f}",
         "analyzing": "📊 Analyse de {}...",
         "not_found": "❌ Symbole {} introuvable",
-        "lang_changed": "✅ Langue changée pour le français",
-        "advice_wait_pullback": "⚠️ Attendre un retracement",
+        "lang_changed": "✅ Langue changée pour le français !",
+        "lang_prompt": "🌐 Choisis ta langue :",
+        "advice_wait_pullback": "⚠️ Attendre un retracement avant d'acheter",
         "advice_good_entry": "✅ Bon point d'entrée",
-        "advice_sell_pressure": "🔻 Pression vendeuse",
-        "advice_price_high": "⚠️ Prix élevé, risque de baisse",
+        "advice_sell_pressure": "🔻 Pression vendeuse, risque de baisse",
+        "advice_price_high": "⚠️ Prix élevé, risque de correction",
         "advice_bounce": "📈 Zone de rebond probable",
         "advice_observation": "📊 Observation, pas de signal clair",
         "advice_strong_buy": "🔥 Signal FORT d'achat",
@@ -43,15 +44,16 @@ texts = {
         "wait": "🟡 WAIT",
         "no_signal": "No signal",
         "chart": "📊 Generating chart...",
-        "start": "🤖 *Bitsure Teddy – Trading Assistant*\n\nI analyze crypto, stocks, forex, and gold.\n\n*Commands:*\n/analyse BTC-USD\n/price BTC-USD\n/language",
-        "price_cmd": "💰 *{}* : {}{:.4f}",
+        "start": "🤖 Bitsure Teddy – Trading Assistant\n\nI analyze crypto, stocks, forex, and gold in real time.\n\nCommands:\n/analyse BTC-USD – Full analysis + chart\n/price BTC-USD – Price only\n/language – Change language\n\nExamples:\n/analyse EURUSD=X\n/analyse USDBIF=X (USD → BIF)\n/analyse GC=F (gold)\n\n📊 Not financial advice – just data.",
+        "price_cmd": "💰 {} : {}{:.4f}",
         "analyzing": "📊 Analyzing {}...",
         "not_found": "❌ Symbol {} not found",
-        "lang_changed": "✅ Language changed to English",
-        "advice_wait_pullback": "⚠️ Wait for a pullback",
+        "lang_changed": "✅ Language changed to English!",
+        "lang_prompt": "🌐 Choose your language:",
+        "advice_wait_pullback": "⚠️ Wait for a pullback before buying",
         "advice_good_entry": "✅ Good entry point",
-        "advice_sell_pressure": "🔻 Selling pressure",
-        "advice_price_high": "⚠️ Price high, downside risk",
+        "advice_sell_pressure": "🔻 Selling pressure, downside risk",
+        "advice_price_high": "⚠️ Price high, correction risk",
         "advice_bounce": "📈 Bounce zone likely",
         "advice_observation": "📊 No clear signal",
         "advice_strong_buy": "🔥 STRONG BUY signal",
@@ -63,26 +65,29 @@ texts = {
 }
 
 def get_text(user_id, key):
-    lang = user_language.get(user_id, "en")
+    lang = user_language.get(user_id, "fr")
     return texts[lang].get(key, key)
 
 # ================= DEVISES =================
-def get_forex_currency(symbol):
-    symbol_upper = symbol.upper()
-    if symbol_upper.endswith("=X") and len(symbol_upper) >= 6:
-        return symbol_upper[3:6]
-    return None
-
-def get_currency_symbol(symbol):
-    symbol_upper = symbol.upper()
-    if symbol_upper.endswith("-USD"):
+def get_display_currency(symbol):
+    sym = symbol.upper()
+    if sym.endswith("-USD"):
         return "$"
-    if symbol_upper in ["GC=F", "SI=F", "CL=F"]:
+    if sym.endswith("=X") and len(sym) >= 6:
+        base = sym[:3]
+        target = sym[3:6]
+        curr = target if base == "USD" else base
+        symbols = {
+            "EUR": "€", "GBP": "£", "USD": "$", "JPY": "¥",
+            "CHF": "CHF", "CAD": "C$", "AUD": "A$", "NZD": "NZ$",
+            "CNY": "¥", "BIF": "BIF", "RWF": "RWF", "TZS": "TZS"
+        }
+        return symbols.get(curr, curr)
+    if sym in ["GC=F", "SI=F", "CL=F"]:
         return "$"
     return "$"
 
 # ================= INDICATEURS =================
-
 def calculate_rsi(data, period=14):
     delta = data.diff()
     gain = delta.clip(lower=0).rolling(period).mean()
@@ -103,55 +108,37 @@ def calculate_bollinger(data):
     return sma + 2*std, sma, sma - 2*std
 
 # ================= SUPPORT / RÉSISTANCE =================
-
 def calculate_support_resistance(data, lookback=50):
-    close = data['Close'].tail(lookback)
     high = data['High'].tail(lookback)
     low = data['Low'].tail(lookback)
-    
-    resistance = high.max()
-    support = low.min()
-    resistance2 = high.nlargest(2).iloc[-1] if len(high) >= 2 else resistance
-    support2 = low.nsmallest(2).iloc[-1] if len(low) >= 2 else support
-    
-    return {
-        "support": support,
-        "support2": support2,
-        "resistance": resistance,
-        "resistance2": resistance2
-    }
+    return {"support": low.min(), "resistance": high.max()}
 
-# ================= ADVICE INTELLIGENT =================
-
-def generate_smart_advice(trend_up, trend_down, rsi, bb_zone, score, user_id):
-    # Score interprété
+# ================= ADVICE =================
+def generate_advice(trend_up, trend_down, rsi, bb_zone, score, user_id):
     if score >= 6:
         return get_text(user_id, "advice_strong_buy")
-    elif score <= -6:
+    if score <= -6:
         return get_text(user_id, "advice_strong_sell")
-    elif trend_up and rsi > 65:
+    if trend_up and rsi > 65:
         return get_text(user_id, "advice_wait_pullback")
-    elif trend_up and rsi < 40:
+    if trend_up and rsi < 40:
         return get_text(user_id, "advice_good_entry")
-    elif trend_down and rsi > 60:
+    if trend_down and rsi > 60:
         return get_text(user_id, "advice_sell_pressure")
-    elif bb_zone == "haute":
+    if bb_zone == "haute":
         return get_text(user_id, "advice_price_high")
-    elif bb_zone == "basse":
+    if bb_zone == "basse":
         return get_text(user_id, "advice_bounce")
-    else:
-        return get_text(user_id, "advice_observation")
+    return get_text(user_id, "advice_observation")
 
-def get_score_interpretation(score, user_id):
+def get_score_text(score, user_id):
     if score >= 5:
         return get_text(user_id, "score_high")
-    elif score <= -5:
+    if score <= -5:
         return get_text(user_id, "score_low")
-    else:
-        return get_text(user_id, "score_medium")
+    return get_text(user_id, "score_medium")
 
 # ================= ANALYSIS =================
-
 def get_analysis(symbol):
     data = yf.Ticker(symbol).history(period="1mo", interval="1h")
     if data.empty:
@@ -182,19 +169,15 @@ def get_analysis(symbol):
 
     macd_up = macd_val > signal_val
 
-    # ===== SCORE SYSTEM =====
     score = 0
-
     if trend_up:
         score += 2
     elif trend_down:
         score -= 2
-
     if macd_up:
         score += 1
     else:
         score -= 1
-
     if rsi < 30:
         score += 2
     elif rsi < 60:
@@ -203,7 +186,6 @@ def get_analysis(symbol):
         score -= 2
     elif rsi > 65:
         score -= 1
-
     if bb_zone == "basse":
         score += 1
     elif bb_zone == "haute":
@@ -216,8 +198,7 @@ def get_analysis(symbol):
     else:
         signal_key = "wait"
 
-    # Calcul des niveaux SR
-    sr_levels = calculate_support_resistance(data)
+    sr = calculate_support_resistance(data)
 
     return {
         "symbol": symbol,
@@ -231,21 +212,17 @@ def get_analysis(symbol):
         "trend_up": trend_up,
         "trend_down": trend_down,
         "bb_zone": bb_zone,
-        "support": sr_levels["support"],
-        "support2": sr_levels["support2"],
-        "resistance": sr_levels["resistance"],
-        "resistance2": sr_levels["resistance2"],
+        "support": sr["support"],
+        "resistance": sr["resistance"],
         "data": data
     }
 
 # ================= CHART =================
-
 def create_chart(symbol, data):
     df = data.tail(50)
     fig, ax = plt.subplots(figsize=(10, 6))
 
     ax.plot(df.index, df['Close'], label='Price', linewidth=2)
-    
     sma20 = df['Close'].rolling(20).mean()
     sma50 = df['Close'].rolling(50).mean()
 
@@ -266,7 +243,6 @@ def create_chart(symbol, data):
     return buf
 
 # ================= COMMANDES =================
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     await update.message.reply_text(get_text(user_id, "start"), parse_mode='Markdown')
@@ -277,59 +253,45 @@ async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("🌐 *Choisis ta langue / Choose your language:*", parse_mode='Markdown', reply_markup=reply_markup)
+    await update.message.reply_text(get_text(update.effective_user.id, "lang_prompt"), parse_mode='Markdown', reply_markup=reply_markup)
 
 async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
-    
     if query.data == "lang_fr":
         user_language[user_id] = "fr"
         await query.edit_message_text("✅ Langue changée pour le français !")
-    elif query.data == "lang_en":
+    else:
         user_language[user_id] = "en"
         await query.edit_message_text("✅ Language changed to English!")
 
 async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-
     if not context.args:
         await update.message.reply_text("Ex: /analyse BTC-USD")
         return
 
     symbol = context.args[0].upper()
-    
     status_msg = await update.message.reply_text(get_text(user_id, "analyzing").format(symbol), parse_mode='Markdown')
-    
     result = get_analysis(symbol)
     if not result:
         await status_msg.edit_text(get_text(user_id, "not_found").format(symbol))
         return
 
+    currency = get_display_currency(symbol)
     signal = get_text(user_id, result['signal'])
-    advice = generate_smart_advice(result['trend_up'], result['trend_down'], result['rsi'], result['bb_zone'], result['score'], user_id)
-    score_text = get_score_interpretation(result['score'], user_id)
-    
-    # Détection de la devise cible
-    forex_currency = get_forex_currency(symbol)
-    if forex_currency:
-        currency = forex_currency
-    else:
-        currency = get_currency_symbol(symbol)
+    advice = generate_advice(result['trend_up'], result['trend_down'], result['rsi'], result['bb_zone'], result['score'], user_id)
+    score_text = get_score_text(result['score'], user_id)
 
-    # Construction du message avec niveaux SR
     sr_text = ""
-    if result['support'] > 0 and result['resistance'] > 0:
-        sr_text = f"""
-📊 *Niveaux clés :*
-🟢 Support : {currency}{result['support']:.2f}
-🔴 Résistance : {currency}{result['resistance']:.2f}"""
+    if result['support'] > 0 and result['resistance'] > 0 and result['support'] != result['resistance']:
+        sr_text = f"\n📊 *Niveaux clés :*\n🟢 Support : {currency}{result['support']:.2f}\n🔴 Résistance : {currency}{result['resistance']:.2f}"
 
     msg = f"""
 📈 *{result['symbol']}*
-💰 {currency}{result['price']:.2f}
-{sr_text}
+💰 {currency}{result['price']:.2f}{sr_text}
+
 📊 RSI: {result['rsi']:.1f}
 📊 MACD: {result['macd']:.4f}
 
@@ -341,42 +303,30 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 🧠 {advice}
 """
-
     await status_msg.edit_text(msg, parse_mode='Markdown')
-
     await update.message.reply_text(get_text(user_id, "chart"))
     chart = create_chart(symbol, result['data'])
     await update.message.reply_photo(chart)
 
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-
     if not context.args:
         await update.message.reply_text("Ex: /price BTC-USD")
         return
 
     symbol = context.args[0].upper()
-    
     status_msg = await update.message.reply_text(f"💰 *Fetching price for {symbol}...*", parse_mode='Markdown')
-    
     ticker = yf.Ticker(symbol)
     data = ticker.history(period="1d")
     if data.empty:
         await status_msg.edit_text(get_text(user_id, "not_found").format(symbol))
         return
-    
+
     price = data['Close'].iloc[-1]
-    
-    forex_currency = get_forex_currency(symbol)
-    if forex_currency:
-        currency = forex_currency
-    else:
-        currency = get_currency_symbol(symbol)
-    
+    currency = get_display_currency(symbol)
     await status_msg.edit_text(get_text(user_id, "price_cmd").format(symbol, currency, price), parse_mode='Markdown')
 
 # ================= MAIN =================
-
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
@@ -386,6 +336,5 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("language", language))
     app.add_handler(CallbackQueryHandler(language_callback))
 
-    print("🚀 Bitsure Teddy Bot - Version Premium démarrée !")
-    print("👉 Commandes: /analyse, /price, /langue")
+    print("🚀 Bitsure Teddy Bot - Version finale opérationnelle démarrée !")
     app.run_polling()
