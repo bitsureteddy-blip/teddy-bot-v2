@@ -24,7 +24,22 @@ from telegram.ext import (
     Application, ApplicationBuilder, CallbackContext, CommandHandler,
     ContextTypes, MessageHandler, filters,
 )
+def main():
+    """Point d'entrée principal du bot"""
+    print("Bitsure Teddy bot starting...")
+    logger.info("Bot starting...")
+    
+    # Créer l'application
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
+    
+    # Ajouter les handlers (à compléter)
+    # application.add_handler(CommandHandler("start", start_command))
+    
+    # Démarrer le bot
+    application.run_polling()
 
+if __name__ == "__main__":
+    main()
 try:
     import websocket
 except Exception:
