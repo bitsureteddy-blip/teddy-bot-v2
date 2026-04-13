@@ -69,33 +69,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = user.id
     user_mgr.get_user(user_id)
     role = user_mgr.get_role(user_id)
-
-    welcome = (
-        f"🐻 *BIENVENUE SUR BITSURE TEDDY !*\n\n"
-        f"Moi c'est Teddy. Je vous aide à savoir quand acheter ou vendre (Crypto, Or, Euro-Dollar...).\n\n"
-        f"*VOTRE SITUATION ACTUELLE :*\n"
-        f"🔹 Vous êtes en mode *{role.upper()}*\n"
-    )
+    
     if role == "free" and user_mgr.is_trial_valid(user_id):
-        welcome += "🔹 Il vous reste *3 jours* d'essai gratuit pour tout tester.\n"
+        status = "🆓 Essai gratuit (3 jours)"
     elif role == "free":
-        welcome += "🔹 Votre essai gratuit est terminé.\n"
-
-    welcome += (
-        "\n"
-        "*CE QUE VOUS POUVEZ FAIRE GRATUITEMENT :*\n"
-        "✅ Demander le prix : `/price BTCUSD`\n"
-        "✅ Avoir un conseil : `/analyse EURUSD`\n"
-        "✅ 5 conseils par jour\n\n"
-        "*CE QUE VOUS AUREZ EN PAYANT :*\n"
-        "💎 Conseils *illimités* et plus rapides\n"
-        "💎 Le \"Scalping\" (pour les traders très actifs)\n"
-        "💎 Voir plus de pièces en même temps\n\n"
-        "Pour voir les prix, tapez /upgrade\n"
-        "Pour voir toutes les commandes, tapez /help\n\n"
-        "*On commence ? Tapez /price BTCUSD* 👇"
+        status = "🆓 Gratuit (essai terminé)"
+    elif role == "pro":
+        status = "💎 PRO"
+    elif role == "elite":
+        status = "👑 ELITE"
+    else:
+        status = role.upper()
+    
+    text = (
+        f"🐻 *Bitsure Teddy* – Analyse de marché pro\n\n"
+        f"Statut : {status}\n"
+        f"Commandes : /help\n"
+        f"Offres : /upgrade"
     )
-    await update.message.reply_text(welcome, parse_mode=ParseMode.MARKDOWN)
+    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
