@@ -103,7 +103,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "→ Je vous donne uniquement le prix actuel, sans analyse.\n"
         "Exemple : /price EURUSD\n\n"
         "---\n"
-        "⚡ *POUR LES TRADERS ACTIFS (Premium)*\n\n"
+        "⚡ *POUR LES TRADERS ACTIFS \\(Premium\\)*\n\n"
         "/scalp SYMBOLE DURÉE\n"
         "→ Analyse très rapide pour ceux qui veulent agir vite (3, 5, 10 ou 20 secondes).\n"
         "🔒 Réservé aux membres PRO et ELITE.\n"
@@ -125,7 +125,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/clearalerts\n"
         "→ Supprime toutes vos alertes d'un seul coup.\n\n"
         "---\n"
-        "📋 *VOTRE LISTE DE SURVEILLANCE (Watchlist)*\n\n"
+        "📋 *VOTRE LISTE DE SURVEILLANCE \\(Watchlist\\)*\n\n"
         "/watchlist\n"
         "→ Affiche les symboles que vous suivez.\n\n"
         "/addwatch SYMBOLE\n"
@@ -215,29 +215,29 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• *Marchés* : Vous pouvez en suivre 3\n"
         "• *Idéal pour* : Découvrir et essayer.\n\n"
         "---\n"
-        "💪 *PRO (19€/mois)*\n"
+        "💪 *PRO \\(19€/mois\\)*\n"
         "• *Prix* : 19€ par mois\n"
         "• *Conseils* : *ILLIMITÉS*\n"
         "• *Marchés* : Autant que vous voulez\n"
         "• *Fonction* : Débloque le \"/scalp\" (pour les personnes qui aiment agir très vite)\n"
         "• *Idéal pour* : Les traders actifs.\n\n"
         "---\n"
-        "👑 *ÉLITE (49€/mois)*\n"
+        "👑 *ÉLITE \\(49€/mois\\)*\n"
         "• *Prix* : 49€ par mois\n"
         "• *Contient tout ce qu'il y a dans PRO*\n"
         "• *En Plus* : Vous entrez dans notre *Groupe Privé* Telegram où je donne des conseils exclusifs.\n"
         "• *En Plus* : Je réponds à vos questions en *priorité*.\n"
         "• *Idéal pour* : Ceux qui veulent un maximum d'aide.\n\n"
         "---\n"
-        "🚀 *OFFRE SPÉCIALE : LIFETIME (197€ une seule fois)*\n"
+        "🚀 *OFFRE SPÉCIALE : LIFETIME \\(197€ une seule fois\\)*\n"
         "• *Prix* : 197€ (payé *une fois*)\n"
         "• *Avantage* : Vous êtes *ÉLITE À VIE*. Plus jamais de facture.\n"
         "• *Places* : Seulement *50 disponibles*.\n\n"
         "---\n"
         "🇧🇮 *VOUS ÊTES AU BURUNDI ET LE PAIEMENT EST DIFFICILE ?*\n"
-        "Écrivez-moi en privé : @btsr_teddy09\n"
+        "Écrivez\-moi en privé : @btsr_teddy09\n"
         "On trouvera une solution ensemble.\n\n"
-        "Choisissez votre offre en cliquant sur un bouton ci-dessous 👇"
+        "Choisissez votre offre en cliquant sur un bouton ci\-dessous 👇"
     )
     keyboard = [
         [InlineKeyboardButton("💎 PRO – 19€/mois (Stripe bientôt)", callback_data="plan_pro_stripe")],
@@ -248,7 +248,6 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(message_text, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
-
 
 async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
