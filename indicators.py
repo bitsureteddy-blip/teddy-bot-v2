@@ -47,30 +47,22 @@ def support_resistance(high: pd.Series, low: pd.Series, lookback: int = 50) -> T
     return support, resistance
 
 def detect_divergence(close: pd.Series, rsi_series: pd.Series, lookback: int = 5) -> Optional[str]:
-    """
-    Détecte une divergence haussière ou baissière sur les N dernières périodes.
-    Bullish: prix fait plus bas, RSI fait plus haut.
-    Bearish: prix fait plus haut, RSI fait plus bas.
-    Retourne "bullish", "bearish" ou None.
-    """
     if len(close) < lookback + 1 or len(rsi_series) < lookback + 1:
         return None
-    # Prendre les derniers points
     price_segment = close.iloc[-lookback-1:]
     rsi_segment = rsi_series.iloc[-lookback-1:]
 
-    price_min_idx = price_segment.idxmin()
-    price_max_idx = price_segment.idxmax()
-    rsi_min_idx = rsi_segment.idxmin()
-    rsi_max_idx = rsi_segment.idxmax()
+    price_min_pos = price_segment.argmin()
+    price_max_pos = price_segment.argmax()
+    rsi_min_pos = rsi_segment.argmin()
+    rsi_max_pos = rsi_segment.argmax()
 
     # Bullish: prix fait un plus bas récent, RSI fait un plus haut
-    if price_min_idx == price_segment.index[-1] and rsi_min_idx != price_min_idx:
-        # Vérifier que RSI est plus haut que précédent bas
-        if rsi_segment.iloc[-1] > rsi_segment.iloc[rsi_min_idx]:
+    if price_min_pos == len(price_segment) - 1 and rsi_min_pos != price_min_pos:
+        if rsi_segment.iloc[-1] > rsi_segment.iloc[rsi_min_pos]:
             return "bullish"
     # Bearish: prix fait un plus haut récent, RSI fait un plus bas
-    if price_max_idx == price_segment.index[-1] and rsi_max_idx != price_max_idx:
-        if rsi_segment.iloc[-1] < rsi_segment.iloc[rsi_max_idx]:
+    if price_max_pos == len(price_segment) - 1 and rsi_max_pos != price_max_pos:
+        if rsi_segment.iloc[-1] < rsi_segment.iloc[rsi_max_pos]:
             return "bearish"
     return None
