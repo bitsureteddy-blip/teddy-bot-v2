@@ -92,162 +92,66 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
-        "🧸 *BITSURE TEDDY – GUIDE DES COMMANDES*\n\n"
-        "Voici la liste complète de ce que vous pouvez me demander.\n\n"
-        "---\n"
-        "🔍 *ANALYSE ET PRIX*\n\n"
-        "/analyse SYMBOLE\n"
-        "→ Je regarde le marché et je vous donne un conseil (ACHETER, VENDRE ou ATTENDRE) avec un graphique.\n"
-        "Exemple : /analyse BTCUSD\n\n"
-        "/price SYMBOLE\n"
-        "→ Je vous donne uniquement le prix actuel, sans analyse.\n"
-        "Exemple : /price EURUSD\n\n"
-        "---\n"
-        "⚡ *POUR LES TRADERS ACTIFS \\(Premium\\)*\n\n"
-        "/scalp SYMBOLE DURÉE\n"
-        "→ Analyse très rapide pour ceux qui veulent agir vite (3, 5, 10 ou 20 secondes).\n"
-        "🔒 Réservé aux membres PRO et ELITE.\n"
-        "Exemple : /scalp BTCUSD 5\n\n"
-        "/tick SYMBOLE\n"
-        "→ Le tout dernier prix reçu pour ce symbole.\n\n"
-        "/spread SYMBOLE\n"
-        "→ La différence entre le prix d'achat (ask) et le prix de vente (bid).\n\n"
-        "---\n"
-        "🚨 *ALERTES DE PRIX*\n\n"
-        "/alert SYMBOLE above/below PRIX\n"
-        "→ Je vous préviens quand le prix passe au‑dessus (above) ou en‑dessous (below) d'un certain niveau.\n"
-        "Exemple : /alert BTCUSD above 90000\n\n"
-        "/alerts\n"
-        "→ Je vous montre toutes vos alertes actives.\n\n"
-        "/delalert ID\n"
-        "→ Supprime une alerte (l'ID est visible dans /alerts).\n"
-        "Exemple : /delalert 2\n\n"
-        "/clearalerts\n"
-        "→ Supprime toutes vos alertes d'un seul coup.\n\n"
-        "---\n"
-        "📋 *VOTRE LISTE DE SURVEILLANCE \\(Watchlist\\)*\n\n"
-        "/watchlist\n"
-        "→ Affiche les symboles que vous suivez.\n\n"
-        "/addwatch SYMBOLE\n"
-        "→ Ajoute un symbole à votre liste.\n"
-        "Exemple : /addwatch XAUUSD\n\n"
-        "/removewatch SYMBOLE\n"
-        "→ Retire un symbole de votre liste.\n\n"
-        "/scan\n"
-        "→ Analyse rapidement tous les symboles de votre watchlist et donne un avis pour chacun.\n\n"
-        "---\n"
-        "📈 *ANALYSES COMPLÉMENTAIRES*\n\n"
-        "/trend SYMBOLE\n"
-        "→ Indique si la tendance est haussière (ça monte), baissière (ça descend) ou neutre.\n\n"
-        "/volatility SYMBOLE\n"
-        "→ Mesure à quel point le prix bouge beaucoup (volatilité).\n\n"
-        "/correlation SYMBOLE1 SYMBOLE2\n"
-        "→ Vérifie si deux symboles ont tendance à bouger ensemble ou en sens opposé.\n"
-        "Exemple : /correlation BTCUSD ETHUSD\n\n"
-        "/levels SYMBOLE\n"
-        "→ Affiche les niveaux de support (plancher) et de résistance (plafond) importants.\n\n"
-        "---\n"
-        "⚙️ *VOS PARAMÈTRES PERSONNELS*\n\n"
-        "/settings\n"
-        "→ Voir vos réglages actuels (timeframe, risque, langue).\n\n"
-        "/settimeframe TF\n"
-        "→ Change le timeframe par défaut (1h, 4h ou 1d).\n"
-        "Exemple : /settimeframe 4h\n\n"
-        "/setrisk PROFIL\n"
-        "→ Définit votre profil de risque (low = prudent, medium = équilibré, high = agressif).\n"
-        "Exemple : /setrisk medium\n\n"
-        "/setlanguage LANG\n"
-        "→ Change la langue (en = anglais, fr = français).\n"
-        "Exemple : /setlanguage fr\n\n"
-        "/usage\n"
-        "→ Affiche combien de requêtes gratuites il vous reste aujourd'hui.\n\n"
-        "---\n"
-        "ℹ️ *INFORMATIONS ET AIDE*\n\n"
-        "/status\n"
-        "→ Vérifie si le bot fonctionne bien.\n\n"
-        "/about\n"
-        "→ Informations sur la version du bot.\n\n"
-        "/symbolinfo SYMBOLE\n"
-        "→ Donne des détails sur un symbole (type de marché, etc.).\n\n"
-        "/myid\n"
-        "→ Affiche votre identifiant Telegram (utile pour contacter l'administrateur).\n\n"
-        "/upgrade\n"
-        "→ Découvrez les offres payantes (PRO, ELITE, LIFETIME) et ce qu'elles apportent.\n\n"
-        "/support\n"
-        "→ Besoin d'aide ? Cette commande vous explique comment contacter l'administrateur.\n\n"
-        "/symboles\n"
-        "→ Affiche une liste de symboles populaires pour vous aider à démarrer.\n"
+        "🧸 *Commandes disponibles*\n\n"
+        "/analyse SYMBOLE – Analyse technique complète\n"
+        "/price SYMBOLE – Prix temps réel\n"
+        "/scalp SYMBOLE DURÉE – Micro‑analyse (Premium)\n"
+        "/tick SYMBOLE – Dernier tick\n"
+        "/spread SYMBOLE – Spread bid/ask\n"
+        "/alert SYMBOLE above/below PRIX – Créer une alerte\n"
+        "/alerts – Lister vos alertes\n"
+        "/delalert ID – Supprimer une alerte\n"
+        "/clearalerts – Supprimer toutes les alertes\n"
+        "/watchlist – Voir votre watchlist\n"
+        "/addwatch SYMBOLE – Ajouter un symbole\n"
+        "/removewatch SYMBOLE – Retirer un symbole\n"
+        "/scan – Scanner votre watchlist\n"
+        "/trend SYMBOLE – Tendance globale\n"
+        "/volatility SYMBOLE – Volatilité\n"
+        "/correlation SYMBOLE1 SYMBOLE2 – Corrélation 30j\n"
+        "/levels SYMBOLE – Supports/résistances\n"
+        "/settings – Voir vos paramètres\n"
+        "/settimeframe TF – 1h,4h,1d\n"
+        "/setrisk PROFIL – low, medium, high\n"
+        "/setlanguage LANG – en/fr\n"
+        "/usage – Requêtes restantes\n"
+        "/status – État du bot\n"
+        "/about – Version et crédits\n"
+        "/symbolinfo SYMBOLE – Infos symbole\n"
+        "/myid – Obtenir votre ID Telegram\n"
+        "/upgrade – Passer à l'offre Premium\n"
+        "/support – Contacter l'admin\n"
+        "/symboles – Symboles populaires"
     )
     if update.effective_user.id == ADMIN_ID:
-        text += (
-            "\n---\n"
-            "👑 *COMMANDES ADMINISTRATEUR*\n\n"
-            "/broadcast MESSAGE\n"
-            "→ Envoyer un message à tous les utilisateurs du bot.\n\n"
-            "/reload\n"
-            "→ Recharger la configuration du bot.\n\n"
-            "/stats\n"
-            "→ Voir les statistiques d'utilisation.\n\n"
-            "/setrole USER_ID ROLE\n"
-            "→ Changer le rôle d'un utilisateur (free, pro, elite).\n"
-            "Exemple : /setrole 123456789 pro"
-        )
+        text += "\n\n*Admin:*\n/broadcast MESSAGE\n/reload\n/stats\n/setrole USER_ID ROLE"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📞 *Besoin d'aide ou d'un arrangement manuel ?*\n\n"
-        "Contactez l'administrateur : @btsr_teddy09\n"
-        "(Indiquez votre ID Telegram : `" + str(update.effective_user.id) + "`)",
+        "📞 *Besoin d'aide ?*\n\n"
+        "Contactez l'administrateur : @btsr_teddy09",
         parse_mode=ParseMode.MARKDOWN
     )
 
 
 async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message_text = (
-        "💎 *LES OFFRES PREMIUM – EXPLICATIONS SIMPLES*\n\n"
-        "Voici ce que vous apporte chaque niveau. Pas de mots compliqués.\n\n"
-        "---\n"
-        "🆓 *GRATUIT*\n"
-        "• *Prix* : 0€ (Essai 3 jours)\n"
-        "• *Conseils* : 5 par jour\n"
-        "• *Marchés* : Vous pouvez en suivre 3\n"
-        "• *Idéal pour* : Découvrir et essayer.\n\n"
-        "---\n"
-        "💪 *PRO \\(19€/mois\\)*\n"
-        "• *Prix* : 19€ par mois\n"
-        "• *Conseils* : *ILLIMITÉS*\n"
-        "• *Marchés* : Autant que vous voulez\n"
-        "• *Fonction* : Débloque le \"/scalp\" (pour les personnes qui aiment agir très vite)\n"
-        "• *Idéal pour* : Les traders actifs.\n\n"
-        "---\n"
-        "👑 *ÉLITE \\(49€/mois\\)*\n"
-        "• *Prix* : 49€ par mois\n"
-        "• *Contient tout ce qu'il y a dans PRO*\n"
-        "• *En Plus* : Vous entrez dans notre *Groupe Privé* Telegram où je donne des conseils exclusifs.\n"
-        "• *En Plus* : Je réponds à vos questions en *priorité*.\n"
-        "• *Idéal pour* : Ceux qui veulent un maximum d'aide.\n\n"
-        "---\n"
-        "🚀 *OFFRE SPÉCIALE : LIFETIME \\(197€ une seule fois\\)*\n"
-        "• *Prix* : 197€ (payé *une fois*)\n"
-        "• *Avantage* : Vous êtes *ÉLITE À VIE*. Plus jamais de facture.\n"
-        "• *Places* : Seulement *50 disponibles*.\n\n"
-        "---\n"
-        "🇧🇮 *VOUS ÊTES AU BURUNDI ET LE PAIEMENT EST DIFFICILE ?*\n"
-        "Écrivez\-moi en privé : @btsr_teddy09\n"
-        "On trouvera une solution ensemble.\n\n"
-        "Choisissez votre offre en cliquant sur un bouton ci\-dessous 👇"
-    )
     keyboard = [
-        [InlineKeyboardButton("💎 PRO – 19€/mois (Stripe bientôt)", callback_data="plan_pro_stripe")],
-        [InlineKeyboardButton("💎 PRO – 29€/mois (Telegram Stars)", callback_data="plan_pro_stars")],
-        [InlineKeyboardButton("👑 ELITE – 49€/mois (Stripe bientôt)", callback_data="plan_elite_stripe")],
-        [InlineKeyboardButton("👑 ELITE – 79€/mois (Telegram Stars)", callback_data="plan_elite_stars")],
+        [InlineKeyboardButton("💎 PRO – 29€/mois (Stars)", callback_data="plan_pro_stars")],
+        [InlineKeyboardButton("👑 ELITE – 79€/mois (Stars)", callback_data="plan_elite_stars")],
         [InlineKeyboardButton("🚀 LIFETIME – 197€ (Stars)", callback_data="plan_lifetime")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(message_text, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+    await update.message.reply_text(
+        "💳 *Choisissez votre offre :*\n\n"
+        "• PRO : illimité, scalping\n"
+        "• ELITE : PRO + groupe privé\n"
+        "• LIFETIME : ELITE à vie (50 places)",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=reply_markup
+    )
+
 
 async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -261,7 +165,7 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "plan_lifetime":
         await send_invoice(query, "LIFETIME (accès à vie)", 19700, "lifetime")
     else:
-        await query.edit_message_text("ℹ️ Le paiement par Stripe sera disponible prochainement. Utilisez Telegram Stars pour le moment.")
+        await query.edit_message_text("ℹ️ Paiement Stripe bientôt disponible.")
 
 
 async def send_invoice(query, title: str, price_eur: int, payload: str):
@@ -368,56 +272,31 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-# --- Nouvelle commande /symboles ---
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Affiche les symboles les plus utilisés pour aider les débutants"""
     message = (
-        "📊 *SYMBOLES DISPONIBLES – LES PLUS UTILISÉS*\n\n"
-        "Voici des exemples pour vous aider à démarrer.\n\n"
-        "---\n"
-        "🪙 *CRYPTOS*\n"
+        "📊 *SYMBOLES POPULAIRES*\n\n"
+        "🪙 *Cryptos*\n"
         "BTCUSD – Bitcoin\n"
         "ETHUSD – Ethereum\n"
         "XRPUSD – Ripple\n"
-        "SOLUSD – Solana\n"
-        "BNBUSD – Binance Coin\n"
-        "ADAUSD – Cardano\n\n"
-        "---\n"
-        "💱 *FOREX (Devises)*\n"
-        "EURUSD – Euro / Dollar US\n"
-        "GBPUSD – Livre Sterling / Dollar US\n"
-        "USDJPY – Dollar US / Yen Japonais\n"
-        "AUDUSD – Dollar Australien / Dollar US\n"
-        "USDCHF – Dollar US / Franc Suisse\n"
-        "USDCAD – Dollar US / Dollar Canadien\n\n"
-        "---\n"
-        "✨ *MATIÈRES PREMIÈRES*\n"
-        "XAUUSD – Or / Dollar US\n"
-        "XAGUSD – Argent / Dollar US\n"
-        "USOIL – Pétrole Brut WTI\n"
-        "UKOIL – Pétrole Brut Brent\n\n"
-        "---\n"
-        "📈 *ACTIONS POPULAIRES*\n"
+        "SOLUSD – Solana\n\n"
+        "💱 *Forex*\n"
+        "EURUSD – Euro/Dollar\n"
+        "GBPUSD – Livre/Dollar\n"
+        "USDJPY – Dollar/Yen\n\n"
+        "✨ *Matières premières*\n"
+        "XAUUSD – Or\n"
+        "XAGUSD – Argent\n\n"
+        "📈 *Actions*\n"
         "AAPL – Apple\n"
         "TSLA – Tesla\n"
-        "MSFT – Microsoft\n"
-        "AMZN – Amazon\n"
-        "GOOGL – Google\n"
-        "NVDA – NVIDIA\n\n"
-        "---\n"
-        "💡 *Comment utiliser un symbole ?*\n"
-        "Tapez la commande suivie du symbole.\n"
-        "Exemples :\n"
-        "/analyse BTCUSD\n"
-        "/price EURUSD\n"
-        "/trend AAPL\n\n"
-        "Pour voir toutes les commandes : /help"
+        "MSFT – Microsoft\n\n"
+        "💡 Exemple : /analyse BTCUSD"
     )
     await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
 
-# --- Les autres commandes (inchangées) ---
 @check_limit
 async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
