@@ -16,23 +16,16 @@ from config import (
 class SignalEngine:
     @staticmethod
     def analyze(df: pd.DataFrame) -> Dict:
-        """
-        Retourne un dictionnaire avec:
-        - signal: "ACHETER", "VENDRE", "ATTENDRE"
-        - reason: explication
-        - risk_advice: conseil de risque
-        - teddy_score: 0-100
-        - indicators: dict des valeurs actuelles
-        """
         if df.empty or len(df) < SMA_LONG:
-            return {"signal": "ATTENDRE", "reason": "Insufficient data", "risk_advice": "", "teddy_score": 0, "indicators": {}}
+            return {"signal": "ATTENDRE", "reason": "Données insuffisantes", "risk_advice": "", "teddy_score": 0, "indicators": {}}
 
         close = df['Close']
         high = df['High']
         low = df['Low']
 
         # Calcul des indicateurs
-        rsi_val = rsi(close, RSI_PERIOD).iloc[-1]
+        rsi_series = rsi(close, RSI_PERIOD)
+        rsi_val = rsi_series.iloc[-1]
         macd_line, signal_line, hist = macd(close, MACD_FAST, MACD_SLOW, MACD_SIGNAL)
         macd_val = macd_line.iloc[-1]
         signal_val = signal_line.iloc[-1]
@@ -47,75 +40,78 @@ class SignalEngine:
         last_price = close.iloc[-1]
 
         # Divergence
-        divergence = detect_divergence(close, rsi(close, RSI_PERIOD), DIVERGENCE_LOOKBACK)
+        divergence = detect_divergence(close, rsi_series, DIVERGENCE_LOOKBACK)
 
-        # Règles dans l'ordre de priorité
         signal = "ATTENDRE"
         reason = ""
         risk_advice = ""
 
-        # 1. Divergence
+        # 1. Divergence (reste prioritaire)
         if divergence == "bullish":
             signal = "ACHETER"
-            reason = "🔥 Bullish divergence"
-            risk_advice = "✅ Good entry point"
+            reason = "🔥 Divergence haussière"
+            risk_advice = "✅ Point d'entrée intéressant"
         elif divergence == "bearish":
             signal = "VENDRE"
-            reason = "🔥 Bearish divergence"
-            risk_advice = "🔻 Selling pressure, downside risk"
+            reason = "🔥 Divergence baissière"
+            risk_advice = "🔻 Pression vendeuse"
 
-        # 2. RSI extrême + MACD
+        # 2. RSI extrême + MACD (seuils assouplis)
         elif not pd.isna(rsi_val):
-            if rsi_val < 30 and hist_val > 0:
+            if rsi_val < 40 and hist_val > -0.1:  # Moins strict
                 signal = "ACHETER"
-                reason = "RSI oversold + MACD histogram positive"
-                risk_advice = "📈 Bounce zone likely"
-            elif rsi_val > 70 and hist_val < 0:
+                reason = "RSI survendu et MACD se redresse"
+                risk_advice = "📈 Zone de rebond probable"
+            elif rsi_val > 60 and hist_val < 0.1:  # Moins strict
                 signal = "VENDRE"
-                reason = "RSI overbought + MACD histogram negative"
-                risk_advice = "🔻 Selling pressure, downside risk"
+                reason = "RSI suracheté et MACD faiblit"
+                risk_advice = "🔻 Risque de correction"
 
-        # 3. Support / Résistance
+        # 3. Support / Résistance (seuils assouplis)
         elif support and resistance:
-            if last_price <= support * 1.01 and rsi_val < 40:
+            if last_price <= support * 1.02 and rsi_val < 50:
                 signal = "ACHETER"
-                reason = "Price near support + RSI < 40"
-                risk_advice = "📈 Bounce zone likely"
-            elif last_price >= resistance * 0.99 and rsi_val > 60:
+                reason = "Proche support et RSI modéré"
+                risk_advice = "📈 Support solide"
+            elif last_price >= resistance * 0.98 and rsi_val > 50:
                 signal = "VENDRE"
-                reason = "Price near resistance + RSI > 60"
-                risk_advice = "🔻 Selling pressure, downside risk"
+                reason = "Proche résistance et RSI modéré"
+                risk_advice = "🔻 Résistance testée"
 
-        # 4. Croisement MACD (vérifier la veille)
+        # 4. Croisement MACD (inchangé)
         if signal == "ATTENDRE" and len(macd_line) >= 2:
             prev_macd = macd_line.iloc[-2]
             prev_signal = signal_line.iloc[-2]
             if prev_macd < prev_signal and macd_val > signal_val:
                 signal = "ACHETER"
-                reason = "MACD crossed above signal line"
-                risk_advice = "✅ Good entry point"
+                reason = "MACD passe au-dessus du signal"
+                risk_advice = "✅ Tendance haussière"
             elif prev_macd > prev_signal and macd_val < signal_val:
                 signal = "VENDRE"
-                reason = "MACD crossed below signal line"
-                risk_advice = "🔻 Selling pressure, downside risk"
+                reason = "MACD passe sous le signal"
+                risk_advice = "🔻 Tendance baissière"
 
         # 5. Pullback dans la tendance
         if signal == "ATTENDRE":
-            if last_price > sma20 > sma50 and rsi_val < 50:
+            if last_price > sma20 > sma50 and rsi_val < 55:
                 signal = "ACHETER"
-                reason = "Uptrend pullback (price > SMA20 > SMA50, RSI < 50)"
-                risk_advice = "⚠️ Wait for a pullback before buying"
-            elif last_price < sma20 < sma50 and rsi_val > 50:
+                reason = "Pullback dans tendance hausse"
+                risk_advice = "⚠️ Attendre confirmation"
+            elif last_price < sma20 < sma50 and rsi_val > 45:
                 signal = "VENDRE"
-                reason = "Downtrend pullback (price < SMA20 < SMA50, RSI > 50)"
-                risk_advice = "🔻 Selling pressure, downside risk"
+                reason = "Rebond dans tendance baisse"
+                risk_advice = "⚠️ Prudence"
 
-        # Sinon
+        # Si toujours ATTENDRE, on donne une raison utile
         if signal == "ATTENDRE":
-            reason = "📊 No clear signal – wait for better setup"
-            risk_advice = ""
+            if rsi_val > 60:
+                reason = "Marché suracheté, attendre repli"
+            elif rsi_val < 40:
+                reason = "Marché survendu, attendre rebond"
+            else:
+                reason = "Aucun signal clair – phase de consolidation"
 
-        # Calcul du Teddy Score
+        # Teddy Score (inchangé mais peut être amélioré plus tard)
         teddy_score = SignalEngine._compute_teddy_score(
             close, rsi_val, sma20, sma50, support, resistance, last_price,
             macd_val, signal_val, divergence, df['Volume'].iloc[-1] if 'Volume' in df else 0
@@ -142,7 +138,6 @@ class SignalEngine:
             "teddy_score": teddy_score,
             "indicators": indicators
         }
-
     @staticmethod
     def _compute_teddy_score(close, rsi_val, sma20, sma50, support, resistance, price,
                              macd, macd_signal, divergence, volume) -> int:
