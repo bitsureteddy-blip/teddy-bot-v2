@@ -141,7 +141,7 @@ class DataFetcher:
         return None
 
     # --- Recuperation historique ---
-    async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
+       async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
                                   period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
         symbol = normalize_symbol(symbol)
         cache_k = cache_key(symbol, timeframe, period)
@@ -149,6 +149,18 @@ class DataFetcher:
             entry = self.history_cache[cache_k]
             if time.time() - entry["timestamp"] < HISTORY_CACHE_TTL:
                 return entry["data"]
+
+        # Priorité à Yahoo Finance (plus fiable pour l'historique)
+        df = await self._fetch_yahoo_history(symbol, timeframe, period)
+        if df is None:
+            df = await self._fetch_twelvedata_history(symbol, timeframe, period)
+        if df is None and FCS_API_KEY:
+            df = await self._fetch_fcs_history(symbol, timeframe, period)
+
+        if df is not None and not df.empty:
+            self.history_cache[cache_k] = {"data": df, "timestamp": time.time()}
+            return df
+        return None
 
         # Essayer Twelve Data pour l'historique
         df = await self._fetch_twelvedata_history(symbol, timeframe, period)
