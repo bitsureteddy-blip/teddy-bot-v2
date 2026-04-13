@@ -4,6 +4,7 @@ TEXTS = {
     "fr": {
         # ---- Start & Bienvenue ----
         "start": "🐻 *Bitsure Teddy* – Analyse de marché pro\n\nStatut : {status}\nCommandes : /help\nOffres : /upgrade",
+        "start_disclaimer": "\n\n⚠️ *Version Beta – Merci de votre soutien !*\nCe bot est en cours d'amélioration. L'anglais peut contenir des erreurs et les données des actions ne sont pas encore toutes disponibles. Ces points seront corrigés progressivement grâce à vos retours et aux futurs financements. Merci de faire partie de l'aventure Bitsure Teddy ! 🧸",
         "status_free_trial": "🆓 Essai gratuit (3 jours)",
         "status_free_ended": "🆓 Gratuit (essai terminé)",
         "status_pro": "💎 PRO",
@@ -113,19 +114,31 @@ TEXTS = {
         "symboles_list": "📊 *SYMBOLES POPULAIRES*\n\n🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Livre/Dollar\nUSDJPY – Dollar/Yen\n\n✨ *Matières premières*\nXAUUSD – Or\nXAGUSD – Argent\n\n📈 *Actions*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n💡 Exemple : /analyse BTCUSD",
     },
     "en": {
+        # ---- Start & Welcome ----
         "start": "🐻 *Bitsure Teddy* – Professional Market Analysis\n\nStatus: {status}\nCommands: /help\nOffers: /upgrade",
+        "start_disclaimer": "\n\n⚠️ *Beta Version – Thank you for your support!*\nThis bot is a work in progress. English may contain errors and stock data is not fully available yet. These issues will be fixed over time as we secure more funding. Thank you for being part of the Bitsure Teddy journey! 🧸",
         "status_free_trial": "🆓 Free trial (3 days)",
         "status_free_ended": "🆓 Free (trial ended)",
         "status_pro": "💎 PRO",
         "status_elite": "👑 ELITE",
+        
+        # ---- Help ----
         "help_title": "🧸 Available commands:\n\n",
         "help_admin": "\n\nAdmin: /broadcast, /reload, /stats, /setrole",
+        
+        # ---- Support ----
         "support": "📞 *Need help?*\n\nContact admin: @btsr_teddy09",
+        
+        # ---- Upgrade ----
         "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: unlimited, scalping\n• ELITE: PRO + private group\n• LIFETIME: ELITE for life (50 spots)",
         "invoice_title": "Bitsure Teddy Premium",
         "payment_success": "✅ *Payment successful!*\n\nYour account is now *{role}*.\nThank you for supporting Bitsure Teddy! 🧸💸",
         "stripe_soon": "ℹ️ Stripe payment coming soon.",
+        
+        # ---- Premium required ----
         "premium_required": "🔒 *Premium Feature*\n\nThis command is reserved for PRO and ELITE members.\nUse /upgrade to discover our offers.",
+        
+        # ---- Limits & Quotas ----
         "limit_reached": "❌ You have reached your daily request limit. Upgrade to premium for unlimited access.",
         "watchlist_limit": "❌ You have reached the limit of 3 symbols in free mode.\nUpgrade to Premium to add more: /upgrade",
         "watchlist_added": "✅ {symbol} added to your watchlist.",
@@ -134,6 +147,8 @@ TEXTS = {
         "watchlist_scan_empty": "Watchlist empty.",
         "watchlist_scan_result": "📊 *Watchlist scan:*\n{results}",
         "watchlist_show": "📋 *Watchlist:*\n{symbols}",
+        
+        # ---- Alerts ----
         "alert_usage": "Usage: /alert SYMBOL above/below PRICE",
         "alert_invalid_price": "Invalid price.",
         "alert_invalid_cond": "Condition must be 'above' or 'below'.",
@@ -143,6 +158,8 @@ TEXTS = {
         "alert_deleted": "✅ Alert #{id} deleted.",
         "alert_not_found": "❌ Alert not found.",
         "alerts_cleared": "✅ All your alerts have been deleted.",
+        
+        # ---- Analysis & Price ----
         "symbole_invalide": "Invalid symbol.",
         "analyse_usage": "Usage: /analyse SYMBOL",
         "analyse_wait": "🔍 Analyzing {symbol}...",
@@ -150,13 +167,19 @@ TEXTS = {
         "price_usage": "Usage: /price SYMBOL",
         "price_error": "❌ Price not available for {symbol}.",
         "price_format": "*{symbol}*\n💰 Price: {price}\n📊 Bid: {bid} / Ask: {ask}",
+        
+        # ---- Tick / Spread ----
         "tick_usage": "Usage: /tick SYMBOL",
         "tick_none": "❌ No recent tick.",
         "tick_current": "🕒 Last tick {symbol}: {price}",
         "spread_usage": "Usage: /spread SYMBOL",
         "spread_format": "*{symbol}* Spread: {spread}",
         "spread_unavailable": "❌ Spread unavailable.",
+        
+        # ---- Scalping (Premium) ----
         "scalp_dev": "⚡ Scalping in development (Premium).",
+        
+        # ---- Trend & Volatility ----
         "trend_usage": "Usage: /trend SYMBOL",
         "trend_no_data": "No data available.",
         "trend_haussiere": "Bullish",
@@ -168,6 +191,8 @@ TEXTS = {
         "levels_usage": "Usage: /levels SYMBOL",
         "levels_no_data": "No data available.",
         "levels_result": "*{symbol}* Levels:\nSupport: {support}\nResistance: {resistance}",
+        
+        # ---- Settings ----
         "settings_info": "⚙️ *Settings*\nTimeframe: {tf}\nRisk: {risk}\nLanguage: {lang_name}\nRole: {role}\nPremium: {prem}",
         "settimeframe_usage": "Usage: /settimeframe 1h|4h|1d",
         "settimeframe_invalid": "Invalid timeframe.",
@@ -181,6 +206,8 @@ TEXTS = {
         "setlanguage_success_en": "✅ Language set to English.",
         "usage_requests_remaining": "📊 Requests remaining today: {rem}",
         "usage_unlimited": "✅ Premium: unlimited requests.",
+        
+        # ---- Info & Admin ----
         "status_ok": "✅ Bot operational. APIs: Twelve Data, Yahoo, RealMarket.",
         "about": "Teddy Trading Bot v1.0 – Bitsure Teddy\nDeveloped for professional trading.",
         "symbolinfo": "ℹ️ Use /analyse for detailed info.",
@@ -194,6 +221,8 @@ TEXTS = {
         "setrole_invalid_id": "❌ Invalid USER_ID.",
         "setrole_invalid_role": "❌ Invalid role. Use free, pro, or elite.",
         "setrole_success": "✅ User {target_id} role updated: *{role}*",
+        
+        # ---- Popular symbols ----
         "symboles_list": "📊 *POPULAR SYMBOLS*\n\n🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Pound/Dollar\nUSDJPY – Dollar/Yen\n\n✨ *Commodities*\nXAUUSD – Gold\nXAGUSD – Silver\n\n📈 *Stocks*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n💡 Example: /analyse BTCUSD",
     }
 }

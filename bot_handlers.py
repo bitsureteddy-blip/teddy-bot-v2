@@ -70,6 +70,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     user_mgr.get_user(user_id)
     role = user_mgr.get_role(user_id)
+    
+    # Statut de l'utilisateur
     if role == "free" and user_mgr.is_trial_valid(user_id):
         status = get_text(lang, "status_free_trial")
     elif role == "free":
@@ -80,9 +82,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         status = get_text(lang, "status_elite")
     else:
         status = role.upper()
-    text = get_text(lang, "start", status=status)
-    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-
+    
+    welcome = get_text(lang, "start", status=status)
+    disclaimer = get_text(lang, "start_disclaimer")
+    await update.message.reply_text(welcome + disclaimer, parse_mode=ParseMode.MARKDOWN)
+    await update.message.reply_text(welcome + disclaimer, parse_mode=ParseMode.MARKDOWN)
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     text = get_text(lang, "help_title")
