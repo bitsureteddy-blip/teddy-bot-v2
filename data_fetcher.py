@@ -42,7 +42,7 @@ class DataFetcher:
     async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
         
-        # 1. Twelve Data (prioritaire)
+        # 1. Twelve Data (prioritaire, fiable sur Railway)
         price = await self._fetch_twelvedata_price(symbol)
         if price:
             return price
@@ -63,9 +63,10 @@ class DataFetcher:
         if not TWELVEDATA_API_KEY:
             return None
         try:
+            # Adapter le symbole pour Twelve Data
             if symbol.upper() in ["BTCUSD", "ETHUSD", "XRPUSD"]:
                 td_symbol = symbol.replace("USD", "/USD")
-            elif len(symbol) == 6 and symbol.endswith("USD"):
+            elif len(symbol) == 6 and symbol.endswith("USD"):  # Forex
                 td_symbol = symbol[:3] + "/" + symbol[3:]
             else:
                 td_symbol = symbol
@@ -135,7 +136,7 @@ class DataFetcher:
             logger.warning(f"Yahoo Finance error for {symbol}: {e}")
         return None
 
-    # --- Récupération historique (priorité Yahoo) ---
+    # --- Récupération historique (priorité Twelve Data) ---
     async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
                                   period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
         symbol = normalize_symbol(symbol)
@@ -145,10 +146,10 @@ class DataFetcher:
             if time.time() - entry["timestamp"] < HISTORY_CACHE_TTL:
                 return entry["data"]
 
-        # Priorité à Yahoo Finance (plus fiable pour l'historique)
-        df = await self._fetch_yahoo_history(symbol, timeframe, period)
+        # Priorité à Twelve Data (plus fiable sur Railway)
+        df = await self._fetch_twelvedata_history(symbol, timeframe, period)
         if df is None:
-            df = await self._fetch_twelvedata_history(symbol, timeframe, period)
+            df = await self._fetch_yahoo_history(symbol, timeframe, period)
         if df is None and FCS_API_KEY:
             df = await self._fetch_fcs_history(symbol, timeframe, period)
 
@@ -165,10 +166,21 @@ class DataFetcher:
             interval = interval_map.get(timeframe, "1day")
             days = 60 if period == "2mo" else 30
             start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-            if symbol.upper() in ["BTCUSD", "ETHUSD"]:
-                td_symbol = symbol.replace("USD", "/USD")
+            
+            # Conversion intelligente pour Twelve Data
+            symbol_upper = symbol.upper()
+            if symbol_upper in ["BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "ADAUSD", "BNBUSD"]:
+                td_symbol = symbol_upper.replace("USD", "/USD")
+            elif len(symbol_upper) == 6 and symbol_upper.endswith("USD"):
+                # Forex : EURUSD -> EUR/USD
+                td_symbol = symbol_upper[:3] + "/" + symbol_upper[3:]
+            elif symbol_upper in ["XAUUSD", "XAGUSD"]:
+                td_symbol = symbol_upper.replace("USD", "/USD")
+            elif symbol_upper in ["USOIL", "UKOIL"]:
+                td_symbol = symbol_upper
             else:
-                td_symbol = symbol
+                td_symbol = symbol_upper
+                
             url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&start_date={start_date}&apikey={TWELVEDATA_API_KEY}"
             resp = requests.get(url, timeout=15)
             if resp.status_code == 200:
@@ -189,8 +201,10 @@ class DataFetcher:
                     df["Date"] = pd.to_datetime(df["Date"])
                     df.set_index("Date", inplace=True)
                     return df
+            else:
+                logger.warning(f"Twelve Data history error {resp.status_code}: {resp.text[:200]}")
         except Exception as e:
-            logger.warning(f"Twelve Data history error: {e}")
+            logger.warning(f"Twelve Data history exception: {e}")
         return None
 
     async def _fetch_yahoo_history(self, symbol: str, timeframe: str, period: str) -> Optional[pd.DataFrame]:
