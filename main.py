@@ -6,7 +6,7 @@ Point d'entrée principal
 
 import asyncio
 import logging
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, PreCheckoutQueryHandler, MessageHandler, filters
 
 from config import TELEGRAM_TOKEN
 from bot_handlers import (
@@ -14,7 +14,8 @@ from bot_handlers import (
     alert, alerts, delalert, clearalerts, watchlist, addwatch,
     removewatch, scan, trend, volatility, correlation, levels,
     settings, settimeframe, setrisk, setlanguage, usage,
-    status, about, symbolinfo, myid, broadcast, reload_cmd, stats
+    status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
+    upgrade, plan_callback, pre_checkout, successful_payment
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -28,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 async def post_init(application):
     """Initialisation après démarrage du bot"""
-    # Démarrage du WebSocket RealMarket en arrière-plan
     data_fetcher = DataFetcher.get_instance()
     data_fetcher.start_websocket()
 
@@ -84,6 +84,12 @@ def main():
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("reload", reload_cmd))
     app.add_handler(CommandHandler("stats", stats))
+
+    # Premium / Paiement
+    app.add_handler(CommandHandler("upgrade", upgrade))
+    app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
+    app.add_handler(PreCheckoutQueryHandler(pre_checkout))
+    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
 
     logger.info("Teddy Trading Bot started")
     app.run_polling()

@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import io
 import pandas as pd
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
+from telegram.ext import ContextTypes, CallbackQueryHandler, PreCheckoutQueryHandler, MessageHandler, filters
 from telegram.constants import ParseMode
 
 from config import ADMIN_ID, DEFAULT_TIMEFRAME
@@ -34,12 +34,37 @@ def check_limit(func):
         return await func(update, context)
     return wrapper
 
+# --- Décorateur pour les fonctionnalités premium ---
+def premium_required(func):
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        if not user_mgr.can_use_premium_feature(user_id):
+            await update.message.reply_text(
+                "🔒 *Fonctionnalité Premium*\n\n"
+                "Cette commande est réservée aux membres PRO et ELITE.\n"
+                "Utilisez /upgrade pour découvrir nos offres.",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        return await func(update, context)
+    return wrapper
+
 # --- Commandes ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    # Enregistrement automatique de l'utilisateur
+    user_mgr.get_user(user_id)
+    role = user_mgr.get_role(user_id)
+    trial_msg = ""
+    if role == "free" and user_mgr.is_trial_valid(user_id):
+        trial_msg = "\n\n🎁 Vous êtes en période d'essai gratuit de 3 jours."
     await update.message.reply_text(
-        "🐻 *Teddy Trading Bot* – Bitsure Teddy\n\n"
-        "Analyse professionnelle crypto, forex, actions, matières premières.\n"
-        "Commandes: /help",
+        f"🐻 *Teddy Trading Bot* – Bitsure Teddy\n\n"
+        f"Analyse professionnelle crypto, forex, actions, matières premières.\n"
+        f"Votre rôle actuel : *{role.upper()}*{trial_msg}\n\n"
+        f"Commandes: /help\n"
+        f"Offres premium: /upgrade",
         parse_mode=ParseMode.MARKDOWN
     )
 
@@ -48,7 +73,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "*Commandes disponibles :*\n\n"
         "/analyse SYMBOLE – Analyse technique complète\n"
         "/price SYMBOLE – Prix temps réel\n"
-        "/scalp SYMBOLE DURÉE – Micro‑analyse (3,5,10,20s)\n"
+        "/scalp SYMBOLE DURÉE – Micro‑analyse (3,5,10,20s) 🔒 Premium\n"
         "/tick SYMBOLE – Dernier tick\n"
         "/spread SYMBOLE – Spread bid/ask\n"
         "/alert SYMBOLE above/below PRIX – Créer une alerte\n"
@@ -71,11 +96,86 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/status – État du bot\n"
         "/about – Version et crédits\n"
         "/symbolinfo SYMBOLE – Infos symbole\n"
-        "/myid – Obtenir votre ID Telegram"
+        "/myid – Obtenir votre ID Telegram\n"
+        "/upgrade – Passer à l'offre Premium"
     )
     if update.effective_user.id == ADMIN_ID:
         text += "\n\n*Admin:*\n/broadcast MESSAGE\n/reload\n/stats"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+# --- Commande Upgrade (choix du plan) ---
+async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("💎 PRO – 19€/mois (Stripe bientôt)", callback_data="plan_pro_stripe")],
+        [InlineKeyboardButton("💎 PRO – 29€/mois (Telegram Stars)", callback_data="plan_pro_stars")],
+        [InlineKeyboardButton("👑 ELITE – 49€/mois (Stripe bientôt)", callback_data="plan_elite_stripe")],
+        [InlineKeyboardButton("👑 ELITE – 79€/mois (Telegram Stars)", callback_data="plan_elite_stars")],
+        [InlineKeyboardButton("🚀 LIFETIME – 197€ (Stars)", callback_data="plan_lifetime")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "🧸 *Bitsure Teddy – Offres Premium*\n\n"
+        "Choisissez votre plan :\n"
+        "• *PRO* : Scalping, backtesting, timeframes multiples, illimité.\n"
+        "• *ELITE* : PRO + Groupe privé, signaux exclusifs, support prioritaire.\n"
+        "• *LIFETIME* : Accès à vie (offre limitée à 50 places).\n\n"
+        "Les prix en Telegram Stars sont majorés en raison des commissions.",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=reply_markup
+    )
+
+# --- Gestion des callbacks pour les plans ---
+async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+    data = query.data
+
+    if data == "plan_pro_stars":
+        await send_invoice(query, "PRO Mensuel", 2900, "pro_monthly")
+    elif data == "plan_elite_stars":
+        await send_invoice(query, "ELITE Mensuel", 7900, "elite_monthly")
+    elif data == "plan_lifetime":
+        await send_invoice(query, "LIFETIME (accès à vie)", 19700, "lifetime")
+    else:
+        await query.edit_message_text("ℹ️ Le paiement par Stripe sera disponible prochainement. Utilisez Telegram Stars pour le moment.")
+
+async def send_invoice(query, title: str, price_eur: int, payload: str):
+    """price_eur est en centimes d'euro (ex: 2900 = 29€)"""
+    prices = [LabeledPrice(label=title, amount=price_eur)]
+    await query.message.reply_invoice(
+        title="Bitsure Teddy Premium",
+        description=title,
+        payload=payload,
+        provider_token="",  # Vide pour Telegram Stars
+        currency="XTR",
+        prices=prices,
+        need_name=False,
+        need_email=False,
+        need_phone_number=False,
+        is_flexible=False
+    )
+
+# --- Handlers de paiement ---
+async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.pre_checkout_query
+    # Toujours accepter
+    await query.answer(ok=True)
+
+async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    payment = update.message.successful_payment
+    payload = payment.invoice_payload
+    role = "pro" if "pro" in payload else "elite" if "elite" in payload else "pro"
+    if "lifetime" in payload:
+        role = "elite"  # Lifetime donne ELITE à vie
+    user_mgr.set_role(user_id, role)
+    await update.message.reply_text(
+        f"✅ *Paiement réussi !*\n\n"
+        f"Votre compte est maintenant *{role.upper()}*.\n"
+        f"Merci de soutenir Bitsure Teddy ! 🧸💸",
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 @check_limit
 async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -150,9 +250,10 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Prix non disponible pour {symbol}.")
 
 @check_limit
+@premium_required
 async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Implémentation simplifiée : analyse rapide sur timeframe court (pas de données tick réelles)
-    await update.message.reply_text("⚡ Fonctionnalité de scalping en cours de développement.")
+    await update.message.reply_text("⚡ Fonctionnalité de scalping en cours de développement. (Premium)")
 
 @check_limit
 async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -330,9 +431,10 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tf = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
     risk = user_mgr.get_setting(uid, "risk", "medium")
     lang = user_mgr.get_setting(uid, "lang", "en")
-    prem = "✅" if user_mgr.is_premium(uid) else "❌"
+    role = user_mgr.get_role(uid)
+    prem = "✅" if role in ("pro", "elite") else "❌"
     await update.message.reply_text(
-        f"⚙️ *Paramètres*\nTimeframe: {tf}\nRisque: {risk}\nLangue: {lang}\nPremium: {prem}",
+        f"⚙️ *Paramètres*\nTimeframe: {tf}\nRisque: {risk}\nLangue: {lang}\nRôle: {role.upper()}\nPremium: {prem}",
         parse_mode=ParseMode.MARKDOWN
     )
 
@@ -383,7 +485,7 @@ async def usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- Infos & Admin ---
 @check_limit
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("✅ Bot opérationnel. APIs: FCS, CoinGecko, Yahoo.")
+    await update.message.reply_text("✅ Bot opérationnel. APIs: Twelve Data, Yahoo, RealMarket.")
 
 @check_limit
 async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -420,7 +522,6 @@ async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("⛔ Admin only.")
         return
-    # Recharger les configurations (singletons)
     global user_mgr, alert_mgr
     user_mgr = UserManager.get_instance()
     alert_mgr = AlertManager.get_instance()
@@ -431,5 +532,12 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ Admin only.")
         return
     total_users = len(user_mgr.users)
-    premium_users = sum(1 for u in user_mgr.users.values() if u.get("premium"))
-    await update.message.reply_text(f"📊 Statistiques:\nUtilisateurs: {total_users}\nPremium: {premium_users}")
+    pro_users = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
+    elite_users = sum(1 for u in user_mgr.users.values() if u.get("role") == "elite")
+    await update.message.reply_text(
+        f"📊 *Statistiques*\n"
+        f"Utilisateurs: {total_users}\n"
+        f"PRO: {pro_users}\n"
+        f"ELITE: {elite_users}",
+        parse_mode=ParseMode.MARKDOWN
+    )

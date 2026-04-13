@@ -10,9 +10,11 @@ ADMIN_ID = 8376348929
 # --- Clés API ---
 FCS_API_KEY = os.environ.get("FCS_API_KEY", "")
 REALMARKET_API_KEY = os.environ.get("REALMARKET_API_KEY", "")
+TWELVEDATA_API_KEY = os.environ.get("TWELVEDATA_API_KEY", "c7b582eed7b24bff942030a3623c6429")  # Ta clé
 
 # --- Limites utilisateur ---
-FREE_DAILY_REQUESTS = 10
+FREE_DAILY_REQUESTS = 5          # Réduit à 5 requêtes/jour
+TRIAL_DAYS = 3                   # Essai gratuit de 3 jours
 
 # --- Cache ---
 PRICE_CACHE_TTL = 15        # secondes
@@ -42,3 +44,9 @@ USAGE_FILE = f"{DATA_DIR}/usage.json"
 
 # --- WebSocket RealMarket ---
 WS_URL = "wss://api.realmarketapi.com/v1/ws"  # URL à adapter selon doc
+
+# --- Rôles Premium ---
+PREMIUM_ROLES = {
+    "PRO": "pro",
+    "ELITE": "elite"
+}
