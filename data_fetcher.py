@@ -27,6 +27,10 @@ class DataFetcher:
         self.ws_thread = None
         self.ws_running = False
         self.subscribed_symbols = set()
+        self.ws_twelvedata = None
+        self.ws_twelvedata_thread = None
+        self.ws_twelvedata_running = False
+        self.twelvedata_callbacks = {}
 
     @classmethod
     def get_instance(cls):
@@ -35,105 +39,142 @@ class DataFetcher:
         return cls._instance
 
     def start_websocket(self):
-        # Désactivé pour Railway (plan FREE sans WebSocket)
         pass
 
-    # --- Récupération des prix temps réel ---
-    async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
-        symbol = normalize_symbol(symbol)
-        
-        # 1. Twelve Data (prioritaire)
-        price = await self._fetch_twelvedata_price(symbol)
-        if price:
-            return price
-        
-        # 2. RealMarket API
-        price = await self._fetch_realmarket_price(symbol)
-        if price:
-            return price
-        
-        # 3. Yahoo Finance (fallback)
-        price = await self._fetch_yahoo_price(symbol)
-        if price:
-            return price
-        
-        return None
+    # --- WebSocket Twelve Data (Premium) ---
+    def start_twelvedata_websocket(self):
+        if self.ws_twelvedata_running:
+            return
+        self.ws_twelvedata_running = True
+        self.ws_twelvedata_thread = threading.Thread(target=self._run_twelvedata_websocket, daemon=True)
+        self.ws_twelvedata_thread.start()
 
-   async def _fetch_twelvedata_price(self, symbol: str) -> Optional[Dict]:
-    if not TWELVEDATA_API_KEY:
-        return None
-    try:
-        td_symbol = self._to_twelvedata_symbol(symbol)
-        # Utilise l'endpoint "quote" pour obtenir bid/ask réels
-        url = f"https://api.twelvedata.com/quote?symbol={td_symbol}&apikey={TWELVEDATA_API_KEY}"
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            price_str = data.get("close") or data.get("price")
-            bid_str = data.get("bid")
-            ask_str = data.get("ask")
-            if price_str is not None:
-                price = float(price_str)
-                bid = float(bid_str) if bid_str is not None else price
-                ask = float(ask_str) if ask_str is not None else price
-                return {
+    def _run_twelvedata_websocket(self):
+        while self.ws_twelvedata_running:
+            try:
+                ws = websocket.WebSocketApp(
+                    "wss://ws.twelvedata.com/v1/quotes/price",
+                    on_open=self._on_open_twelvedata,
+                    on_message=self._on_message_twelvedata,
+                    on_error=self._on_error_twelvedata,
+                    on_close=self._on_close_twelvedata
+                )
+                self.ws_twelvedata = ws
+                ws.run_forever()
+            except Exception as e:
+                logger.error(f"Twelve Data WebSocket error: {e}")
+            time.sleep(5)
+
+    def _on_open_twelvedata(self, ws):
+        logger.info("Twelve Data WebSocket connected")
+        subscribe_msg = {
+            "action": "subscribe",
+            "params": {
+                "apikey": TWELVEDATA_API_KEY,
+                "symbols": ",".join(self.subscribed_symbols)
+            }
+        }
+        ws.send(json.dumps(subscribe_msg))
+
+    def _on_message_twelvedata(self, ws, message):
+        try:
+            data = json.loads(message)
+            if data.get("event") == "price":
+                symbol = data.get("symbol")
+                price = float(data.get("price", 0))
+                bid = float(data.get("bid", price))
+                ask = float(data.get("ask", price))
+                self.price_cache[symbol] = {
                     "price": price,
                     "bid": bid,
                     "ask": ask,
                     "timestamp": time.time()
                 }
-        else:
-            logger.warning(f"Twelve Data quote error {resp.status_code}: {resp.text[:200]}")
-    except Exception as e:
-        logger.warning(f"Twelve Data quote exception for {symbol}: {e}")
-    return None
-    async def _fetch_realmarket_price(self, symbol: str) -> Optional[Dict]:
-        if not REALMARKET_API_KEY:
+                if symbol in self.twelvedata_callbacks:
+                    for cb in self.twelvedata_callbacks[symbol]:
+                        cb(symbol, price, bid, ask)
+        except Exception as e:
+            logger.error(f"Twelve Data WebSocket message error: {e}")
+
+    def _on_error_twelvedata(self, ws, error):
+        logger.error(f"Twelve Data WebSocket error: {error}")
+
+    def _on_close_twelvedata(self, ws, close_status_code, close_msg):
+        logger.info("Twelve Data WebSocket closed")
+
+    def subscribe_twelvedata(self, symbol: str, callback=None):
+        symbol = normalize_symbol(symbol)
+        self.subscribed_symbols.add(symbol)
+        if callback:
+            if symbol not in self.twelvedata_callbacks:
+                self.twelvedata_callbacks[symbol] = []
+            self.twelvedata_callbacks[symbol].append(callback)
+        if self.ws_twelvedata and self.ws_twelvedata.sock and self.ws_twelvedata.sock.connected:
+            subscribe_msg = {
+                "action": "subscribe",
+                "params": {
+                    "apikey": TWELVEDATA_API_KEY,
+                    "symbols": symbol
+                }
+            }
+            self.ws_twelvedata.send(json.dumps(subscribe_msg))
+
+    # --- Récupération des prix temps réel (REST) ---
+    async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
+        symbol = normalize_symbol(symbol)
+        if symbol in self.price_cache:
+            cache = self.price_cache[symbol]
+            if time.time() - cache["timestamp"] < PRICE_CACHE_TTL:
+                return cache
+        price = await self._fetch_twelvedata_price(symbol)
+        if price:
+            self.price_cache[symbol] = price
+            return price
+        return None
+
+    async def _fetch_twelvedata_price(self, symbol: str) -> Optional[Dict]:
+        if not TWELVEDATA_API_KEY:
             return None
         try:
-            url = f"https://api.realmarketapi.com/api/v1/price?ApiKey={REALMARKET_API_KEY}&SymbolCode={symbol}&timeFrame=M1"
+            td_symbol = self._to_twelvedata_symbol(symbol)
+            url = f"https://api.twelvedata.com/quote?symbol={td_symbol}&apikey={TWELVEDATA_API_KEY}"
             resp = requests.get(url, timeout=10)
             if resp.status_code == 200:
                 data = resp.json()
-                price = data.get("closePrice")
-                if price is not None:
+                price_str = data.get("close") or data.get("price")
+                bid_str = data.get("bid")
+                ask_str = data.get("ask")
+                if price_str is not None:
+                    price = float(price_str)
+                    bid = float(bid_str) if bid_str is not None else price
+                    ask = float(ask_str) if ask_str is not None else price
                     return {
-                        "price": float(price),
-                        "bid": float(data.get("bid", price)),
-                        "ask": float(data.get("ask", price)),
+                        "price": price,
+                        "bid": bid,
+                        "ask": ask,
                         "timestamp": time.time()
                     }
-            else:
-                logger.warning(f"RealMarket price error {resp.status_code}: {resp.text[:200]}")
         except Exception as e:
-            logger.warning(f"RealMarket price exception: {e}")
+            logger.warning(f"Twelve Data quote error: {e}")
         return None
 
-    async def _fetch_yahoo_price(self, symbol: str) -> Optional[Dict]:
-        try:
-            import yfinance as yf
-            if symbol.upper() in ["BTCUSD", "ETHUSD", "XAUUSD"]:
-                ticker_symbol = symbol.replace("USD", "-USD")
-            elif len(symbol) == 6 and symbol.endswith("USD"):
-                ticker_symbol = symbol + "=X"
-            else:
-                ticker_symbol = symbol
-            
-            ticker = yf.Ticker(ticker_symbol)
-            hist = ticker.history(period="1d")
-            if not hist.empty:
-                price = hist['Close'].iloc[-1]
-                return {
-                    "price": float(price),
-                    "bid": float(price),
-                    "ask": float(price),
-                    "timestamp": time.time()
-                }
-        except Exception as e:
-            logger.warning(f"Yahoo price error for {symbol}: {e}")
-        return None
+    def _to_twelvedata_symbol(self, symbol: str) -> str:
+        s = symbol.upper()
+        if s in ["BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "ADAUSD", "BNBUSD"]:
+            return s.replace("USD", "/USD")
+        if len(s) == 6 and s.endswith("USD"):
+            return f"{s[:3]}/{s[3:]}"
+        if s == "XAUUSD":
+            return "XAU/USD"
+        if s == "XAGUSD":
+            return "XAG/USD"
+        if s in ["USOIL", "WTI"]:
+            return "WTI/USD"
+        if s == "UKOIL":
+            return "BRENT/USD"
+        return s
 
-    # --- Récupération historique (priorité Twelve Data) ---
+    # --- Historique (inchangé) ---
     async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
                                   period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
         symbol = normalize_symbol(symbol)
@@ -142,63 +183,25 @@ class DataFetcher:
             entry = self.history_cache[cache_k]
             if time.time() - entry["timestamp"] < HISTORY_CACHE_TTL:
                 return entry["data"]
-
-        # 1. Twelve Data (prioritaire, fonctionne sur Railway)
         df = await self._fetch_twelvedata_history(symbol, timeframe, period)
-        if df is not None and not df.empty:
-            self.history_cache[cache_k] = {"data": df, "timestamp": time.time()}
-            return df
-
-        # 2. FCS API (fallback)
-        if FCS_API_KEY:
+        if df is None and FCS_API_KEY:
             df = await self._fetch_fcs_history(symbol, timeframe, period)
-            if df is not None and not df.empty:
-                self.history_cache[cache_k] = {"data": df, "timestamp": time.time()}
-                return df
-
-        # 3. Yahoo Finance (dernier recours, souvent bloqué sur Railway)
-        df = await self._fetch_yahoo_history(symbol, timeframe, period)
+        if df is None:
+            df = await self._fetch_yahoo_history(symbol, timeframe, period)
         if df is not None and not df.empty:
             self.history_cache[cache_k] = {"data": df, "timestamp": time.time()}
             return df
-
         return None
-
-    def _to_twelvedata_symbol(self, symbol: str) -> str:
-        """Convertit un symbole standard en format Twelve Data (ex: EURUSD -> EUR/USD)"""
-        s = symbol.upper()
-        # Cryptos
-        if s in ["BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "ADAUSD", "BNBUSD"]:
-            return s.replace("USD", "/USD")
-        # Forex (6 lettres finissant par USD)
-        if len(s) == 6 and s.endswith("USD"):
-            return f"{s[:3]}/{s[3:]}"
-        # Matières premières
-        if s == "XAUUSD":
-            return "XAU/USD"
-        if s == "XAGUSD":
-            return "XAG/USD"
-        # Pétrole
-        if s in ["USOIL", "WTI"]:
-            return "WTI/USD"
-        if s == "UKOIL":
-            return "BRENT/USD"
-        # Actions (supposées déjà au format AAPL)
-        return s
 
     async def _fetch_twelvedata_history(self, symbol: str, timeframe: str, period: str) -> Optional[pd.DataFrame]:
         if not TWELVEDATA_API_KEY:
-            logger.warning("Twelve Data API key missing")
             return None
         try:
             interval_map = {"1d": "1day", "1h": "1h", "4h": "4h", "1m": "1min"}
             interval = interval_map.get(timeframe, "1day")
             days = 60 if period == "2mo" else 30
             start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-            
             td_symbol = self._to_twelvedata_symbol(symbol)
-            logger.info(f"Fetching Twelve Data history for {symbol} -> {td_symbol}")
-            
             url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&start_date={start_date}&apikey={TWELVEDATA_API_KEY}"
             resp = requests.get(url, timeout=15)
             if resp.status_code == 200:
@@ -219,12 +222,8 @@ class DataFetcher:
                     df["Date"] = pd.to_datetime(df["Date"])
                     df.set_index("Date", inplace=True)
                     return df
-                else:
-                    logger.warning(f"Twelve Data returned no values for {td_symbol}")
-            else:
-                logger.warning(f"Twelve Data history error {resp.status_code}: {resp.text[:200]}")
         except Exception as e:
-            logger.warning(f"Twelve Data history exception: {e}")
+            logger.warning(f"Twelve Data history error: {e}")
         return None
 
     async def _fetch_yahoo_history(self, symbol: str, timeframe: str, period: str) -> Optional[pd.DataFrame]:

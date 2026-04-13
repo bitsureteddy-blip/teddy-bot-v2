@@ -23,6 +23,11 @@ fetcher = DataFetcher.get_instance()
 user_mgr = UserManager.get_instance()
 alert_mgr = AlertManager.get_instance()
 
+def ensure_twelvedata_ws(user_id: int):
+    """Démarre le WebSocket Twelve Data si l'utilisateur est premium."""
+    if user_mgr.can_use_premium_feature(user_id):
+        fetcher.start_twelvedata_websocket()
+
 def get_user_lang(update: Update) -> str:
     user_id = update.effective_user.id
     return user_mgr.get_setting(user_id, "lang", "fr")
@@ -362,17 +367,14 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @check_limit
 @premium_required
-async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "scalp_dev"))
-
-@check_limit
 async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if not context.args:
         await update.message.reply_text(get_text(lang, "tick_usage"))
         return
-    symbol = context.args[0]
+    symbol = context.args[0].upper()
+    ensure_twelvedata_ws(update.effective_user.id)
+    fetcher.subscribe_twelvedata(symbol)
     price_data = await fetcher.get_realtime_price(symbol)
     if price_data:
         await update.message.reply_text(
@@ -382,12 +384,42 @@ async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(get_text(lang, "tick_none"))
 
 @check_limit
+@premium_required
+async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: /scalp SYMBOLE DURÉE (3,5,10,20)")
+        return
+    symbol = context.args[0].upper()
+    duration = context.args[1]
+    if duration not in ("3", "5", "10", "20"):
+        await update.message.reply_text("Durée invalide. Choisissez 3, 5, 10 ou 20 secondes.")
+        return
+    ensure_twelvedata_ws(update.effective_user.id)
+    fetcher.subscribe_twelvedata(symbol)
+    # Pour l'instant, le scalping réel nécessiterait une analyse sur micro-timeframe.
+    # On renvoie le dernier tick avec un message adapté.
+    price_data = await fetcher.get_realtime_price(symbol)
+    if price_data:
+        await update.message.reply_text(
+            f"⚡ Scalping {symbol} (durée {duration}s)\n"
+            f"Prix actuel : {format_number(price_data['price'])}\n"
+            f"Bid : {format_number(price_data['bid'])} / Ask : {format_number(price_data['ask'])}\n\n"
+            f"🔍 Analyse micro en développement – restez à l'écoute !"
+        )
+    else:
+        await update.message.reply_text("❌ Impossible d'obtenir les données temps réel.")
+
+@check_limit
+@premium_required
 async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if not context.args:
         await update.message.reply_text(get_text(lang, "spread_usage"))
         return
-    symbol = context.args[0]
+    symbol = context.args[0].upper()
+    ensure_twelvedata_ws(update.effective_user.id)
+    fetcher.subscribe_twelvedata(symbol)
     price_data = await fetcher.get_realtime_price(symbol)
     if price_data:
         spread_val = price_data['ask'] - price_data['bid']
