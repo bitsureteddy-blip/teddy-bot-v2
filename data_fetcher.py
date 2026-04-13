@@ -59,30 +59,34 @@ class DataFetcher:
         
         return None
 
-    async def _fetch_twelvedata_price(self, symbol: str) -> Optional[Dict]:
-        if not TWELVEDATA_API_KEY:
-            return None
-        try:
-            td_symbol = self._to_twelvedata_symbol(symbol)
-            url = f"https://api.twelvedata.com/price?symbol={td_symbol}&apikey={TWELVEDATA_API_KEY}"
-            resp = requests.get(url, timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                price_str = data.get("price")
-                if price_str is not None:
-                    price = float(price_str)
-                    return {
-                        "price": price,
-                        "bid": price,
-                        "ask": price,
-                        "timestamp": time.time()
-                    }
-            else:
-                logger.warning(f"Twelve Data price error {resp.status_code}: {resp.text[:200]}")
-        except Exception as e:
-            logger.warning(f"Twelve Data price exception for {symbol}: {e}")
+   async def _fetch_twelvedata_price(self, symbol: str) -> Optional[Dict]:
+    if not TWELVEDATA_API_KEY:
         return None
-
+    try:
+        td_symbol = self._to_twelvedata_symbol(symbol)
+        # Utilise l'endpoint "quote" pour obtenir bid/ask réels
+        url = f"https://api.twelvedata.com/quote?symbol={td_symbol}&apikey={TWELVEDATA_API_KEY}"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            price_str = data.get("close") or data.get("price")
+            bid_str = data.get("bid")
+            ask_str = data.get("ask")
+            if price_str is not None:
+                price = float(price_str)
+                bid = float(bid_str) if bid_str is not None else price
+                ask = float(ask_str) if ask_str is not None else price
+                return {
+                    "price": price,
+                    "bid": bid,
+                    "ask": ask,
+                    "timestamp": time.time()
+                }
+        else:
+            logger.warning(f"Twelve Data quote error {resp.status_code}: {resp.text[:200]}")
+    except Exception as e:
+        logger.warning(f"Twelve Data quote exception for {symbol}: {e}")
+    return None
     async def _fetch_realmarket_price(self, symbol: str) -> Optional[Dict]:
         if not REALMARKET_API_KEY:
             return None
