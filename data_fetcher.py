@@ -42,18 +42,18 @@ class DataFetcher:
     async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
         
-        # 1. Twelve Data (prioritaire, fiable sur Railway)
+        # 1. Twelve Data (prioritaire)
         price = await self._fetch_twelvedata_price(symbol)
         if price:
             return price
         
-        # 2. Yahoo Finance (fallback)
-        price = await self._fetch_yahoo_price(symbol)
+        # 2. RealMarket API
+        price = await self._fetch_realmarket_price(symbol)
         if price:
             return price
         
-        # 3. RealMarket API (dernier recours)
-        price = await self._fetch_realmarket_price(symbol)
+        # 3. Yahoo Finance (fallback)
+        price = await self._fetch_yahoo_price(symbol)
         if price:
             return price
         
@@ -63,14 +63,7 @@ class DataFetcher:
         if not TWELVEDATA_API_KEY:
             return None
         try:
-            # Adapter le symbole pour Twelve Data
-            if symbol.upper() in ["BTCUSD", "ETHUSD", "XRPUSD"]:
-                td_symbol = symbol.replace("USD", "/USD")
-            elif len(symbol) == 6 and symbol.endswith("USD"):  # Forex
-                td_symbol = symbol[:3] + "/" + symbol[3:]
-            else:
-                td_symbol = symbol
-                
+            td_symbol = self._to_twelvedata_symbol(symbol)
             url = f"https://api.twelvedata.com/price?symbol={td_symbol}&apikey={TWELVEDATA_API_KEY}"
             resp = requests.get(url, timeout=10)
             if resp.status_code == 200:
@@ -85,9 +78,9 @@ class DataFetcher:
                         "timestamp": time.time()
                     }
             else:
-                logger.warning(f"Twelve Data API error {resp.status_code}: {resp.text[:200]}")
+                logger.warning(f"Twelve Data price error {resp.status_code}: {resp.text[:200]}")
         except Exception as e:
-            logger.warning(f"Twelve Data error for {symbol}: {e}")
+            logger.warning(f"Twelve Data price exception for {symbol}: {e}")
         return None
 
     async def _fetch_realmarket_price(self, symbol: str) -> Optional[Dict]:
@@ -107,9 +100,9 @@ class DataFetcher:
                         "timestamp": time.time()
                     }
             else:
-                logger.warning(f"RealMarket API error {resp.status_code}: {resp.text[:200]}")
+                logger.warning(f"RealMarket price error {resp.status_code}: {resp.text[:200]}")
         except Exception as e:
-            logger.warning(f"RealMarket error: {e}")
+            logger.warning(f"RealMarket price exception: {e}")
         return None
 
     async def _fetch_yahoo_price(self, symbol: str) -> Optional[Dict]:
@@ -133,7 +126,7 @@ class DataFetcher:
                     "timestamp": time.time()
                 }
         except Exception as e:
-            logger.warning(f"Yahoo Finance error for {symbol}: {e}")
+            logger.warning(f"Yahoo price error for {symbol}: {e}")
         return None
 
     # --- Récupération historique (priorité Twelve Data) ---
@@ -146,20 +139,52 @@ class DataFetcher:
             if time.time() - entry["timestamp"] < HISTORY_CACHE_TTL:
                 return entry["data"]
 
-        # Priorité à Twelve Data (plus fiable sur Railway)
+        # 1. Twelve Data (prioritaire, fonctionne sur Railway)
         df = await self._fetch_twelvedata_history(symbol, timeframe, period)
-        if df is None:
-            df = await self._fetch_yahoo_history(symbol, timeframe, period)
-        if df is None and FCS_API_KEY:
-            df = await self._fetch_fcs_history(symbol, timeframe, period)
-
         if df is not None and not df.empty:
             self.history_cache[cache_k] = {"data": df, "timestamp": time.time()}
             return df
+
+        # 2. FCS API (fallback)
+        if FCS_API_KEY:
+            df = await self._fetch_fcs_history(symbol, timeframe, period)
+            if df is not None and not df.empty:
+                self.history_cache[cache_k] = {"data": df, "timestamp": time.time()}
+                return df
+
+        # 3. Yahoo Finance (dernier recours, souvent bloqué sur Railway)
+        df = await self._fetch_yahoo_history(symbol, timeframe, period)
+        if df is not None and not df.empty:
+            self.history_cache[cache_k] = {"data": df, "timestamp": time.time()}
+            return df
+
         return None
+
+    def _to_twelvedata_symbol(self, symbol: str) -> str:
+        """Convertit un symbole standard en format Twelve Data (ex: EURUSD -> EUR/USD)"""
+        s = symbol.upper()
+        # Cryptos
+        if s in ["BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "ADAUSD", "BNBUSD"]:
+            return s.replace("USD", "/USD")
+        # Forex (6 lettres finissant par USD)
+        if len(s) == 6 and s.endswith("USD"):
+            return f"{s[:3]}/{s[3:]}"
+        # Matières premières
+        if s == "XAUUSD":
+            return "XAU/USD"
+        if s == "XAGUSD":
+            return "XAG/USD"
+        # Pétrole
+        if s in ["USOIL", "WTI"]:
+            return "WTI/USD"
+        if s == "UKOIL":
+            return "BRENT/USD"
+        # Actions (supposées déjà au format AAPL)
+        return s
 
     async def _fetch_twelvedata_history(self, symbol: str, timeframe: str, period: str) -> Optional[pd.DataFrame]:
         if not TWELVEDATA_API_KEY:
+            logger.warning("Twelve Data API key missing")
             return None
         try:
             interval_map = {"1d": "1day", "1h": "1h", "4h": "4h", "1m": "1min"}
@@ -167,20 +192,9 @@ class DataFetcher:
             days = 60 if period == "2mo" else 30
             start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             
-            # Conversion intelligente pour Twelve Data
-            symbol_upper = symbol.upper()
-            if symbol_upper in ["BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "ADAUSD", "BNBUSD"]:
-                td_symbol = symbol_upper.replace("USD", "/USD")
-            elif len(symbol_upper) == 6 and symbol_upper.endswith("USD"):
-                # Forex : EURUSD -> EUR/USD
-                td_symbol = symbol_upper[:3] + "/" + symbol_upper[3:]
-            elif symbol_upper in ["XAUUSD", "XAGUSD"]:
-                td_symbol = symbol_upper.replace("USD", "/USD")
-            elif symbol_upper in ["USOIL", "UKOIL"]:
-                td_symbol = symbol_upper
-            else:
-                td_symbol = symbol_upper
-                
+            td_symbol = self._to_twelvedata_symbol(symbol)
+            logger.info(f"Fetching Twelve Data history for {symbol} -> {td_symbol}")
+            
             url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&start_date={start_date}&apikey={TWELVEDATA_API_KEY}"
             resp = requests.get(url, timeout=15)
             if resp.status_code == 200:
@@ -201,6 +215,8 @@ class DataFetcher:
                     df["Date"] = pd.to_datetime(df["Date"])
                     df.set_index("Date", inplace=True)
                     return df
+                else:
+                    logger.warning(f"Twelve Data returned no values for {td_symbol}")
             else:
                 logger.warning(f"Twelve Data history error {resp.status_code}: {resp.text[:200]}")
         except Exception as e:
