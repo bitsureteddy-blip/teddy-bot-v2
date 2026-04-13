@@ -9,7 +9,8 @@ TEXTS = {
         "status_free_ended": "🆓 Gratuit (essai terminé)",
         "status_pro": "💎 PRO",
         "status_elite": "👑 ELITE",
-        
+        "international_payment_info": "\n\n🌍 *Vous êtes dans un pays où les paiements internationaux sont difficiles ?*\nPas de problème. Contactez l'administrateur pour un arrangement manuel : /support",
+
         # ---- Help ----
         "help_title": "🧸 Commandes disponibles :\n\n",
         "help_admin": "\n\nAdmin : /broadcast, /reload, /stats, /setrole",
@@ -121,7 +122,8 @@ TEXTS = {
         "status_free_ended": "🆓 Free (trial ended)",
         "status_pro": "💎 PRO",
         "status_elite": "👑 ELITE",
-        
+        "international_payment_info": "\n\n🌍 *Are you in a country where international payments are difficult?*\nNo problem. Contact the administrator for a manual arrangement: /support",
+
         # ---- Help ----
         "help_title": "🧸 Available commands:\n\n",
         "help_admin": "\n\nAdmin: /broadcast, /reload, /stats, /setrole",

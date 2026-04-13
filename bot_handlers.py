@@ -63,15 +63,24 @@ async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, rol
         await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode=ParseMode.MARKDOWN)
     except Exception as e:
         logger.warning(f"Impossible de notifier l'admin : {e}")
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
-    lang = get_user_lang(update)
+    
+    # Détection automatique de la langue
+    tg_lang = user.language_code
+    default_lang = "en" if tg_lang and tg_lang.startswith("en") else "fr"
+    
+    current_lang = user_mgr.get_setting(user_id, "lang", None)
+    if current_lang is None:
+        user_mgr.set_setting(user_id, "lang", default_lang)
+        lang = default_lang
+    else:
+        lang = current_lang
+    
     user_mgr.get_user(user_id)
     role = user_mgr.get_role(user_id)
     
-    # Statut de l'utilisateur
     if role == "free" and user_mgr.is_trial_valid(user_id):
         status = get_text(lang, "status_free_trial")
     elif role == "free":
@@ -85,8 +94,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     welcome = get_text(lang, "start", status=status)
     disclaimer = get_text(lang, "start_disclaimer")
-    await update.message.reply_text(welcome + disclaimer, parse_mode=ParseMode.MARKDOWN)
-    await update.message.reply_text(welcome + disclaimer, parse_mode=ParseMode.MARKDOWN)
+    
+    # Message spécial pour les utilisateurs gratuits (paiement manuel)
+    if role == "free":
+        payment_info = get_text(lang, "international_payment_info")
+    else:
+        payment_info = ""
+    
+    await update.message.reply_text(welcome + disclaimer + payment_info, parse_mode=ParseMode.MARKDOWN)
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     text = get_text(lang, "help_title")
