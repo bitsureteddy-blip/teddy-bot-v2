@@ -35,10 +35,10 @@ class DataFetcher:
         return cls._instance
 
     def start_websocket(self):
-        # Desactive pour Railway (plan FREE sans WebSocket)
+        # Désactivé pour Railway (plan FREE sans WebSocket)
         pass
 
-    # --- Recuperation des prix temps reel ---
+    # --- Récupération des prix temps réel ---
     async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
         
@@ -60,18 +60,15 @@ class DataFetcher:
         return None
 
     async def _fetch_twelvedata_price(self, symbol: str) -> Optional[Dict]:
-        """Utilise Twelve Data comme source prioritaire"""
         if not TWELVEDATA_API_KEY:
             return None
         try:
-            # Adapter le symbole pour Twelve Data
             if symbol.upper() in ["BTCUSD", "ETHUSD", "XRPUSD"]:
                 td_symbol = symbol.replace("USD", "/USD")
-            elif len(symbol) == 6 and symbol.endswith("USD"):  # Forex
+            elif len(symbol) == 6 and symbol.endswith("USD"):
                 td_symbol = symbol[:3] + "/" + symbol[3:]
             else:
                 td_symbol = symbol
-                
             url = f"https://api.twelvedata.com/price?symbol={td_symbol}&apikey={TWELVEDATA_API_KEY}"
             resp = requests.get(url, timeout=10)
             if resp.status_code == 200:
@@ -92,7 +89,6 @@ class DataFetcher:
         return None
 
     async def _fetch_realmarket_price(self, symbol: str) -> Optional[Dict]:
-        """Utilise RealMarketAPI comme source secondaire"""
         if not REALMARKET_API_KEY:
             return None
         try:
@@ -115,17 +111,14 @@ class DataFetcher:
         return None
 
     async def _fetch_yahoo_price(self, symbol: str) -> Optional[Dict]:
-        """Utilise Yahoo Finance via l'API yfinance"""
         try:
             import yfinance as yf
-            # Ajouter un suffixe si necessaire
             if symbol.upper() in ["BTCUSD", "ETHUSD", "XAUUSD"]:
                 ticker_symbol = symbol.replace("USD", "-USD")
-            elif len(symbol) == 6 and symbol.endswith("USD"):  # Forex
+            elif len(symbol) == 6 and symbol.endswith("USD"):
                 ticker_symbol = symbol + "=X"
             else:
                 ticker_symbol = symbol
-            
             ticker = yf.Ticker(ticker_symbol)
             hist = ticker.history(period="1d")
             if not hist.empty:
@@ -140,8 +133,8 @@ class DataFetcher:
             logger.warning(f"Yahoo Finance error for {symbol}: {e}")
         return None
 
-    # --- Recuperation historique ---
-       async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
+    # --- Récupération historique (priorité Yahoo) ---
+    async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
                                   period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
         symbol = normalize_symbol(symbol)
         cache_k = cache_key(symbol, timeframe, period)
@@ -150,7 +143,7 @@ class DataFetcher:
             if time.time() - entry["timestamp"] < HISTORY_CACHE_TTL:
                 return entry["data"]
 
-        # Priorité à Yahoo Finance (plus fiable pour l'historique)
+        # Priorité à Yahoo Finance pour l'historique
         df = await self._fetch_yahoo_history(symbol, timeframe, period)
         if df is None:
             df = await self._fetch_twelvedata_history(symbol, timeframe, period)
@@ -162,37 +155,18 @@ class DataFetcher:
             return df
         return None
 
-        # Essayer Twelve Data pour l'historique
-        df = await self._fetch_twelvedata_history(symbol, timeframe, period)
-        if df is None:
-            df = await self._fetch_yahoo_history(symbol, timeframe, period)
-        if df is None and FCS_API_KEY:
-            df = await self._fetch_fcs_history(symbol, timeframe, period)
-
-        if df is not None and not df.empty:
-            self.history_cache[cache_k] = {"data": df, "timestamp": time.time()}
-            return df
-        return None
-
     async def _fetch_twelvedata_history(self, symbol: str, timeframe: str, period: str) -> Optional[pd.DataFrame]:
-        """Recupere l'historique depuis Twelve Data"""
         if not TWELVEDATA_API_KEY:
             return None
         try:
-            # Mapping timeframe pour Twelve Data
             interval_map = {"1d": "1day", "1h": "1h", "4h": "4h", "1m": "1min"}
             interval = interval_map.get(timeframe, "1day")
-            
-            # Nombre de jours
             days = 60 if period == "2mo" else 30
             start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-            
-            # Symbole adapte
             if symbol.upper() in ["BTCUSD", "ETHUSD"]:
                 td_symbol = symbol.replace("USD", "/USD")
             else:
                 td_symbol = symbol
-                
             url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&start_date={start_date}&apikey={TWELVEDATA_API_KEY}"
             resp = requests.get(url, timeout=15)
             if resp.status_code == 200:
@@ -226,7 +200,6 @@ class DataFetcher:
                 ticker_symbol = symbol + "=X"
             else:
                 ticker_symbol = symbol
-                
             ticker = yf.Ticker(ticker_symbol)
             df = ticker.history(period=period, interval=timeframe)
             if df.empty:
