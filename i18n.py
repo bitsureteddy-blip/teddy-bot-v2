@@ -16,7 +16,7 @@ TEXTS = {
         "help_admin": "\n\nAdmin : /broadcast, /reload, /stats, /setrole",
         
         # ---- Support ----
-        "support": "📞 *Besoin d'aide ?*\n\nContactez l'administrateur : @btsr_teddy09",
+       "support": "📞 Besoin d'aide ?\n\nContactez l'administrateur : @btsr_teddy09",
         
         # ---- Upgrade ----
         "upgrade_title": "💳 *Choisissez votre offre :*\n\n• PRO : illimité, scalping\n• ELITE : PRO + groupe privé\n• LIFETIME : ELITE à vie (50 places)",
@@ -129,7 +129,7 @@ TEXTS = {
         "help_admin": "\n\nAdmin: /broadcast, /reload, /stats, /setrole",
         
         # ---- Support ----
-        "support": "📞 *Need help?*\n\nContact admin: @btsr_teddy09",
+        "support": "📞 Need help?\n\nContact admin: @btsr_teddy09",
         
         # ---- Upgrade ----
         "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: unlimited, scalping\n• ELITE: PRO + private group\n• LIFETIME: ELITE for life (50 spots)",

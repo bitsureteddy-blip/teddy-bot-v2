@@ -139,10 +139,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id == ADMIN_ID:
         text += get_text(lang, "help_admin")
     await update.message.reply_text(text)
-
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "support"), parse_mode=ParseMode.MARKDOWN)
+    await update.message.reply_text(get_text(lang, "support"))
 
 async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
