@@ -231,7 +231,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("⛔ Admin only.")
         return
-    lang = get_user_lang(update)
+    lang = user_mgr.get_setting(update.effective_user.id, "lang", "fr")
     user_mgr._load_users()
     total = len(user_mgr.users)
     free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
@@ -240,7 +240,6 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lifetime = user_mgr.get_lifetime_count()
     text = get_text(lang, "stats_info", total=total, free=free, pro=pro, elite=elite, lifetime=lifetime)
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -472,6 +471,7 @@ async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 @check_limit
+@check_limit
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     lang = user_mgr.get_setting(uid, "lang", "fr")
@@ -479,9 +479,8 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     risk = user_mgr.get_setting(uid, "risk", "medium")
     role = user_mgr.get_role(uid)
     prem = "✅" if role in ("pro", "elite") else "❌"
-    text = get_text(lang, "settings_info", tf=tf, risk=risk, lang=lang.upper(), role=role.upper(), prem=prem)
+    text = get_text(lang, "settings_info", tf=tf, risk=risk, lang_name=lang.upper(), role=role.upper(), prem=prem)
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-
 @check_limit
 async def settimeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:

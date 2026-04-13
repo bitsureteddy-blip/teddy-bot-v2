@@ -52,7 +52,7 @@ TEXTS = {
         "alerts_cleared": "✅ All your alerts have been deleted.",
         "broadcast_admin_only": "⛔ Admin only command.",
         "broadcast_sent": "✅ Broadcast sent to {success}/{total} users.",
-        "settings_info": "⚙️ *Settings*\nTimeframe: {tf}\nRisk: {risk}\nLanguage: {lang}\nRole: {role}\nPremium: {prem}",
+       "settings_info": "⚙️ *Paramètres*\nTimeframe: {tf}\nRisque: {risk}\nLangue: {lang_name}\nRôle: {role}\nPremium: {prem}",
         "stats_info": "📊 *BITSURE TEDDY STATISTICS*\n👥 Total users: {total}\n🆓 FREE: {free}\n💪 PRO: {pro}\n👑 ELITE: {elite}\n🚀 LIFETIME sold: {lifetime}/50",
         "usage_info": "📊 Requests remaining today: {rem}",
         "usage_unlimited": "✅ Premium: unlimited requests.",
