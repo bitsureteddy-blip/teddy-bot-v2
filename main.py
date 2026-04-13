@@ -15,7 +15,8 @@ from bot_handlers import (
     removewatch, scan, trend, volatility, correlation, levels,
     settings, settimeframe, setrisk, setlanguage, usage,
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
-    upgrade, plan_callback, pre_checkout, successful_payment
+    upgrade, plan_callback, pre_checkout, successful_payment,
+    support, setrole, symboles   # <--- NOUVEAUX IMPORTS
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -90,6 +91,11 @@ def main():
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
     app.add_handler(PreCheckoutQueryHandler(pre_checkout))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
+
+    # Nouvelles commandes
+    app.add_handler(CommandHandler("support", support))
+    app.add_handler(CommandHandler("setrole", setrole))
+    app.add_handler(CommandHandler("symboles", symboles))
 
     logger.info("Teddy Trading Bot started")
     app.run_polling()
