@@ -42,7 +42,7 @@ class DataFetcher:
     async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
         
-        # 1. Twelve Data (prioritaire, fiable sur Railway)
+        # 1. Twelve Data (prioritaire)
         price = await self._fetch_twelvedata_price(symbol)
         if price:
             return price
@@ -69,6 +69,7 @@ class DataFetcher:
                 td_symbol = symbol[:3] + "/" + symbol[3:]
             else:
                 td_symbol = symbol
+                
             url = f"https://api.twelvedata.com/price?symbol={td_symbol}&apikey={TWELVEDATA_API_KEY}"
             resp = requests.get(url, timeout=10)
             if resp.status_code == 200:
@@ -119,6 +120,7 @@ class DataFetcher:
                 ticker_symbol = symbol + "=X"
             else:
                 ticker_symbol = symbol
+            
             ticker = yf.Ticker(ticker_symbol)
             hist = ticker.history(period="1d")
             if not hist.empty:
@@ -143,7 +145,7 @@ class DataFetcher:
             if time.time() - entry["timestamp"] < HISTORY_CACHE_TTL:
                 return entry["data"]
 
-        # Priorité à Yahoo Finance pour l'historique
+        # Priorité à Yahoo Finance (plus fiable pour l'historique)
         df = await self._fetch_yahoo_history(symbol, timeframe, period)
         if df is None:
             df = await self._fetch_twelvedata_history(symbol, timeframe, period)
