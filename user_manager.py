@@ -12,10 +12,11 @@ class UserManager:
     _instance = None
 
     def __init__(self):
-        self.users = load_json(USERS_FILE)          # id -> {"username":..., "role": "free"/"pro"/"elite", "joined": timestamp}
-        self.usage = load_json(USAGE_FILE)          # id -> {"date": "YYYY-MM-DD", "count": int}
-        self.settings = load_json(SETTINGS_FILE)    # id -> {"timeframe": "1d", "risk": "medium", "lang": "en"}
-        self.watchlists = load_json(WATCHLISTS_FILE)# id -> ["SYM1", "SYM2"]
+        self.users = load_json(USERS_FILE)
+        self.usage = load_json(USAGE_FILE)
+        self.settings = load_json(SETTINGS_FILE)
+        self.watchlists = load_json(WATCHLISTS_FILE)
+        self.lifetime_count = self._count_lifetime_from_users()
 
     @classmethod
     def get_instance(cls):
@@ -23,15 +24,26 @@ class UserManager:
             cls._instance = cls()
         return cls._instance
 
+    def _load_users(self):
+        """Recharge les utilisateurs depuis le fichier JSON."""
+        self.users = load_json(USERS_FILE)
+
+    def _count_lifetime_from_users(self) -> int:
+        count = 0
+        for u in self.users.values():
+            if u.get("role") == "elite" and u.get("lifetime", False):
+                count += 1
+        return count
+
     def get_user(self, user_id: int) -> Dict:
         user_id = str(user_id)
         if user_id not in self.users:
             self.users[user_id] = {
                 "username": "",
-                "role": "free",          # free, pro, elite
+                "role": "free",
                 "joined": time.time()
             }
-            self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "en"}
+            self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "fr"}
             self.watchlists[user_id] = []
             self._save()
         return self.users[user_id]
@@ -40,12 +52,10 @@ class UserManager:
         return user_id == ADMIN_ID
 
     def get_role(self, user_id: int) -> str:
-        """Retourne le rôle de l'utilisateur : 'free', 'pro', 'elite'"""
         user = self.get_user(user_id)
         return user.get("role", "free")
 
     def set_role(self, user_id: int, role: str):
-        """Définit le rôle de l'utilisateur ('free', 'pro', 'elite')"""
         user_id = str(user_id)
         if user_id not in self.users:
             self.get_user(user_id)
@@ -53,32 +63,23 @@ class UserManager:
         save_json(USERS_FILE, self.users)
 
     def is_premium(self, user_id: int) -> bool:
-        """Retourne True si l'utilisateur est PRO ou ELITE (ou admin)"""
         if self.is_admin(user_id):
             return True
         role = self.get_role(user_id)
         return role in ("pro", "elite")
 
     def is_trial_valid(self, user_id: int) -> bool:
-        """Vérifie si l'utilisateur est encore dans sa période d'essai gratuite"""
         user = self.get_user(user_id)
         joined = user.get("joined", time.time())
         trial_end = joined + (TRIAL_DAYS * 24 * 3600)
         return time.time() < trial_end
 
     def can_use_premium_feature(self, user_id: int) -> bool:
-        """Retourne True si l'utilisateur a accès aux fonctionnalités premium (PRO/ELITE ou admin)"""
         return self.is_premium(user_id)
 
     def check_limit(self, user_id: int) -> bool:
-        """Retourne True si l'utilisateur peut faire une requête"""
-        # Admin toujours OK
-        if self.is_admin(user_id):
+        if self.is_premium(user_id) or self.is_admin(user_id):
             return True
-        # Premium (PRO/ELITE) : illimité
-        if self.is_premium(user_id):
-            return True
-        # Utilisateur FREE : vérifier quota journalier
         user_id = str(user_id)
         today = datetime.now().strftime("%Y-%m-%d")
         if user_id not in self.usage or self.usage[user_id].get("date") != today:
@@ -98,7 +99,7 @@ class UserManager:
 
     def get_remaining_requests(self, user_id: int) -> int:
         if self.is_premium(user_id) or self.is_admin(user_id):
-            return -1  # illimité
+            return -1
         user_id = str(user_id)
         today = datetime.now().strftime("%Y-%m-%d")
         if user_id not in self.usage or self.usage[user_id].get("date") != today:
@@ -109,7 +110,7 @@ class UserManager:
     def get_setting(self, user_id: int, key: str, default=None):
         user_id = str(user_id)
         if user_id not in self.settings:
-            self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "en"}
+            self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "fr"}
         return self.settings[user_id].get(key, default)
 
     def set_setting(self, user_id: int, key: str, value):
@@ -139,6 +140,12 @@ class UserManager:
 
     def get_all_users(self) -> list:
         return list(self.users.keys())
+
+    def increment_lifetime_count(self):
+        self.lifetime_count += 1
+
+    def get_lifetime_count(self) -> int:
+        return self.lifetime_count
 
     def _save(self):
         save_json(USERS_FILE, self.users)
