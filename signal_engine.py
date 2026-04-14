@@ -3,7 +3,7 @@ Logique métier : génération des signaux ACHETER/VENDRE/ATTENDRE
 et calcul du Teddy Score.
 """
 import pandas as pd
-from typing import Dict, Optional, Tuple
+from typing import Dict
 from indicators import (
     rsi, macd, bollinger_bands, sma, support_resistance, detect_divergence
 )
@@ -12,6 +12,8 @@ from config import (
     BB_PERIOD, BB_STD, SMA_SHORT, SMA_LONG,
     SUPPORT_RESISTANCE_LOOKBACK, DIVERGENCE_LOOKBACK
 )
+
+
 class SignalEngine:
 
     @staticmethod
@@ -28,10 +30,10 @@ class SignalEngine:
         close = df['Close']
         high = df['High']
         low = df['Low']
-        volume = df['Volume'] if 'Volume' in df else None
 
         # === INDICATEURS ===
-        rsi_val = rsi(close, RSI_PERIOD).iloc[-1]
+        rsi_series = rsi(close, RSI_PERIOD)
+        rsi_val = rsi_series.iloc[-1]
 
         macd_line, signal_line, hist = macd(close, MACD_FAST, MACD_SLOW, MACD_SIGNAL)
         macd_val = macd_line.iloc[-1]
@@ -46,9 +48,9 @@ class SignalEngine:
         support, resistance = support_resistance(high, low, SUPPORT_RESISTANCE_LOOKBACK)
         last_price = close.iloc[-1]
 
-        divergence = detect_divergence(close, rsi(close, RSI_PERIOD), DIVERGENCE_LOOKBACK)
+        divergence = detect_divergence(close, rsi_series, DIVERGENCE_LOOKBACK)
 
-        # === TREND FILTER (TRÈS IMPORTANT) ===
+        # === TREND FILTER ===
         if last_price > sma50:
             trend = "HAUSSIER"
         elif last_price < sma50:
@@ -56,13 +58,13 @@ class SignalEngine:
         else:
             trend = "NEUTRE"
 
-        # === SCORE GLOBAL ===
+        # === SCORE ===
         teddy_score = SignalEngine._compute_teddy_score(
             df, rsi_val, sma20, sma50, support, resistance,
             last_price, macd_val, signal_val, divergence
         )
 
-        # === DÉCISION BASÉE SUR SCORE ===
+        # === SIGNAL BASÉ SUR SCORE ===
         if teddy_score > 65:
             signal = "ACHETER"
         elif teddy_score < 35:
@@ -79,7 +81,7 @@ class SignalEngine:
         # === RAISON ===
         if signal == "ACHETER":
             reason = "📈 Conditions haussières favorables"
-            risk_advice = "⚠️ Attendre confirmation (bougie / breakout)"
+            risk_advice = "⚠️ Attendre confirmation"
         elif signal == "VENDRE":
             reason = "📉 Conditions baissières favorables"
             risk_advice = "⚠️ Attention aux rebonds"
@@ -108,7 +110,8 @@ class SignalEngine:
             "teddy_score": teddy_score,
             "indicators": indicators
         }
-       @staticmethod
+
+    @staticmethod
     def _compute_teddy_score(df, rsi_val, sma20, sma50,
                              support, resistance, price,
                              macd, macd_signal, divergence):
@@ -150,7 +153,7 @@ class SignalEngine:
         else:
             score -= 10
 
-        # VOLUME (corrigé)
+        # VOLUME
         if 'Volume' in df:
             avg_vol = df['Volume'].rolling(20).mean().iloc[-1]
             current_vol = df['Volume'].iloc[-1]
