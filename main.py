@@ -6,7 +6,16 @@ Point d'entrée principal
 
 import asyncio
 import logging
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, PreCheckoutQueryHandler, MessageHandler, filters
+
+from telegram import Bot
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    PreCheckoutQueryHandler,
+    MessageHandler,
+    filters
+)
 
 from config import TELEGRAM_TOKEN
 from bot_handlers import (
@@ -16,7 +25,7 @@ from bot_handlers import (
     settings, settimeframe, setrisk, setlanguage, usage,
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
     upgrade, plan_callback, pre_checkout, successful_payment,
-    support, setrole, symboles, gift, revoke, redeem   # <--- nouvelles commandes
+    support, setrole, symboles, gift, revoke, redeem
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -26,20 +35,39 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
+
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------
+# FIX 409 CONFLICT TELEGRAM
+# ---------------------------
+async def clear_webhook():
+    bot = Bot(token=TELEGRAM_TOKEN)
+    await bot.delete_webhook(drop_pending_updates=True)
+
 
 async def post_init(application):
     """Initialisation après démarrage du bot"""
     data_fetcher = DataFetcher.get_instance()
     data_fetcher.start_websocket()
 
+
 def main():
+    # 🔥 IMPORTANT : évite le conflit Telegram (409)
+    asyncio.run(clear_webhook())
+
     # Initialisation des singletons
     DataFetcher.get_instance()
     UserManager.get_instance()
     AlertManager.get_instance()
 
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).post_init(post_init).build()
+    app = (
+        ApplicationBuilder()
+        .token(TELEGRAM_TOKEN)
+        .post_init(post_init)
+        .build()
+    )
 
     # Commandes principales
     app.add_handler(CommandHandler("start", start))
@@ -101,7 +129,9 @@ def main():
     app.add_handler(CommandHandler("redeem", redeem))
 
     logger.info("Teddy Trading Bot started")
+
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
