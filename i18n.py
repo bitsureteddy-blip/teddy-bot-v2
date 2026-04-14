@@ -50,8 +50,12 @@ TEXTS = {
         # ---- Support ----
         "support": "📞 Besoin d'aide ?\n\nContactez l'administrateur : @btsr_teddy09",
 
-        # ---- Upgrade (Prix mis à jour, LIFETIME supprimé) ----
+        # ---- Upgrade (boutons traduits) ----
         "upgrade_title": "💳 *Choisissez votre offre :*\n\n• PRO : 9,99€/mois – illimité, scalping\n• ELITE : 24,99€/mois – PRO + groupe privé + support prioritaire",
+        "button_pro_stars": "💎 PRO – 9,99€/mois (Stars)",
+        "button_elite_stars": "👑 ELITE – 24,99€/mois (Stars)",
+        "button_pro_stripe": "💳 PRO – 9,99€/mois (Stripe bientôt)",
+        "button_elite_stripe": "💳 ELITE – 24,99€/mois (Stripe bientôt)",
         "invoice_title": "Bitsure Teddy Premium",
         "payment_success": "✅ *Paiement réussi !*\n\nVotre compte est maintenant *{role}*.\nMerci de soutenir Bitsure Teddy ! 🧸💸",
         "stripe_soon": "ℹ️ Paiement Stripe bientôt disponible.",
@@ -98,7 +102,12 @@ TEXTS = {
         "spread_unavailable": "❌ Spread non disponible.",
 
         # ---- Scalping (Premium) ----
-        "scalp_dev": "⚡ Scalping en développement (Premium).",
+        "scalp_usage": "Usage: /scalp SYMBOLE DURÉE (3,5,10,20)",
+        "scalp_invalid_duration": "Durée invalide. Choisissez 3, 5, 10 ou 20 secondes.",
+        "scalp_signal_buy": "ACHETER",
+        "scalp_signal_sell": "VENDRE",
+        "scalp_signal_wait": "ATTENDRE",
+        "scalp_result": "⚡ *Scalping {symbol} ({duration}s)*\nSignal : *{signal}*\nPrix : {price}\nBid : {bid} / Ask : {ask}\nVolatilité : {volatility}%\n{reason}",
 
         # ---- Tendance & Volatilité ----
         "trend_usage": "Usage: /trend SYMBOLE",
@@ -152,7 +161,7 @@ TEXTS = {
         "redeem_success": "✅ Code promo appliqué : {message}",
         "redeem_invalid": "❌ Code promo invalide ou expiré.",
 
-        # ---- Symboles populaires (Forex étendu à venir dans data_fetcher) ----
+        # ---- Symboles populaires ----
         "symboles_list": "📊 *SYMBOLES POPULAIRES*\n\n🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Livre/Dollar\nUSDJPY – Dollar/Yen\n\n✨ *Matières premières*\nXAUUSD – Or\nXAGUSD – Argent\n\n📈 *Actions*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n💡 Exemple : /analyse BTCUSD",
     },
     "en": {
@@ -204,8 +213,12 @@ TEXTS = {
         # ---- Support ----
         "support": "📞 Need help?\n\nContact admin: @btsr_teddy09",
 
-        # ---- Upgrade (Prix mis à jour, LIFETIME supprimé) ----
+        # ---- Upgrade (translated buttons) ----
         "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: 9.99€/month – unlimited, scalping\n• ELITE: 24.99€/month – PRO + private group + priority support",
+        "button_pro_stars": "💎 PRO – 9.99€/month (Stars)",
+        "button_elite_stars": "👑 ELITE – 24.99€/month (Stars)",
+        "button_pro_stripe": "💳 PRO – 9.99€/month (Stripe soon)",
+        "button_elite_stripe": "💳 ELITE – 24.99€/month (Stripe soon)",
         "invoice_title": "Bitsure Teddy Premium",
         "payment_success": "✅ *Payment successful!*\n\nYour account is now *{role}*.\nThank you for supporting Bitsure Teddy! 🧸💸",
         "stripe_soon": "ℹ️ Stripe payment coming soon.",
@@ -252,7 +265,12 @@ TEXTS = {
         "spread_unavailable": "❌ Spread unavailable.",
 
         # ---- Scalping (Premium) ----
-        "scalp_dev": "⚡ Scalping in development (Premium).",
+        "scalp_usage": "Usage: /scalp SYMBOL DURATION (3,5,10,20)",
+        "scalp_invalid_duration": "Invalid duration. Choose 3, 5, 10 or 20 seconds.",
+        "scalp_signal_buy": "BUY",
+        "scalp_signal_sell": "SELL",
+        "scalp_signal_wait": "WAIT",
+        "scalp_result": "⚡ *Scalping {symbol} ({duration}s)*\nSignal: *{signal}*\nPrice: {price}\nBid: {bid} / Ask: {ask}\nVolatility: {volatility}%\n{reason}",
 
         # ---- Trend & Volatility ----
         "trend_usage": "Usage: /trend SYMBOL",

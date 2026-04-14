@@ -123,11 +123,18 @@ class DataFetcher:
     # --- Récupération des prix temps réel (REST) ---
     async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
+        # Vérifier d'abord le cache
         if symbol in self.price_cache:
             cache = self.price_cache[symbol]
             if time.time() - cache["timestamp"] < PRICE_CACHE_TTL:
                 return cache
+        # Essayer Twelve Data
         price = await self._fetch_twelvedata_price(symbol)
+        if price:
+            self.price_cache[symbol] = price
+            return price
+        # Fallback Yahoo Finance
+        price = await self._fetch_yahoo_price(symbol)
         if price:
             self.price_cache[symbol] = price
             return price
@@ -156,15 +163,34 @@ class DataFetcher:
                         "timestamp": time.time()
                     }
         except Exception as e:
-            logger.warning(f"Twelve Data quote error: {e}")
+            logger.warning(f"Twelve Data quote error for {symbol}: {e}")
+        return None
+
+    async def _fetch_yahoo_price(self, symbol: str) -> Optional[Dict]:
+        try:
+            import yfinance as yf
+            ticker_symbol = self._to_yahoo_symbol(symbol)
+            ticker = yf.Ticker(ticker_symbol)
+            hist = ticker.history(period="1d")
+            if not hist.empty:
+                price = hist['Close'].iloc[-1]
+                return {
+                    "price": float(price),
+                    "bid": float(price),
+                    "ask": float(price),
+                    "timestamp": time.time()
+                }
+        except Exception as e:
+            logger.warning(f"Yahoo price error for {symbol}: {e}")
         return None
 
     def _to_twelvedata_symbol(self, symbol: str) -> str:
+        """Convertit un symbole en format Twelve Data (actions, forex, crypto)."""
         s = symbol.upper()
-        # Cryptos
-        if s in ["BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "ADAUSD", "BNBUSD"]:
-            return s.replace("USD", "/USD")
-        # Forex générique (ex: EURUSD → EUR/USD)
+        # Cryptos (BTCUSD, ETHUSD, etc.)
+        if s.endswith("USD") and s[:-3] in ["BTC", "ETH", "XRP", "SOL", "ADA", "BNB", "LTC", "BCH", "DOT", "LINK"]:
+            return s[:-3] + "/USD"
+        # Forex (EURUSD -> EUR/USD)
         if len(s) == 6 and s.endswith("USD"):
             return f"{s[:3]}/{s[3:]}"
         # Matières premières
@@ -176,7 +202,18 @@ class DataFetcher:
             return "WTI/USD"
         if s == "UKOIL":
             return "BRENT/USD"
-        # Actions : déjà au bon format (AAPL, TSLA, etc.)
+        # Actions : AAPL, TSLA, etc. restent tels quels
+        return s
+
+    def _to_yahoo_symbol(self, symbol: str) -> str:
+        """Convertit un symbole en format Yahoo Finance."""
+        s = symbol.upper()
+        if s.endswith("USD") and s[:-3] in ["BTC", "ETH", "XRP", "SOL", "ADA", "BNB"]:
+            return s[:-3] + "-USD"
+        if len(s) == 6 and s.endswith("USD"):
+            return s + "=X"
+        if s in ["XAUUSD", "XAGUSD"]:
+            return s.replace("USD", "-USD")
         return s
 
     # --- Historique (inchangé) ---
@@ -234,12 +271,7 @@ class DataFetcher:
     async def _fetch_yahoo_history(self, symbol: str, timeframe: str, period: str) -> Optional[pd.DataFrame]:
         try:
             import yfinance as yf
-            if symbol.upper() in ["BTCUSD", "ETHUSD", "XAUUSD"]:
-                ticker_symbol = symbol.replace("USD", "-USD")
-            elif len(symbol) == 6 and symbol.endswith("USD"):
-                ticker_symbol = symbol + "=X"
-            else:
-                ticker_symbol = symbol
+            ticker_symbol = self._to_yahoo_symbol(symbol)
             ticker = yf.Ticker(ticker_symbol)
             df = ticker.history(period=period, interval=timeframe)
             if df.empty:
