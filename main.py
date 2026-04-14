@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
 Teddy Trading Bot - Bitsure Teddy
-Point d'entrée principal
+FIX stable asyncio + PTB v20+
 """
 
 import asyncio
 import logging
-import nest_asyncio
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -26,98 +25,95 @@ from bot_handlers import (
     upgrade, plan_callback, pre_checkout, successful_payment,
     support, setrole, symboles, gift, revoke, redeem
 )
+
 from data_fetcher import DataFetcher
 from user_manager import UserManager
 from alert_manager import AlertManager
 
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 
 logger = logging.getLogger(__name__)
 
 
-async def post_init(application):
-    data_fetcher = DataFetcher.get_instance()
-    data_fetcher.start_websocket()
+async def post_init(app):
+    DataFetcher.get_instance().start_websocket()
 
 
-def main():
-    # Fix event loop (IMPORTANT pour Railway / containers)
-    nest_asyncio.apply()
+def build_app():
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).post_init(post_init).build()
 
-    # Singletons
-    DataFetcher.get_instance()
-    UserManager.get_instance()
-    AlertManager.get_instance()
+    # Commands
+    handlers = [
+        ("start", start),
+        ("help", help_command),
+        ("analyse", analyse),
+        ("price", price),
+        ("scalp", scalp),
+        ("tick", tick),
+        ("spread", spread),
+        ("alert", alert),
+        ("alerts", alerts),
+        ("delalert", delalert),
+        ("clearalerts", clearalerts),
+        ("watchlist", watchlist),
+        ("addwatch", addwatch),
+        ("removewatch", removewatch),
+        ("scan", scan),
+        ("trend", trend),
+        ("volatility", volatility),
+        ("correlation", correlation),
+        ("levels", levels),
+        ("settings", settings),
+        ("settimeframe", settimeframe),
+        ("setrisk", setrisk),
+        ("setlanguage", setlanguage),
+        ("usage", usage),
+        ("status", status),
+        ("about", about),
+        ("symbolinfo", symbolinfo),
+        ("myid", myid),
+        ("broadcast", broadcast),
+        ("reload", reload_cmd),
+        ("stats", stats),
+        ("upgrade", upgrade),
+        ("support", support),
+        ("setrole", setrole),
+        ("symboles", symboles),
+        ("gift", gift),
+        ("revoke", revoke),
+        ("redeem", redeem),
+    ]
 
-    app = (
-        ApplicationBuilder()
-        .token(TELEGRAM_TOKEN)
-        .post_init(post_init)
-        .build()
-    )
+    for cmd, func in handlers:
+        app.add_handler(CommandHandler(cmd, func))
 
-    # --- Commands ---
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("analyse", analyse))
-    app.add_handler(CommandHandler("price", price))
-
-    app.add_handler(CommandHandler("scalp", scalp))
-    app.add_handler(CommandHandler("tick", tick))
-    app.add_handler(CommandHandler("spread", spread))
-
-    app.add_handler(CommandHandler("alert", alert))
-    app.add_handler(CommandHandler("alerts", alerts))
-    app.add_handler(CommandHandler("delalert", delalert))
-    app.add_handler(CommandHandler("clearalerts", clearalerts))
-
-    app.add_handler(CommandHandler("watchlist", watchlist))
-    app.add_handler(CommandHandler("addwatch", addwatch))
-    app.add_handler(CommandHandler("removewatch", removewatch))
-    app.add_handler(CommandHandler("scan", scan))
-
-    app.add_handler(CommandHandler("trend", trend))
-    app.add_handler(CommandHandler("volatility", volatility))
-    app.add_handler(CommandHandler("correlation", correlation))
-    app.add_handler(CommandHandler("levels", levels))
-
-    app.add_handler(CommandHandler("settings", settings))
-    app.add_handler(CommandHandler("settimeframe", settimeframe))
-    app.add_handler(CommandHandler("setrisk", setrisk))
-    app.add_handler(CommandHandler("setlanguage", setlanguage))
-    app.add_handler(CommandHandler("usage", usage))
-
-    app.add_handler(CommandHandler("status", status))
-    app.add_handler(CommandHandler("about", about))
-    app.add_handler(CommandHandler("symbolinfo", symbolinfo))
-    app.add_handler(CommandHandler("myid", myid))
-
-    app.add_handler(CommandHandler("broadcast", broadcast))
-    app.add_handler(CommandHandler("reload", reload_cmd))
-    app.add_handler(CommandHandler("stats", stats))
-
-    app.add_handler(CommandHandler("upgrade", upgrade))
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
     app.add_handler(PreCheckoutQueryHandler(pre_checkout))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
 
-    app.add_handler(CommandHandler("support", support))
-    app.add_handler(CommandHandler("setrole", setrole))
-    app.add_handler(CommandHandler("symboles", symboles))
-    app.add_handler(CommandHandler("gift", gift))
-    app.add_handler(CommandHandler("revoke", revoke))
-    app.add_handler(CommandHandler("redeem", redeem))
+    return app
+
+
+async def main_async():
+    # init singletons
+    DataFetcher.get_instance()
+    UserManager.get_instance()
+    AlertManager.get_instance()
+
+    app = build_app()
 
     logger.info("Teddy Trading Bot started")
 
-    # IMPORTANT FIX: mode async safe
-    app.run_polling(
-        drop_pending_updates=True
-    )
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(drop_pending_updates=True)
+
+    # keep alive
+    await asyncio.Event().wait()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main_async())
