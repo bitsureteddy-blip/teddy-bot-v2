@@ -30,7 +30,7 @@ def ensure_twelvedata_ws(user_id: int):
 
 def get_user_lang(update: Update) -> str:
     user_id = update.effective_user.id
-    return user_mgr.get_setting(user_id, "lang", "fr")
+    return user_mgr.get_setting(user_id, "lang", "en")  # défaut anglais
 
 def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -68,24 +68,25 @@ async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, rol
         await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode=ParseMode.MARKDOWN)
     except Exception as e:
         logger.warning(f"Impossible de notifier l'admin : {e}")
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
-    
+
     # Détection automatique de la langue
     tg_lang = user.language_code
     default_lang = "en" if tg_lang and tg_lang.startswith("en") else "fr"
-    
+
     current_lang = user_mgr.get_setting(user_id, "lang", None)
     if current_lang is None:
         user_mgr.set_setting(user_id, "lang", default_lang)
         lang = default_lang
     else:
         lang = current_lang
-    
+
     user_mgr.get_user(user_id)
     role = user_mgr.get_role(user_id)
-    
+
     if role == "free" and user_mgr.is_trial_valid(user_id):
         status = get_text(lang, "status_free_trial")
     elif role == "free":
@@ -96,54 +97,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         status = get_text(lang, "status_elite")
     else:
         status = role.upper()
-    
+
     welcome = get_text(lang, "start", status=status)
     disclaimer = get_text(lang, "start_disclaimer")
-    
-    # Message spécial pour les utilisateurs gratuits (paiement manuel)
+
     if role == "free":
         payment_info = get_text(lang, "international_payment_info")
     else:
         payment_info = ""
-    
+
     await update.message.reply_text(welcome + disclaimer + payment_info, parse_mode=ParseMode.MARKDOWN)
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
-    text = get_text(lang, "help_title")
-    text += (
-        "/analyse SYMBOLE – Analyse complète\n"
-        "/price SYMBOLE – Prix actuel\n"
-        "/scalp SYMBOLE DUREE – Scalping (Premium)\n"
-        "/tick SYMBOLE – Dernier tick\n"
-        "/spread SYMBOLE – Spread bid/ask\n"
-        "/alert SYMBOLE above/below PRIX – Créer alerte\n"
-        "/alerts – Lister alertes\n"
-        "/delalert ID – Supprimer alerte\n"
-        "/clearalerts – Tout supprimer\n"
-        "/watchlist – Voir liste\n"
-        "/addwatch SYMBOLE – Ajouter symbole\n"
-        "/removewatch SYMBOLE – Retirer\n"
-        "/scan – Scanner watchlist\n"
-        "/trend SYMBOLE – Tendance\n"
-        "/volatility SYMBOLE – Volatilité\n"
-        "/correlation S1 S2 – Corrélation\n"
-        "/levels SYMBOLE – Supports/Résistances\n"
-        "/settings – Paramètres\n"
-        "/settimeframe TF – 1h/4h/1d\n"
-        "/setrisk PROFIL – low/medium/high\n"
-        "/setlanguage LANG – en/fr\n"
-        "/usage – Requêtes restantes\n"
-        "/status – État du bot\n"
-        "/about – Version\n"
-        "/symbolinfo SYMBOLE – Infos\n"
-        "/myid – Votre ID\n"
-        "/upgrade – Offres Premium\n"
-        "/support – Contacter admin\n"
-        "/symboles – Symboles populaires"
-    )
+    text = get_text(lang, "help_full")
     if update.effective_user.id == ADMIN_ID:
         text += get_text(lang, "help_admin")
     await update.message.reply_text(text)
+
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "support"))
@@ -151,9 +122,10 @@ async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
-        [InlineKeyboardButton("💎 PRO – 29€/mois (Stars)", callback_data="plan_pro_stars")],
-        [InlineKeyboardButton("👑 ELITE – 79€/mois (Stars)", callback_data="plan_elite_stars")],
-        [InlineKeyboardButton("🚀 LIFETIME – 197€ (Stars)", callback_data="plan_lifetime")],
+        [InlineKeyboardButton("💎 PRO – 9,99€/mois (Stars)", callback_data="plan_pro_stars")],
+        [InlineKeyboardButton("👑 ELITE – 24,99€/mois (Stars)", callback_data="plan_elite_stars")],
+        [InlineKeyboardButton("💳 PRO – 9,99€/mois (Stripe bientôt)", callback_data="plan_pro_stripe")],
+        [InlineKeyboardButton("💳 ELITE – 24,99€/mois (Stripe bientôt)", callback_data="plan_elite_stripe")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -168,11 +140,9 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     lang = get_user_lang(update)
     if data == "plan_pro_stars":
-        await send_invoice(query, "PRO Mensuel", 2900, "pro_monthly")
+        await send_invoice(query, "PRO Mensuel", 999, "pro_monthly")
     elif data == "plan_elite_stars":
-        await send_invoice(query, "ELITE Mensuel", 7900, "elite_monthly")
-    elif data == "plan_lifetime":
-        await send_invoice(query, "LIFETIME (accès à vie)", 19700, "lifetime")
+        await send_invoice(query, "ELITE Mensuel", 2499, "elite_monthly")
     else:
         await query.edit_message_text(get_text(lang, "stripe_soon"))
 
@@ -200,16 +170,78 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     payment = update.message.successful_payment
     payload = payment.invoice_payload
     role = "pro" if "pro" in payload else "elite" if "elite" in payload else "pro"
-    if "lifetime" in payload:
-        role = "elite"
-        user_mgr.increment_lifetime_count()
     user_mgr.set_role(user_id, role)
-    lang = user_mgr.get_setting(user_id, "lang", "fr")
+    lang = user_mgr.get_setting(user_id, "lang", "en")
     await update.message.reply_text(
         get_text(lang, "payment_success", role=role.upper()),
         parse_mode=ParseMode.MARKDOWN
     )
     await notify_admin_new_premium(context, user, role, "Telegram Stars")
+
+# --- Nouvelles commandes Admin ---
+async def gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "broadcast_admin_only"))
+        return
+    if len(context.args) < 3:
+        await update.message.reply_text(get_text(lang, "gift_usage"))
+        return
+    try:
+        target_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text(get_text(lang, "setrole_invalid_id"))
+        return
+    role = context.args[1].lower()
+    if role not in ("pro", "elite"):
+        await update.message.reply_text(get_text(lang, "setrole_invalid_role"))
+        return
+    try:
+        days = int(context.args[2])
+    except ValueError:
+        await update.message.reply_text("❌ Nombre de jours invalide.")
+        return
+
+    user_mgr.set_role_temp(target_id, role, days)
+    await update.message.reply_text(
+        get_text(lang, "gift_success", target_id=target_id, role=role.upper(), days=days)
+    )
+    try:
+        await context.bot.send_message(
+            chat_id=target_id,
+            text=f"🎁 Vous avez reçu un accès {role.upper()} gratuit pour {days} jours !"
+        )
+    except:
+        pass
+
+async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "broadcast_admin_only"))
+        return
+    if len(context.args) < 1:
+        await update.message.reply_text(get_text(lang, "revoke_usage"))
+        return
+    try:
+        target_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text(get_text(lang, "setrole_invalid_id"))
+        return
+    user_mgr.set_role(target_id, "free")
+    await update.message.reply_text(get_text(lang, "revoke_success", target_id=target_id))
+
+async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "redeem_usage"))
+        return
+    code = context.args[0].upper()
+    user_id = update.effective_user.id
+    success, message = user_mgr.redeem_promo(user_id, code)
+    if success:
+        await update.message.reply_text(get_text(lang, "redeem_success", message=message))
+    else:
+        await update.message.reply_text(get_text(lang, "redeem_invalid"))
 
 async def setrole(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -397,8 +429,6 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     ensure_twelvedata_ws(update.effective_user.id)
     fetcher.subscribe_twelvedata(symbol)
-    # Pour l'instant, le scalping réel nécessiterait une analyse sur micro-timeframe.
-    # On renvoie le dernier tick avec un message adapté.
     price_data = await fetcher.get_realtime_price(symbol)
     if price_data:
         await update.message.reply_text(
@@ -473,7 +503,7 @@ async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         alert_id = int(context.args[0])
     except ValueError:
-        await update.message.reply_text(get_text(lang, "alert_invalid_price"))  # réutiliser un message générique ?
+        await update.message.reply_text(get_text(lang, "alert_invalid_price"))
         return
     if alert_mgr.delete_alert(update.effective_user.id, alert_id):
         await update.message.reply_text(get_text(lang, "alert_deleted", id=alert_id))
@@ -542,7 +572,7 @@ async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @check_limit
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
-    lang = user_mgr.get_setting(uid, "lang", "fr")
+    lang = user_mgr.get_setting(uid, "lang", "en")
     tf = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
     risk = user_mgr.get_setting(uid, "risk", "medium")
     role = user_mgr.get_role(uid)
@@ -657,14 +687,13 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("⛔ Admin only.")
         return
-    lang = user_mgr.get_setting(update.effective_user.id, "lang", "fr")
+    lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
     user_mgr._load_users()
     total = len(user_mgr.users)
     free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
     pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
     elite = sum(1 for u in user_mgr.users.values() if u.get("role") == "elite")
-    lifetime = user_mgr.get_lifetime_count()
-    text = get_text(lang, "stats_info", total=total, free=free, pro=pro, elite=elite, lifetime=lifetime)
+    text = get_text(lang, "stats_info", total=total, free=free, pro=pro, elite=elite)
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 @check_limit

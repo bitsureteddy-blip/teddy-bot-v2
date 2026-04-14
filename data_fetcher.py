@@ -67,14 +67,15 @@ class DataFetcher:
 
     def _on_open_twelvedata(self, ws):
         logger.info("Twelve Data WebSocket connected")
-        subscribe_msg = {
-            "action": "subscribe",
-            "params": {
-                "apikey": TWELVEDATA_API_KEY,
-                "symbols": ",".join(self.subscribed_symbols)
+        if self.subscribed_symbols:
+            subscribe_msg = {
+                "action": "subscribe",
+                "params": {
+                    "apikey": TWELVEDATA_API_KEY,
+                    "symbols": ",".join(self.subscribed_symbols)
+                }
             }
-        }
-        ws.send(json.dumps(subscribe_msg))
+            ws.send(json.dumps(subscribe_msg))
 
     def _on_message_twelvedata(self, ws, message):
         try:
@@ -160,10 +161,13 @@ class DataFetcher:
 
     def _to_twelvedata_symbol(self, symbol: str) -> str:
         s = symbol.upper()
+        # Cryptos
         if s in ["BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "ADAUSD", "BNBUSD"]:
             return s.replace("USD", "/USD")
+        # Forex générique (ex: EURUSD → EUR/USD)
         if len(s) == 6 and s.endswith("USD"):
             return f"{s[:3]}/{s[3:]}"
+        # Matières premières
         if s == "XAUUSD":
             return "XAU/USD"
         if s == "XAGUSD":
@@ -172,6 +176,7 @@ class DataFetcher:
             return "WTI/USD"
         if s == "UKOIL":
             return "BRENT/USD"
+        # Actions : déjà au bon format (AAPL, TSLA, etc.)
         return s
 
     # --- Historique (inchangé) ---

@@ -16,7 +16,6 @@ class UserManager:
         self.usage = load_json(USAGE_FILE)
         self.settings = load_json(SETTINGS_FILE)
         self.watchlists = load_json(WATCHLISTS_FILE)
-        self.lifetime_count = self._count_lifetime_from_users()
 
     @classmethod
     def get_instance(cls):
@@ -28,13 +27,6 @@ class UserManager:
         """Recharge les utilisateurs depuis le fichier JSON."""
         self.users = load_json(USERS_FILE)
 
-    def _count_lifetime_from_users(self) -> int:
-        count = 0
-        for u in self.users.values():
-            if u.get("role") == "elite" and u.get("lifetime", False):
-                count += 1
-        return count
-
     def get_user(self, user_id: int) -> Dict:
         user_id = str(user_id)
         if user_id not in self.users:
@@ -43,7 +35,7 @@ class UserManager:
                 "role": "free",
                 "joined": time.time()
             }
-            self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "fr"}
+            self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "en"}
             self.watchlists[user_id] = []
             self._save()
         return self.users[user_id]
@@ -60,9 +52,35 @@ class UserManager:
         if user_id not in self.users:
             self.get_user(user_id)
         self.users[user_id]["role"] = role
+        # Supprimer l'expiration temporaire si on change le rôle manuellement
+        if "premium_expiry" in self.users[user_id]:
+            del self.users[user_id]["premium_expiry"]
         save_json(USERS_FILE, self.users)
 
+    def set_role_temp(self, user_id: int, role: str, days: int):
+        """Active un rôle premium temporairement."""
+        user_id = str(user_id)
+        if user_id not in self.users:
+            self.get_user(user_id)
+        self.users[user_id]["role"] = role
+        expiry = time.time() + (days * 24 * 3600)
+        self.users[user_id]["premium_expiry"] = expiry
+        save_json(USERS_FILE, self.users)
+
+    def check_premium_expiry(self, user_id: int) -> bool:
+        """Vérifie si le premium temporaire a expiré et le révoque si nécessaire."""
+        user_id = str(user_id)
+        user = self.users.get(user_id)
+        if user and "premium_expiry" in user:
+            if time.time() > user["premium_expiry"]:
+                user["role"] = "free"
+                del user["premium_expiry"]
+                save_json(USERS_FILE, self.users)
+                return True
+        return False
+
     def is_premium(self, user_id: int) -> bool:
+        self.check_premium_expiry(user_id)
         if self.is_admin(user_id):
             return True
         role = self.get_role(user_id)
@@ -110,7 +128,7 @@ class UserManager:
     def get_setting(self, user_id: int, key: str, default=None):
         user_id = str(user_id)
         if user_id not in self.settings:
-            self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "fr"}
+            self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "en"}
         return self.settings[user_id].get(key, default)
 
     def set_setting(self, user_id: int, key: str, value):
@@ -141,11 +159,23 @@ class UserManager:
     def get_all_users(self) -> list:
         return list(self.users.keys())
 
-    def increment_lifetime_count(self):
-        self.lifetime_count += 1
-
-    def get_lifetime_count(self) -> int:
-        return self.lifetime_count
+    def redeem_promo(self, user_id: int, code: str) -> tuple:
+        """Applique un code promo. Retourne (succès, message)."""
+        promos = {
+            "TRADERBURUNDI": {"type": "trial_extension", "days": 5},
+        }
+        code = code.upper()
+        if code not in promos:
+            return False, "Code promo invalide."
+        promo = promos[code]
+        user_id = str(user_id)
+        user = self.get_user(user_id)
+        if promo["type"] == "trial_extension":
+            # Prolonge l'essai en reculant la date d'inscription
+            user["joined"] = user.get("joined", time.time()) - (promo["days"] * 24 * 3600)
+            self._save()
+            return True, f"Essai gratuit prolongé de {promo['days']} jours."
+        return False, "Erreur inconnue."
 
     def _save(self):
         save_json(USERS_FILE, self.users)

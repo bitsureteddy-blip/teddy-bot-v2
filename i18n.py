@@ -12,21 +12,53 @@ TEXTS = {
         "international_payment_info": "\n\n🌍 *Vous êtes dans un pays où les paiements internationaux sont difficiles ?*\nPas de problème. Contactez l'administrateur pour un arrangement manuel : /support",
 
         # ---- Help ----
-        "help_title": "🧸 Commandes disponibles :\n\n",
-        "help_admin": "\n\nAdmin : /broadcast, /reload, /stats, /setrole",
-        
+        "help_full": (
+            "🧸 *Commandes disponibles :*\n\n"
+            "/analyse SYMBOLE – Analyse complète\n"
+            "/price SYMBOLE – Prix actuel\n"
+            "/scalp SYMBOLE DUREE – Scalping (Premium)\n"
+            "/tick SYMBOLE – Dernier tick\n"
+            "/spread SYMBOLE – Spread bid/ask\n"
+            "/alert SYMBOLE above/below PRIX – Créer alerte\n"
+            "/alerts – Lister alertes\n"
+            "/delalert ID – Supprimer alerte\n"
+            "/clearalerts – Tout supprimer\n"
+            "/watchlist – Voir liste\n"
+            "/addwatch SYMBOLE – Ajouter symbole\n"
+            "/removewatch SYMBOLE – Retirer\n"
+            "/scan – Scanner watchlist\n"
+            "/trend SYMBOLE – Tendance\n"
+            "/volatility SYMBOLE – Volatilité\n"
+            "/correlation S1 S2 – Corrélation\n"
+            "/levels SYMBOLE – Supports/Résistances\n"
+            "/settings – Paramètres\n"
+            "/settimeframe TF – 1h/4h/1d\n"
+            "/setrisk PROFIL – low/medium/high\n"
+            "/setlanguage LANG – en/fr\n"
+            "/usage – Requêtes restantes\n"
+            "/status – État du bot\n"
+            "/about – Version\n"
+            "/symbolinfo SYMBOLE – Infos\n"
+            "/myid – Votre ID\n"
+            "/upgrade – Offres Premium\n"
+            "/support – Contacter admin\n"
+            "/symboles – Symboles populaires\n"
+            "/redeem CODE – Utiliser un code promo"
+        ),
+        "help_admin": "\n\nAdmin : /broadcast, /reload, /stats, /setrole, /gift, /revoke",
+
         # ---- Support ----
-       "support": "📞 Besoin d'aide ?\n\nContactez l'administrateur : @btsr_teddy09",
-        
-        # ---- Upgrade ----
-        "upgrade_title": "💳 *Choisissez votre offre :*\n\n• PRO : illimité, scalping\n• ELITE : PRO + groupe privé\n• LIFETIME : ELITE à vie (50 places)",
+        "support": "📞 Besoin d'aide ?\n\nContactez l'administrateur : @btsr_teddy09",
+
+        # ---- Upgrade (Prix mis à jour, LIFETIME supprimé) ----
+        "upgrade_title": "💳 *Choisissez votre offre :*\n\n• PRO : 9,99€/mois – illimité, scalping\n• ELITE : 24,99€/mois – PRO + groupe privé + support prioritaire",
         "invoice_title": "Bitsure Teddy Premium",
         "payment_success": "✅ *Paiement réussi !*\n\nVotre compte est maintenant *{role}*.\nMerci de soutenir Bitsure Teddy ! 🧸💸",
         "stripe_soon": "ℹ️ Paiement Stripe bientôt disponible.",
-        
+
         # ---- Premium requis ----
         "premium_required": "🔒 *Fonctionnalité Premium*\n\nCette commande est réservée aux membres PRO et ELITE.\nUtilisez /upgrade pour découvrir nos offres.",
-        
+
         # ---- Limites & Quotas ----
         "limit_reached": "❌ Vous avez atteint votre limite quotidienne de requêtes. Passez premium pour un accès illimité.",
         "watchlist_limit": "❌ Vous avez atteint la limite de 3 symboles en mode gratuit.\nPassez Premium pour en ajouter plus : /upgrade",
@@ -36,7 +68,7 @@ TEXTS = {
         "watchlist_scan_empty": "Watchlist vide.",
         "watchlist_scan_result": "📊 *Scan watchlist:*\n{results}",
         "watchlist_show": "📋 *Watchlist:*\n{symbols}",
-        
+
         # ---- Alertes ----
         "alert_usage": "Usage: /alert SYMBOLE above/below PRIX",
         "alert_invalid_price": "Prix invalide.",
@@ -47,7 +79,7 @@ TEXTS = {
         "alert_deleted": "✅ Alerte #{id} supprimée.",
         "alert_not_found": "❌ Alerte non trouvée.",
         "alerts_cleared": "✅ Toutes vos alertes ont été supprimées.",
-        
+
         # ---- Analyse & Prix ----
         "symbole_invalide": "Symbole invalide.",
         "analyse_usage": "Usage: /analyse SYMBOLE",
@@ -56,7 +88,7 @@ TEXTS = {
         "price_usage": "Usage: /price SYMBOLE",
         "price_error": "❌ Prix non disponible pour {symbol}.",
         "price_format": "*{symbol}*\n💰 Prix: {price}\n📊 Bid: {bid} / Ask: {ask}",
-        
+
         # ---- Tick / Spread ----
         "tick_usage": "Usage: /tick SYMBOLE",
         "tick_none": "❌ Aucun tick récent.",
@@ -64,10 +96,10 @@ TEXTS = {
         "spread_usage": "Usage: /spread SYMBOLE",
         "spread_format": "*{symbol}* Spread: {spread}",
         "spread_unavailable": "❌ Spread non disponible.",
-        
+
         # ---- Scalping (Premium) ----
         "scalp_dev": "⚡ Scalping en développement (Premium).",
-        
+
         # ---- Tendance & Volatilité ----
         "trend_usage": "Usage: /trend SYMBOLE",
         "trend_no_data": "Données non disponibles.",
@@ -80,7 +112,7 @@ TEXTS = {
         "levels_usage": "Usage: /levels SYMBOLE",
         "levels_no_data": "Données non disponibles.",
         "levels_result": "*{symbol}* Niveaux:\nSupport: {support}\nRésistance: {resistance}",
-        
+
         # ---- Paramètres ----
         "settings_info": "⚙️ *Paramètres*\nTimeframe: {tf}\nRisque: {risk}\nLangue: {lang_name}\nRôle: {role}\nPremium: {prem}",
         "settimeframe_usage": "Usage: /settimeframe 1h|4h|1d",
@@ -95,7 +127,7 @@ TEXTS = {
         "setlanguage_success_en": "✅ Language set to English.",
         "usage_requests_remaining": "📊 Requêtes restantes aujourd'hui: {rem}",
         "usage_unlimited": "✅ Premium: requêtes illimitées.",
-        
+
         # ---- Infos & Admin ----
         "status_ok": "✅ Bot opérationnel. APIs: Twelve Data, Yahoo, RealMarket.",
         "about": "Teddy Trading Bot v1.0 – Bitsure Teddy\nDéveloppé pour trading professionnel.",
@@ -105,13 +137,22 @@ TEXTS = {
         "broadcast_usage": "Usage: /broadcast MESSAGE",
         "broadcast_sent": "✅ Broadcast envoyé à {success}/{total} utilisateurs.",
         "reload_success": "✅ Configuration rechargée.",
-        "stats_info": "📊 *STATISTIQUES BITSURE TEDDY*\n👥 Utilisateurs totaux : {total}\n🆓 FREE : {free}\n💪 PRO : {pro}\n👑 ELITE : {elite}\n🚀 LIFETIME vendus : {lifetime}/50",
+        "stats_info": "📊 *STATISTIQUES BITSURE TEDDY*\n👥 Utilisateurs totaux : {total}\n🆓 FREE : {free}\n💪 PRO : {pro}\n👑 ELITE : {elite}",
         "setrole_usage": "Usage: /setrole USER_ID ROLE (free/pro/elite)",
         "setrole_invalid_id": "❌ USER_ID invalide.",
         "setrole_invalid_role": "❌ Rôle invalide. Utilisez free, pro, ou elite.",
         "setrole_success": "✅ Rôle de l'utilisateur {target_id} mis à jour : *{role}*",
-        
-        # ---- Symboles populaires ----
+
+        # ---- Nouvelles commandes Admin ----
+        "gift_usage": "Usage: /gift USER_ID ROLE DAYS (pro/elite)",
+        "gift_success": "✅ Rôle {role} offert à {target_id} pour {days} jours.",
+        "revoke_usage": "Usage: /revoke USER_ID",
+        "revoke_success": "✅ Rôle de l'utilisateur {target_id} révoqué (free).",
+        "redeem_usage": "Usage: /redeem CODE",
+        "redeem_success": "✅ Code promo appliqué : {message}",
+        "redeem_invalid": "❌ Code promo invalide ou expiré.",
+
+        # ---- Symboles populaires (Forex étendu à venir dans data_fetcher) ----
         "symboles_list": "📊 *SYMBOLES POPULAIRES*\n\n🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Livre/Dollar\nUSDJPY – Dollar/Yen\n\n✨ *Matières premières*\nXAUUSD – Or\nXAGUSD – Argent\n\n📈 *Actions*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n💡 Exemple : /analyse BTCUSD",
     },
     "en": {
@@ -125,21 +166,53 @@ TEXTS = {
         "international_payment_info": "\n\n🌍 *Are you in a country where international payments are difficult?*\nNo problem. Contact the administrator for a manual arrangement: /support",
 
         # ---- Help ----
-        "help_title": "🧸 Available commands:\n\n",
-        "help_admin": "\n\nAdmin: /broadcast, /reload, /stats, /setrole",
-        
+        "help_full": (
+            "🧸 *Available commands:*\n\n"
+            "/analyse SYMBOL – Full analysis\n"
+            "/price SYMBOL – Current price\n"
+            "/scalp SYMBOL DURATION – Scalping (Premium)\n"
+            "/tick SYMBOL – Latest tick\n"
+            "/spread SYMBOL – Bid/ask spread\n"
+            "/alert SYMBOL above/below PRICE – Create price alert\n"
+            "/alerts – List your alerts\n"
+            "/delalert ID – Delete an alert\n"
+            "/clearalerts – Delete all alerts\n"
+            "/watchlist – View your watchlist\n"
+            "/addwatch SYMBOL – Add a symbol\n"
+            "/removewatch SYMBOL – Remove a symbol\n"
+            "/scan – Scan your watchlist\n"
+            "/trend SYMBOL – Global trend\n"
+            "/volatility SYMBOL – Volatility (ATR)\n"
+            "/correlation S1 S2 – 30‑day correlation\n"
+            "/levels SYMBOL – Support/resistance levels\n"
+            "/settings – View your settings\n"
+            "/settimeframe TF – 1h,4h,1d\n"
+            "/setrisk PROFILE – low, medium, high\n"
+            "/setlanguage LANG – en/fr\n"
+            "/usage – Remaining requests\n"
+            "/status – Bot status\n"
+            "/about – Version & credits\n"
+            "/symbolinfo SYMBOL – Symbol info\n"
+            "/myid – Get your Telegram ID\n"
+            "/upgrade – Premium offers\n"
+            "/support – Contact admin\n"
+            "/symboles – Popular symbols\n"
+            "/redeem CODE – Use a promo code"
+        ),
+        "help_admin": "\n\nAdmin: /broadcast, /reload, /stats, /setrole, /gift, /revoke",
+
         # ---- Support ----
         "support": "📞 Need help?\n\nContact admin: @btsr_teddy09",
-        
-        # ---- Upgrade ----
-        "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: unlimited, scalping\n• ELITE: PRO + private group\n• LIFETIME: ELITE for life (50 spots)",
+
+        # ---- Upgrade (Prix mis à jour, LIFETIME supprimé) ----
+        "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: 9.99€/month – unlimited, scalping\n• ELITE: 24.99€/month – PRO + private group + priority support",
         "invoice_title": "Bitsure Teddy Premium",
         "payment_success": "✅ *Payment successful!*\n\nYour account is now *{role}*.\nThank you for supporting Bitsure Teddy! 🧸💸",
         "stripe_soon": "ℹ️ Stripe payment coming soon.",
-        
+
         # ---- Premium required ----
         "premium_required": "🔒 *Premium Feature*\n\nThis command is reserved for PRO and ELITE members.\nUse /upgrade to discover our offers.",
-        
+
         # ---- Limits & Quotas ----
         "limit_reached": "❌ You have reached your daily request limit. Upgrade to premium for unlimited access.",
         "watchlist_limit": "❌ You have reached the limit of 3 symbols in free mode.\nUpgrade to Premium to add more: /upgrade",
@@ -149,7 +222,7 @@ TEXTS = {
         "watchlist_scan_empty": "Watchlist empty.",
         "watchlist_scan_result": "📊 *Watchlist scan:*\n{results}",
         "watchlist_show": "📋 *Watchlist:*\n{symbols}",
-        
+
         # ---- Alerts ----
         "alert_usage": "Usage: /alert SYMBOL above/below PRICE",
         "alert_invalid_price": "Invalid price.",
@@ -160,7 +233,7 @@ TEXTS = {
         "alert_deleted": "✅ Alert #{id} deleted.",
         "alert_not_found": "❌ Alert not found.",
         "alerts_cleared": "✅ All your alerts have been deleted.",
-        
+
         # ---- Analysis & Price ----
         "symbole_invalide": "Invalid symbol.",
         "analyse_usage": "Usage: /analyse SYMBOL",
@@ -169,7 +242,7 @@ TEXTS = {
         "price_usage": "Usage: /price SYMBOL",
         "price_error": "❌ Price not available for {symbol}.",
         "price_format": "*{symbol}*\n💰 Price: {price}\n📊 Bid: {bid} / Ask: {ask}",
-        
+
         # ---- Tick / Spread ----
         "tick_usage": "Usage: /tick SYMBOL",
         "tick_none": "❌ No recent tick.",
@@ -177,10 +250,10 @@ TEXTS = {
         "spread_usage": "Usage: /spread SYMBOL",
         "spread_format": "*{symbol}* Spread: {spread}",
         "spread_unavailable": "❌ Spread unavailable.",
-        
+
         # ---- Scalping (Premium) ----
         "scalp_dev": "⚡ Scalping in development (Premium).",
-        
+
         # ---- Trend & Volatility ----
         "trend_usage": "Usage: /trend SYMBOL",
         "trend_no_data": "No data available.",
@@ -193,7 +266,7 @@ TEXTS = {
         "levels_usage": "Usage: /levels SYMBOL",
         "levels_no_data": "No data available.",
         "levels_result": "*{symbol}* Levels:\nSupport: {support}\nResistance: {resistance}",
-        
+
         # ---- Settings ----
         "settings_info": "⚙️ *Settings*\nTimeframe: {tf}\nRisk: {risk}\nLanguage: {lang_name}\nRole: {role}\nPremium: {prem}",
         "settimeframe_usage": "Usage: /settimeframe 1h|4h|1d",
@@ -208,7 +281,7 @@ TEXTS = {
         "setlanguage_success_en": "✅ Language set to English.",
         "usage_requests_remaining": "📊 Requests remaining today: {rem}",
         "usage_unlimited": "✅ Premium: unlimited requests.",
-        
+
         # ---- Info & Admin ----
         "status_ok": "✅ Bot operational. APIs: Twelve Data, Yahoo, RealMarket.",
         "about": "Teddy Trading Bot v1.0 – Bitsure Teddy\nDeveloped for professional trading.",
@@ -218,19 +291,28 @@ TEXTS = {
         "broadcast_usage": "Usage: /broadcast MESSAGE",
         "broadcast_sent": "✅ Broadcast sent to {success}/{total} users.",
         "reload_success": "✅ Configuration reloaded.",
-        "stats_info": "📊 *BITSURE TEDDY STATISTICS*\n👥 Total users: {total}\n🆓 FREE: {free}\n💪 PRO: {pro}\n👑 ELITE: {elite}\n🚀 LIFETIME sold: {lifetime}/50",
+        "stats_info": "📊 *BITSURE TEDDY STATISTICS*\n👥 Total users: {total}\n🆓 FREE: {free}\n💪 PRO: {pro}\n👑 ELITE: {elite}",
         "setrole_usage": "Usage: /setrole USER_ID ROLE (free/pro/elite)",
         "setrole_invalid_id": "❌ Invalid USER_ID.",
         "setrole_invalid_role": "❌ Invalid role. Use free, pro, or elite.",
         "setrole_success": "✅ User {target_id} role updated: *{role}*",
-        
+
+        # ---- New Admin Commands ----
+        "gift_usage": "Usage: /gift USER_ID ROLE DAYS (pro/elite)",
+        "gift_success": "✅ {role} role granted to {target_id} for {days} days.",
+        "revoke_usage": "Usage: /revoke USER_ID",
+        "revoke_success": "✅ User {target_id} role revoked (free).",
+        "redeem_usage": "Usage: /redeem CODE",
+        "redeem_success": "✅ Promo code applied: {message}",
+        "redeem_invalid": "❌ Invalid or expired promo code.",
+
         # ---- Popular symbols ----
         "symboles_list": "📊 *POPULAR SYMBOLS*\n\n🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Pound/Dollar\nUSDJPY – Dollar/Yen\n\n✨ *Commodities*\nXAUUSD – Gold\nXAGUSD – Silver\n\n📈 *Stocks*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n💡 Example: /analyse BTCUSD",
     }
 }
 
 def get_text(lang: str, key: str, **kwargs) -> str:
-    texts = TEXTS.get(lang, TEXTS["fr"])
+    texts = TEXTS.get(lang, TEXTS["en"])  # Langue par défaut : anglais
     text = texts.get(key, key)
     if kwargs:
         return text.format(**kwargs)

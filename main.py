@@ -16,7 +16,7 @@ from bot_handlers import (
     settings, settimeframe, setrisk, setlanguage, usage,
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
     upgrade, plan_callback, pre_checkout, successful_payment,
-    support, setrole, symboles   # <--- NOUVEAUX IMPORTS
+    support, setrole, symboles, gift, revoke, redeem   # <--- nouvelles commandes
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -96,6 +96,9 @@ def main():
     app.add_handler(CommandHandler("support", support))
     app.add_handler(CommandHandler("setrole", setrole))
     app.add_handler(CommandHandler("symboles", symboles))
+    app.add_handler(CommandHandler("gift", gift))
+    app.add_handler(CommandHandler("revoke", revoke))
+    app.add_handler(CommandHandler("redeem", redeem))
 
     logger.info("Teddy Trading Bot started")
     app.run_polling()

@@ -48,9 +48,12 @@ def normalize_symbol(symbol: str) -> str:
     return s
 
 def format_number(num: float, decimals: int = 2) -> str:
-    """Formate un nombre avec séparateur de milliers"""
+    """Formate un nombre avec séparateur de milliers."""
     if abs(num) < 0.01 and num != 0:
         return f"{num:.8f}".rstrip('0').rstrip('.')
+    # Pour le Forex, on veut souvent 4 décimales
+    if 0.01 <= abs(num) < 1000:
+        decimals = max(decimals, 4)
     return f"{num:,.{decimals}f}"
 
 def format_timestamp(ts: float) -> str:
