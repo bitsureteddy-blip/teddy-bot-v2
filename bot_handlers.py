@@ -149,10 +149,10 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if data == "plan_pro_stars":
         await send_invoice(query, "PRO Mensuel", 999, "pro_monthly")
-    elif data == "plan_elite_stars":
-        await send_invoice(query, "ELITE Mensuel", 2499, "elite_monthly")
-    else:
-        await query.edit_message_text(get_text(lang, "stripe_soon"))
+    if data == "plan_pro_stars":
+    await send_invoice(query, "PRO Mensuel", 1599, "pro_monthly")   # 15,99€
+elif data == "plan_elite_stars":
+    await send_invoice(query, "ELITE Mensuel", 3999, "elite_monthly") # 39,99€
 
 
 async def send_invoice(query, title: str, price_eur: int, payload: str):

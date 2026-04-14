@@ -47,15 +47,11 @@ TEXTS = {
 
         "support": "📞 Besoin d'aide ?\n\nContactez l'administrateur : @btsr_teddy09",
 
-        "upgrade_title": "💳 *Choisissez votre offre :*\n\n• PRO : 9,99€/mois – illimité, scalping\n• ELITE : 24,99€/mois – PRO + groupe privé + support prioritaire",
-        "button_pro_stars": "💎 PRO – 9,99€/mois (Stars)",
-        "button_elite_stars": "👑 ELITE – 24,99€/mois (Stars)",
-        "button_pro_stripe": "💳 PRO – 9,99€/mois (Stripe bientôt)",
-        "button_elite_stripe": "💳 ELITE – 24,99€/mois (Stripe bientôt)",
-        "invoice_title": "Bitsure Teddy Premium",
-        "payment_success": "✅ *Paiement réussi !*\n\nVotre compte est maintenant *{role}*.\nMerci de soutenir Bitsure Teddy ! 🧸💸",
-        "stripe_soon": "ℹ️ Paiement Stripe bientôt disponible.",
-
+        "upgrade_title": "💳 *Choisissez votre offre :*\n\n• PRO : 9,99€/mois – illimité, scalping\n• ELITE : 24,99€/mois – PRO + groupe privé + support prioritaire\n\n⚠️ Les prix en Telegram Stars sont majorés en raison des commissions.",
+"button_pro_stars": "💎 PRO – 15,99€/mois (Stars)",
+"button_elite_stars": "👑 ELITE – 39,99€/mois (Stars)",
+"button_pro_stripe": "💳 PRO – 9,99€/mois (Stripe bientôt)",
+"button_elite_stripe": "💳 ELITE – 24,99€/mois (Stripe bientôt)",
         "premium_required": "🔒 *Fonctionnalité Premium*\n\nCette commande est réservée aux membres PRO et ELITE.\nUtilisez /upgrade pour découvrir nos offres.",
 
         "limit_reached": "❌ Vous avez atteint votre limite quotidienne de requêtes. Passez premium pour un accès illimité.",
@@ -195,15 +191,11 @@ TEXTS = {
 
         "support": "📞 Need help?\n\nContact admin: @btsr_teddy09",
 
-        "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: 9.99€/month – unlimited, scalping\n• ELITE: 24.99€/month – PRO + private group + priority support",
-        "button_pro_stars": "💎 PRO – 9.99€/month (Stars)",
-        "button_elite_stars": "👑 ELITE – 24.99€/month (Stars)",
-        "button_pro_stripe": "💳 PRO – 9.99€/month (Stripe soon)",
-        "button_elite_stripe": "💳 ELITE – 24.99€/month (Stripe soon)",
-        "invoice_title": "Bitsure Teddy Premium",
-        "payment_success": "✅ *Payment successful!*\n\nYour account is now *{role}*.\nThank you for supporting Bitsure Teddy! 🧸💸",
-        "stripe_soon": "ℹ️ Stripe payment coming soon.",
-
+       "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: 9.99€/month – unlimited, scalping\n• ELITE: 24.99€/month – PRO + private group + priority support\n\n⚠️ Telegram Stars prices are higher due to platform fees.",
+"button_pro_stars": "💎 PRO – 15.99€/month (Stars)",
+"button_elite_stars": "👑 ELITE – 39.99€/month (Stars)",
+"button_pro_stripe": "💳 PRO – 9.99€/month (Stripe soon)",
+"button_elite_stripe": "💳 ELITE – 24.99€/month (Stripe soon)",
         "premium_required": "🔒 *Premium Feature*\n\nThis command is reserved for PRO and ELITE members.\nUse /upgrade to discover our offers.",
 
         "limit_reached": "❌ You have reached your daily request limit. Upgrade to premium for unlimited access.",
