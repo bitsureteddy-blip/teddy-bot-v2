@@ -23,13 +23,16 @@ fetcher = DataFetcher.get_instance()
 user_mgr = UserManager.get_instance()
 alert_mgr = AlertManager.get_instance()
 
+
 def ensure_twelvedata_ws(user_id: int):
     if user_mgr.can_use_premium_feature(user_id):
         fetcher.start_twelvedata_websocket()
 
+
 def get_user_lang(update: Update) -> str:
     user_id = update.effective_user.id
     return user_mgr.get_setting(user_id, "lang", "en")
+
 
 def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -41,6 +44,7 @@ def check_limit(func):
         user_mgr.increment_usage(user_id)
         return await func(update, context)
     return wrapper
+
 
 def premium_required(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -55,6 +59,7 @@ def premium_required(func):
         return await func(update, context)
     return wrapper
 
+
 async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, role: str, method: str):
     try:
         username = f"@{user.username}" if user.username else user.first_name
@@ -67,6 +72,7 @@ async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, rol
         await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode=ParseMode.MARKDOWN)
     except Exception as e:
         logger.warning(f"Impossible de notifier l'admin : {e}")
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -106,6 +112,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(welcome + disclaimer + payment_info, parse_mode=ParseMode.MARKDOWN)
 
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     text = get_text(lang, "help_full")
@@ -113,9 +120,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += get_text(lang, "help_admin")
     await update.message.reply_text(text)
 
+
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "support"))
+
 
 async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -132,6 +141,7 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
+
 async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -143,6 +153,7 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_invoice(query, "ELITE Mensuel", 2499, "elite_monthly")
     else:
         await query.edit_message_text(get_text(lang, "stripe_soon"))
+
 
 async def send_invoice(query, title: str, price_eur: int, payload: str):
     prices = [LabeledPrice(label=title, amount=price_eur)]
@@ -159,8 +170,10 @@ async def send_invoice(query, title: str, price_eur: int, payload: str):
         is_flexible=False
     )
 
+
 async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.pre_checkout_query.answer(ok=True)
+
 
 async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -175,6 +188,7 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
         parse_mode=ParseMode.MARKDOWN
     )
     await notify_admin_new_premium(context, user, role, "Telegram Stars")
+
 
 # --- Commandes Admin ---
 async def gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -212,6 +226,7 @@ async def gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         pass
 
+
 async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if update.effective_user.id != ADMIN_ID:
@@ -228,6 +243,7 @@ async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr.set_role(target_id, "free")
     await update.message.reply_text(get_text(lang, "revoke_success", target_id=target_id))
 
+
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if not context.args:
@@ -240,6 +256,7 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(get_text(lang, "redeem_success", message=message))
     else:
         await update.message.reply_text(get_text(lang, "redeem_invalid"))
+
 
 async def setrole(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -269,6 +286,7 @@ async def setrole(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         pass
 
+
 @check_limit
 async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -285,6 +303,7 @@ async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr.add_to_watchlist(user_id, symbol)
     await update.message.reply_text(get_text(lang, "watchlist_added", symbol=symbol))
 
+
 @check_limit
 async def removewatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -294,6 +313,7 @@ async def removewatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     symbol = context.args[0].upper()
     user_mgr.remove_from_watchlist(update.effective_user.id, symbol)
     await update.message.reply_text(get_text(lang, "watchlist_removed", symbol=symbol))
+
 
 @check_limit
 async def watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -306,6 +326,7 @@ async def watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "watchlist_show", symbols="\n".join(wl)),
         parse_mode=ParseMode.MARKDOWN
     )
+
 
 @check_limit
 async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -326,6 +347,7 @@ async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "watchlist_scan_result", results="\n".join(results)),
         parse_mode=ParseMode.MARKDOWN
     )
+
 
 @check_limit
 async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -371,6 +393,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await msg.delete()
     await update.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
 
+
 @check_limit
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -395,6 +418,7 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(lang, "price_error", symbol=symbol))
 
+
 @check_limit
 @premium_required
 async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -412,6 +436,7 @@ async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         await update.message.reply_text(get_text(lang, "tick_none"))
+
 
 @check_limit
 @premium_required
@@ -455,7 +480,7 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reason = "Volatilité très faible, attendez un mouvement."
     elif volatility < 0.2:
         signal_key = "scalp_signal_buy" if bid > ask * 0.999 else "scalp_signal_sell"
-        reason = "Scalping sur micro‑spread."
+        reason = "Scalping sur micro-spread."
     else:
         signal_key = "scalp_signal_wait"
         reason = "Volatilité élevée, risque important."
@@ -474,6 +499,7 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
                  reason=reason),
         parse_mode=ParseMode.MARKDOWN
     )
+
 
 @check_limit
 @premium_required
@@ -494,6 +520,7 @@ async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         await update.message.reply_text(get_text(lang, "spread_unavailable"))
+
 
 @check_limit
 async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -516,6 +543,7 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond, price=price)
     )
 
+
 @check_limit
 async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -528,6 +556,7 @@ async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         status = "✅" if a.get("triggered") else "⏳"
         text += f"{status} #{a['id']} {a['symbol']} {a['condition']} {a['price']}\n"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
 
 @check_limit
 async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -545,11 +574,13 @@ async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(lang, "alert_not_found"))
 
+
 @check_limit
 async def clearalerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     alert_mgr.clear_alerts(update.effective_user.id)
     await update.message.reply_text(get_text(lang, "alerts_cleared"))
+
 
 @check_limit
 async def trend(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -576,15 +607,18 @@ async def trend(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN
     )
 
+
 @check_limit
 async def volatility(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "volatility_wip"))
 
+
 @check_limit
 async def correlation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "correlation_wip"))
+
 
 @check_limit
 async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -604,6 +638,7 @@ async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN
     )
 
+
 @check_limit
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -614,6 +649,7 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     prem = "✅" if role in ("pro", "elite") else "❌"
     text = get_text(lang, "settings_info", tf=tf, risk=risk, lang_name=lang.upper(), role=role.upper(), prem=prem)
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
 
 @check_limit
 async def settimeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -628,6 +664,7 @@ async def settimeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr.set_setting(update.effective_user.id, "timeframe", tf)
     await update.message.reply_text(get_text(lang, "settimeframe_success", tf=tf))
 
+
 @check_limit
 async def setrisk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -640,6 +677,7 @@ async def setrisk(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     user_mgr.set_setting(update.effective_user.id, "risk", risk)
     await update.message.reply_text(get_text(lang, "setrisk_success", risk=risk))
+
 
 async def setlanguage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -657,6 +695,7 @@ async def setlanguage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(new_lang, "setlanguage_success_en"))
 
+
 @check_limit
 async def usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -666,20 +705,24 @@ async def usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(lang, "usage_requests_remaining", rem=rem))
 
+
 @check_limit
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "status_ok"))
+
 
 @check_limit
 async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "about"))
 
+
 @check_limit
 async def symbolinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "symbolinfo"))
+
 
 @check_limit
 async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -688,6 +731,7 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "myid", user_id=update.effective_user.id),
         parse_mode=ParseMode.MARKDOWN
     )
+
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -708,6 +752,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
     await update.message.reply_text(get_text(lang, "broadcast_sent", success=success, total=len(users)))
 
+
 async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if update.effective_user.id != ADMIN_ID:
@@ -717,6 +762,7 @@ async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr = UserManager.get_instance()
     alert_mgr = AlertManager.get_instance()
     await update.message.reply_text(get_text(lang, "reload_success"))
+
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -730,6 +776,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elite = sum(1 for u in user_mgr.users.values() if u.get("role") == "elite")
     text = get_text(lang, "stats_info", total=total, free=free, pro=pro, elite=elite)
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
 
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
