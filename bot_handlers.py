@@ -78,7 +78,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
 
-    # Détection automatique de la langue
     tg_lang = user.language_code
     default_lang = "en" if tg_lang and tg_lang.startswith("en") else "fr"
 
@@ -112,9 +111,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         payment_info = ""
 
     full_text = welcome + disclaimer + payment_info
-
-    # Désactiver temporairement le Markdown pour éviter les erreurs de parsing
-    await update.message.reply_text(full_text)  # pas de parse_mode
+    await update.message.reply_text(full_text, parse_mode=ParseMode.MARKDOWN)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
