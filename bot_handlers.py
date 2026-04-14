@@ -141,19 +141,17 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
-
 async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
     lang = get_user_lang(update)
     if data == "plan_pro_stars":
-        await send_invoice(query, "PRO Mensuel", 999, "pro_monthly")
-    if data == "plan_pro_stars":
-    await send_invoice(query, "PRO Mensuel", 1599, "pro_monthly")   # 15,99€
-elif data == "plan_elite_stars":
-    await send_invoice(query, "ELITE Mensuel", 3999, "elite_monthly") # 39,99€
-
+        await send_invoice(query, "PRO Mensuel", 1599, "pro_monthly")
+    elif data == "plan_elite_stars":
+        await send_invoice(query, "ELITE Mensuel", 3999, "elite_monthly")
+    else:
+        await query.edit_message_text(get_text(lang, "stripe_soon"))
 
 async def send_invoice(query, title: str, price_eur: int, payload: str):
     prices = [LabeledPrice(label=title, amount=price_eur)]
