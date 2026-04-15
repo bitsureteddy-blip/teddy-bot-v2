@@ -72,15 +72,15 @@ class DataFetcher:
 
             time.sleep(5)
 
-    def _on_open_twelvedata(self, ws):
-    logger.info("Twelve Data WebSocket connected, sending authentication...")
-    auth_msg = {
-        "action": "auth",
-        "params": {
-            "apikey": TWELVEDATA_API_KEY
+        def _on_open_twelvedata(self, ws):
+        logger.info("Twelve Data WebSocket connected, sending authentication...")
+        auth_msg = {
+            "action": "auth",
+            "params": {
+                "apikey": TWELVEDATA_API_KEY
+            }
         }
-    }
-    ws.send(json.dumps(auth_msg))
+        ws.send(json.dumps(auth_msg))
     def _on_message_twelvedata(self, ws, message):
         try:
             data = json.loads(message)
