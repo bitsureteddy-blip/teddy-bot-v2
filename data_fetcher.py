@@ -37,7 +37,7 @@ class DataFetcher:
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
-def start_websocket(self):
+    def start_websocket(self):
     """Méthode de compatibilité appelée par main.py"""
     self.start_twelvedata_websocket()
 
