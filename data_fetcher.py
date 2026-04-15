@@ -71,8 +71,8 @@ class DataFetcher:
             time.sleep(5)
 
     def _on_open_twelvedata(self, ws):
-        logger.info("Twelve Data WebSocket connected – sending authentication")
-
+        logger.info("Twelve Data WebSocket connected, preparing authentication...")
+        time.sleep(0.5)
         auth_msg = {
             "action": "auth",
             "params": {
@@ -80,6 +80,7 @@ class DataFetcher:
             }
         }
         ws.send(json.dumps(auth_msg))
+        logger.info("Authentication message sent to Twelve Data WebSocket.")
 
     def _on_message_twelvedata(self, ws, message):
         try:
@@ -89,11 +90,9 @@ class DataFetcher:
             if event == "price":
                 symbol = data.get("symbol")
                 price = float(data.get("price", 0))
-
                 bid = data.get("bid")
                 ask = data.get("ask")
 
-                # FIX IMPORTANT : fallback spread si bid/ask absents
                 if bid is None or ask is None:
                     spread = price * 0.0005
                     bid = price - spread / 2
@@ -180,12 +179,10 @@ class DataFetcher:
         try:
             td_symbol = self._to_twelvedata_symbol(symbol)
             url = f"https://api.twelvedata.com/quote?symbol={td_symbol}&apikey={TWELVEDATA_API_KEY}"
-
             resp = requests.get(url, timeout=10)
 
             if resp.status_code == 200:
                 data = resp.json()
-
                 price_str = data.get("close") or data.get("price")
                 bid_str = data.get("bid")
                 ask_str = data.get("ask")
@@ -195,7 +192,6 @@ class DataFetcher:
 
                 price = float(price_str)
 
-                # FIX BID/ASK
                 if bid_str is not None and ask_str is not None:
                     bid = float(bid_str)
                     ask = float(ask_str)
@@ -220,27 +216,22 @@ class DataFetcher:
     def _to_twelvedata_symbol(self, symbol: str) -> str:
         s = symbol.upper()
 
-        # crypto
         if s.endswith("USD") and s[:-3] in ["BTC", "ETH", "XRP", "SOL", "ADA", "BNB", "LTC", "BCH", "DOT", "LINK"]:
             return s[:-3] + "/USD"
 
-        # forex
         if len(s) == 6 and s.endswith("USD"):
             return f"{s[:3]}/{s[3:]}"
 
-        # metals
         if s == "XAUUSD":
             return "XAU/USD"
         if s == "XAGUSD":
             return "XAG/USD"
 
-        # oil
         if s in ["USOIL", "WTI"]:
             return "WTI/USD"
         if s == "UKOIL":
             return "BRENT/USD"
 
-        # stocks FIX
         if s in ["AAPL", "TSLA", "MSFT", "AMZN", "META", "GOOGL"]:
             return s
 
@@ -249,7 +240,6 @@ class DataFetcher:
     # --- HISTORY ---
     async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
                                   period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
-
         symbol = normalize_symbol(symbol)
         cache_k = cache_key(symbol, timeframe, period)
 
@@ -259,10 +249,8 @@ class DataFetcher:
                 return entry["data"]
 
         df = await self._fetch_twelvedata_history(symbol, timeframe, period)
-
         if df is None and FCS_API_KEY:
             df = await self._fetch_fcs_history(symbol, timeframe, period)
-
         if df is None:
             df = await self._fetch_yahoo_history(symbol, timeframe, period)
 
@@ -279,14 +267,10 @@ class DataFetcher:
         try:
             interval_map = {"1d": "1day", "1h": "1h", "4h": "4h", "1m": "1min"}
             interval = interval_map.get(timeframe, "1day")
-
-            days = 180  # FIX IMPORTANT (plus d’analyse)
-
+            days = 180
             start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             td_symbol = self._to_twelvedata_symbol(symbol)
-
             url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&start_date={start_date}&apikey={TWELVEDATA_API_KEY}"
-
             resp = requests.get(url, timeout=15)
 
             if resp.status_code == 200:
@@ -304,7 +288,6 @@ class DataFetcher:
                             "Close": float(item["close"]),
                             "Volume": float(item.get("volume", 0))
                         })
-
                     df = pd.DataFrame(rows)
                     df["Date"] = pd.to_datetime(df["Date"])
                     df.set_index("Date", inplace=True)
@@ -318,7 +301,6 @@ class DataFetcher:
     async def _fetch_yahoo_history(self, symbol: str, timeframe: str, period: str) -> Optional[pd.DataFrame]:
         try:
             import yfinance as yf
-
             if symbol.upper() in ["BTCUSD", "ETHUSD", "XAUUSD"]:
                 ticker_symbol = symbol.replace("USD", "-USD")
             elif len(symbol) == 6 and symbol.endswith("USD"):
@@ -328,15 +310,12 @@ class DataFetcher:
 
             ticker = yf.Ticker(ticker_symbol)
             df = ticker.history(period=period, interval=timeframe)
-
             if df.empty:
                 return None
-
             return df
 
         except Exception as e:
             logger.warning(f"Yahoo history error: {e}")
-
         return None
 
     async def _fetch_fcs_history(self, symbol: str, timeframe: str, period: str) -> Optional[pd.DataFrame]:
@@ -344,15 +323,12 @@ class DataFetcher:
             return None
 
         days = 180
-
         try:
             url = f"https://fcsapi.com/api-v3/forex/history?symbol={symbol}&period={timeframe}&from={self._date_days_ago(days)}&to={datetime.now().strftime('%Y-%m-%d')}&access_key={FCS_API_KEY}"
-
             resp = requests.get(url, timeout=10)
 
             if resp.status_code == 200:
                 data = resp.json()
-
                 if data.get("code") == 200 and data.get("response"):
                     rows = []
                     for item in data["response"]:
@@ -364,7 +340,6 @@ class DataFetcher:
                             "Close": float(item["c"]),
                             "Volume": float(item.get("v", 0))
                         })
-
                     df = pd.DataFrame(rows)
                     df["Date"] = pd.to_datetime(df["Date"])
                     df.set_index("Date", inplace=True)
@@ -372,7 +347,6 @@ class DataFetcher:
 
         except Exception as e:
             logger.warning(f"FCS history error: {e}")
-
         return None
 
     def _date_days_ago(self, days: int) -> str:
