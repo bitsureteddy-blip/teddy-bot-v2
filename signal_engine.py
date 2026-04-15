@@ -21,8 +21,6 @@ class SignalEngine:
 
     @staticmethod
     def analyze(df: pd.DataFrame) -> Dict:
-
-        # FIX IMPORTANT: sécurisation dataframe
         if df is None or df.empty or len(df) < SMA_LONG:
             return {
                 "signal": "ATTENDRE",
@@ -65,7 +63,7 @@ class SignalEngine:
             close, rsi_series, DIVERGENCE_LOOKBACK
         )
 
-        # === TREND ===
+        # === TENDANCE ===
         if last_price > sma50:
             trend = "HAUSSIER"
         elif last_price < sma50:
@@ -73,7 +71,7 @@ class SignalEngine:
         else:
             trend = "NEUTRE"
 
-        # === SCORE ===
+        # === TEDDY SCORE AMÉLIORÉ ===
         teddy_score = SignalEngine._compute_teddy_score(
             df,
             rsi_val,
@@ -87,29 +85,36 @@ class SignalEngine:
             divergence
         )
 
-        # === SIGNAL ===
-        if teddy_score > 65:
+        # === SIGNAL (SEUILS ASSOUPLIS) ===
+        if teddy_score >= 55:
             signal = "ACHETER"
-        elif teddy_score < 35:
+        elif teddy_score <= 45:
             signal = "VENDRE"
         else:
             signal = "ATTENDRE"
 
-        # === FILTRE DE TENDANCE ===
-        if trend == "HAUSSIER" and signal == "VENDRE":
+        # === FILTRE DE TENDANCE ASSOUPLI ===
+        # On autorise un signal contraire si le score est très convaincant
+        if trend == "HAUSSIER" and signal == "VENDRE" and teddy_score > 30:
             signal = "ATTENDRE"
-        elif trend == "BAISSIER" and signal == "ACHETER":
+        if trend == "BAISSIER" and signal == "ACHETER" and teddy_score < 70:
             signal = "ATTENDRE"
 
         # === RAISON ===
         if signal == "ACHETER":
-            reason = "📈 Tendance haussière + signaux positifs"
+            reason = "📈 Signaux haussiers détectés"
             risk_advice = "⚠️ Entrée progressive conseillée"
         elif signal == "VENDRE":
-            reason = "📉 Tendance baissière + pression vendeuse"
-            risk_advice = "⚠️ Risque de continuation baissière"
+            reason = "📉 Signaux baissiers détectés"
+            risk_advice = "⚠️ Risque de continuation"
         else:
-            reason = "Marché neutre ou indécis"
+            # Raison plus informative
+            if teddy_score >= 55:
+                reason = "Marché suracheté, attendez une correction"
+            elif teddy_score <= 45:
+                reason = "Marché survendu, attendez un rebond"
+            else:
+                reason = "Aucun signal clair – phase de consolidation"
             risk_advice = "⏳ Attendre une confirmation"
 
         indicators = {
@@ -147,16 +152,15 @@ class SignalEngine:
         macd_signal,
         divergence
     ):
-
         score = 50
 
-        # RSI
-        if rsi_val < 30:
-            score += 15
-        elif rsi_val > 70:
-            score -= 15
+        # RSI – seuils assouplis
+        if rsi_val < 40:
+            score += 12
+        elif rsi_val > 60:
+            score -= 12
 
-        # TREND
+        # Tendance
         if price > sma50:
             score += 10
         else:
@@ -167,31 +171,29 @@ class SignalEngine:
         else:
             score -= 10
 
-        # SUPPORT / RESISTANCE
-        if support is not None and price <= support * 1.02:
+        # Support / Résistance – seuils élargis
+        if support is not None and price <= support * 1.03:
             score += 10
-
-        if resistance is not None and price >= resistance * 0.98:
+        if resistance is not None and price >= resistance * 0.97:
             score -= 10
 
-        # DIVERGENCE
+        # Divergence
         if divergence == "bullish":
             score += 15
         elif divergence == "bearish":
             score -= 15
 
-        # MACD
+        # MACD – poids augmenté
         if macd > macd_signal:
-            score += 10
+            score += 15
         else:
-            score -= 10
+            score -= 15
 
-        # VOLUME FIX
+        # Volume
         if "Volume" in df.columns:
             avg_vol = df["Volume"].rolling(20).mean().iloc[-1]
             current_vol = df["Volume"].iloc[-1]
-
-            if pd.notna(avg_vol) and current_vol > avg_vol * 1.5:
+            if pd.notna(avg_vol) and current_vol > avg_vol * 1.3:
                 score += 5
 
         return max(0, min(100, score))
