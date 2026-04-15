@@ -37,7 +37,11 @@ class DataFetcher:
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
-        def start_websocket(self):
+
+    # =========================
+    # COMPATIBILITÉ AVEC MAIN.PY
+    # =========================
+    def start_websocket(self):
         """Méthode de compatibilité appelée par main.py"""
         self.start_twelvedata_websocket()
 
@@ -45,7 +49,6 @@ class DataFetcher:
     # 🚀 WEBSOCKET (PREMIUM)
     # =========================
     def start_twelvedata_websocket(self):
-        """Démarre le WebSocket Twelve Data (appelé par bot_handlers)."""
         if self.ws_running:
             return
         self.ws_running = True
@@ -87,7 +90,6 @@ class DataFetcher:
                 bid = data.get("bid")
                 ask = data.get("ask")
 
-                # ✅ Spread intelligent (ChatGPT)
                 if bid is None or ask is None:
                     spread = max(price * 0.0003, 0.0001)
                     bid = price - spread / 2
@@ -124,7 +126,6 @@ class DataFetcher:
         self.ws_authenticated = False
 
     def subscribe_twelvedata(self, symbol: str):
-        """Abonnement à un symbole (Premium)."""
         symbol = normalize_symbol(symbol)
         self.subscribed_symbols.add(symbol)
 
@@ -190,33 +191,28 @@ class DataFetcher:
     def _format_symbol(self, symbol: str) -> str:
         s = symbol.upper()
 
-        # Crypto
         crypto_list = ["BTC", "ETH", "XRP", "SOL", "ADA", "BNB", "LTC", "BCH", "DOT", "LINK"]
         for crypto in crypto_list:
             if s == f"{crypto}USD":
                 return f"{crypto}/USD"
 
-        # Forex (paires à 6 lettres)
         if len(s) == 6:
             return f"{s[:3]}/{s[3:]}"
 
-        # Or / Argent
         if s == "XAUUSD":
             return "XAU/USD"
         if s == "XAGUSD":
             return "XAG/USD"
 
-        # Pétrole
         if s in ["USOIL", "WTI"]:
             return "WTI/USD"
         if s == "UKOIL":
             return "BRENT/USD"
 
-        # Actions et autres : inchangé
         return s
 
     # =========================
-    # 📊 HISTORIQUE (AVEC FALLBACK)
+    # 📊 HISTORIQUE
     # =========================
     async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
                                   period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
@@ -227,14 +223,9 @@ class DataFetcher:
             if time.time() - self.history_cache[key]["timestamp"] < HISTORY_CACHE_TTL:
                 return self.history_cache[key]["data"]
 
-        # 1. Twelve Data
         df = await self._fetch_history(symbol, timeframe)
-
-        # 2. Fallback FCS (Forex)
         if df is None and FCS_API_KEY:
             df = await self._fetch_fcs_history(symbol, timeframe, period)
-
-        # 3. Fallback Yahoo Finance
         if df is None:
             df = await self._fetch_yahoo_history(symbol, timeframe, period)
 
@@ -247,10 +238,7 @@ class DataFetcher:
         try:
             td_symbol = self._format_symbol(symbol)
 
-            interval_map = {
-                "1m": "1min", "5m": "5min",
-                "1h": "1h", "4h": "4h", "1d": "1day"
-            }
+            interval_map = {"1m": "1min", "5m": "5min", "1h": "1h", "4h": "4h", "1d": "1day"}
             interval = interval_map.get(timeframe, "1day")
 
             url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&outputsize=200&apikey={TWELVEDATA_API_KEY}"
