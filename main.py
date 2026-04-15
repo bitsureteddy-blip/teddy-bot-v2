@@ -30,8 +30,7 @@ logger = logging.getLogger(__name__)
 async def post_init(application):
     await application.bot.delete_webhook(drop_pending_updates=True)
     logger.info("Webhook cleared, ready to poll")
-    DataFetcher.get_instance().start_websocket()
-
+    DataFetcher.get_instance().start_twelvedata_websocket()
 def main():
     DataFetcher.get_instance()
     UserManager.get_instance()
