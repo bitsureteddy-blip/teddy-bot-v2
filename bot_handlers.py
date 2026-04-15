@@ -73,6 +73,14 @@ async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, rol
     except Exception as e:
         logger.warning(f"Impossible de notifier l'admin : {e}")
 
+async def notify_admin_new_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    username = f"@{user.username}" if user.username else user.first_name
+    msg = f"🆕 *Nouvel utilisateur* : {username} (ID: `{user.id}`)"
+    try:
+        await context.bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        logger.warning(f"Impossible de notifier l'admin pour nouvel utilisateur : {e}")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -88,8 +96,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         lang = current_lang
 
+    # Détection nouvel utilisateur AVANT création
+    was_new = str(user_id) not in user_mgr.users
+
+    # Création ou récupération de l'utilisateur
     user_mgr.get_user(user_id)
     role = user_mgr.get_role(user_id)
+
+    if was_new:
+        await notify_admin_new_user(update, context)
 
     if role == "free" and user_mgr.is_trial_valid(user_id):
         status = get_text(lang, "status_free_trial")
@@ -217,13 +232,11 @@ async def gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "gift_success", target_id=target_id, role=role.upper(), days=days)
     )
     try:
-        await context.bot.send_message(
-            chat_id=target_id,
-            text=f"🎁 Vous avez reçu un accès {role.upper()} gratuit pour {days} jours !"
-        )
+        target_lang = user_mgr.get_setting(target_id, "lang", "en")
+        gift_message = get_text(target_lang, "gift_notification", role=role.upper(), days=days)
+        await context.bot.send_message(chat_id=target_id, text=gift_message)
     except:
         pass
-
 
 async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -750,6 +763,9 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
     await update.message.reply_text(get_text(lang, "broadcast_sent", success=success, total=len(users)))
 
+async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "app_message"), parse_mode=ParseMode.MARKDOWN)
 
 async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)

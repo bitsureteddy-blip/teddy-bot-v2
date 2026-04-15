@@ -134,7 +134,6 @@ TEXTS = {
         "setrole_invalid_id": "❌ USER_ID invalide.",
         "setrole_invalid_role": "❌ Rôle invalide. Utilisez free, pro, ou elite.",
         "setrole_success": "✅ Rôle de l'utilisateur {target_id} mis à jour : *{role}*",
-
         "gift_usage": "Usage: /gift USER_ID ROLE DAYS (pro/elite)",
         "gift_success": "✅ Rôle {role} offert à {target_id} pour {days} jours.",
         "revoke_usage": "Usage: /revoke USER_ID",
@@ -142,8 +141,9 @@ TEXTS = {
         "redeem_usage": "Usage: /redeem CODE",
         "redeem_success": "✅ Code promo appliqué : {message}",
         "redeem_invalid": "❌ Code promo invalide ou expiré.",
-
+        "app_message": "📱 *Bitsure Teddy Mobile*\n\nL'application pour Android et iOS est en cours de développement. Elle vous permettra d'accéder à toutes les analyses sans passer par Telegram. Restez à l'écoute ! 🧸",
         "symboles_list": "📊 *SYMBOLES POPULAIRES*\n\n🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Livre/Dollar\nUSDJPY – Dollar/Yen\n\n✨ *Matières premières*\nXAUUSD – Or\nXAGUSD – Argent\n\n📈 *Actions*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n💡 Exemple : /analyse BTCUSD",
+        "gift_notification": "🎁 Vous avez reçu un accès {role} gratuit pour {days} jours ! Profitez-en !",
     },
     "en": {
         "start": "🐻 *Bitsure Teddy* – Professional Market Analysis\n\nStatus: {status}\nCommands: /help\nOffers: /upgrade",
@@ -286,8 +286,9 @@ TEXTS = {
         "redeem_usage": "Usage: /redeem CODE",
         "redeem_success": "✅ Promo code applied: {message}",
         "redeem_invalid": "❌ Invalid or expired promo code.",
-
+        "app_message": "📱 *Bitsure Teddy Mobile*\n\nThe Android and iOS app is currently in development. It will allow you to access all analyses without using Telegram. Stay tuned! 🧸",
         "symboles_list": "📊 *POPULAR SYMBOLS*\n\n🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Pound/Dollar\nUSDJPY – Dollar/Yen\n\n✨ *Commodities*\nXAUUSD – Gold\nXAGUSD – Silver\n\n📈 *Stocks*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n💡 Example: /analyse BTCUSD",
+        "gift_notification": "🎁 You have been granted free {role} access for {days} days! Enjoy!",
     }
 }
 

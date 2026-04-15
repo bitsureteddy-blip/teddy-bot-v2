@@ -14,7 +14,8 @@ from bot_handlers import (
     settings, settimeframe, setrisk, setlanguage, usage,
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
     upgrade, plan_callback, pre_checkout, successful_payment,
-    support, setrole, symboles, gift, revoke, redeem
+    support, setrole, symboles, gift, revoke, redeem,
+    app_command   # <-- Ajout ici
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -48,7 +49,7 @@ def main():
         ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
         ("support", support), ("setrole", setrole), ("symboles", symboles), ("gift", gift),
-        ("revoke", revoke), ("redeem", redeem)
+        ("revoke", revoke), ("redeem", redeem), ("app", app_command)   # <-- Handler ajouté
     ]
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))
