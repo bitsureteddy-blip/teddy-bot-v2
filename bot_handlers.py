@@ -508,21 +508,6 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
                  reason=result['reason']),
         parse_mode=ParseMode.MARKDOWN
     )
-    await update.message.reply_text(
-        get_text(lang, "scalp_result",
-                 symbol=symbol,
-                 duration=duration,
-                 signal=signal_map[result['signal']],
-                 price=format_number(result['price']),
-                 bid=format_number(result['bid'], 5),
-                 ask=format_number(result['ask'], 5),
-                 spread=format_number(result['spread'], 5),
-                 spread_pct=result['spread_pct'],
-                 rsi=result['rsi'],
-                 reason=result['reason']),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
 
 @check_limit
 @premium_required
