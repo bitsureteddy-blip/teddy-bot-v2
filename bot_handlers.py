@@ -25,9 +25,8 @@ alert_mgr = AlertManager.get_instance()
 
 
 def ensure_twelvedata_ws(user_id: int):
-    if user_mgr.can_use_premium_feature(user_id):
-        fetcher.start_twelvedata_websocket()
-
+    # Désactivé – le plan gratuit Twelve Data ne supporte pas le WebSocket
+    pass
 
 def get_user_lang(update: Update) -> str:
     user_id = update.effective_user.id
