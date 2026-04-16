@@ -382,6 +382,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plt.savefig(buf, format='png')
     buf.seek(0)
     plt.close()
+    
     caption = get_text(lang, "analyse_caption",
                        symbol=symbol,
                        signal=result['signal'],
@@ -392,7 +393,24 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
                        sma20=format_number(ind['sma20']),
                        sma50=format_number(ind['sma50']),
                        teddy_score=result['teddy_score'])
+    
+    # Sauvegarde pour /snapshot et /verify
     signal_id = generate_signal_id()
     verified_signals[signal_id] = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "
+        "symbol": symbol,
+        "signal": result['signal'],
+        "price": ind['price'],
+        "teddy_score": result['teddy_score']
+    }
+    last_snapshot[update.effective_user.id] = {
+        "buffer": buf.getvalue(),
+        "symbol": symbol,
+        "signal": result['signal'],
+        "teddy_score": result['teddy_score'],
+        "price": ind['price']
+    }
+    caption += f"\n\n🔐 ID: `{signal_id}`"
+    
+    await msg.delete()
+    await update.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
