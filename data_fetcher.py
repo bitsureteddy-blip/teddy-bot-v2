@@ -32,6 +32,8 @@ class DataFetcher:
         self.subscribed_symbols = set()
         self.ws_authenticated = False
 
+        self.tick_history = {}  # symbole -> liste des derniers ticks
+
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
@@ -105,6 +107,8 @@ class DataFetcher:
                     "timestamp": time.time()
                 }
 
+                self.add_tick(symbol, price)
+
             elif data.get("status") == "ok":
                 self.ws_authenticated = True
                 logger.info("WS authenticated")
@@ -134,6 +138,14 @@ class DataFetcher:
                 "action": "subscribe",
                 "params": {"symbols": symbol}
             }))
+
+    def add_tick(self, symbol: str, price: float):
+        symbol = normalize_symbol(symbol)
+        if symbol not in self.tick_history:
+            self.tick_history[symbol] = []
+        self.tick_history[symbol].append(price)
+        if len(self.tick_history[symbol]) > 30:
+            self.tick_history[symbol].pop(0)
 
     # =========================
     # 💰 PRIX TEMPS RÉEL

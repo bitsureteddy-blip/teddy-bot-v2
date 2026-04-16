@@ -15,7 +15,6 @@ from config import (
     BB_PERIOD, BB_STD, SMA_SHORT, SMA_LONG,
     SUPPORT_RESISTANCE_LOOKBACK, DIVERGENCE_LOOKBACK
 )
-from i18n import get_text
 
 
 class SignalEngine:
@@ -25,7 +24,7 @@ class SignalEngine:
         if df is None or df.empty or len(df) < SMA_LONG:
             return {
                 "signal": "ATTENDRE",
-                "reason": get_text(lang, "signal_insufficient_data"),
+                "reason": "Données insuffisantes",
                 "risk_advice": "",
                 "teddy_score": 0,
                 "indicators": {}
@@ -100,21 +99,21 @@ class SignalEngine:
         if trend == "BAISSIER" and signal == "ACHETER" and teddy_score < 70:
             signal = "ATTENDRE"
 
-        # === RAISON (BILINGUE) ===
+        # === RAISON ===
         if signal == "ACHETER":
-            reason = get_text(lang, "signal_buy_reason")
-            risk_advice = get_text(lang, "signal_buy_advice")
+            reason = "📈 Signaux haussiers détectés"
+            risk_advice = "⚠️ Entrée progressive conseillée"
         elif signal == "VENDRE":
-            reason = get_text(lang, "signal_sell_reason")
-            risk_advice = get_text(lang, "signal_sell_advice")
+            reason = "📉 Signaux baissiers détectés"
+            risk_advice = "⚠️ Risque de continuation"
         else:
             if teddy_score >= 55:
-                reason = get_text(lang, "signal_wait_overbought")
+                reason = "Marché suracheté, attendez une correction"
             elif teddy_score <= 45:
-                reason = get_text(lang, "signal_wait_oversold")
+                reason = "Marché survendu, attendez un rebond"
             else:
-                reason = get_text(lang, "signal_wait_neutral")
-            risk_advice = get_text(lang, "signal_wait_advice")
+                reason = "Aucun signal clair – phase de consolidation"
+            risk_advice = "⏳ Attendre une confirmation"
 
         indicators = {
             "price": last_price,
@@ -196,3 +195,92 @@ class SignalEngine:
                 score += 5
 
         return max(0, min(100, score))
+
+    # =========================
+    # 🚀 SCALPING AVANCÉ
+    # =========================
+    @staticmethod
+    def analyze_scalp(ticks: list, price_data: dict, duration: int) -> dict:
+        if len(ticks) < 14:
+            return {"signal": "ATTENDRE", "reason": "Données insuffisantes"}
+
+        rsi_val = SignalEngine._rsi_from_ticks(ticks, 9)
+        macd_line, macd_signal = SignalEngine._macd_from_ticks(ticks)
+
+        price = price_data["price"]
+        bid = price_data["bid"]
+        ask = price_data["ask"]
+        spread = ask - bid
+        spread_pct = (spread / price) * 100 if price > 0 else 0
+
+        signal = "ATTENDRE"
+        reason = ""
+
+        if rsi_val < 25:
+            signal = "ACHETER"
+            reason = f"RSI survendu ({rsi_val:.1f})"
+        elif rsi_val > 75:
+            signal = "VENDRE"
+            reason = f"RSI suracheté ({rsi_val:.1f})"
+
+        if len(ticks) >= 15:
+            prev_macd, _ = SignalEngine._macd_from_ticks(ticks[:-1])
+            if prev_macd < macd_signal and macd_line > macd_signal:
+                signal = "ACHETER"
+                reason = "MACD croisement haussier"
+            elif prev_macd > macd_signal and macd_line < macd_signal:
+                signal = "VENDRE"
+                reason = "MACD croisement baissier"
+
+        if spread_pct < 0.02:
+            if signal == "ATTENDRE":
+                if bid > price * 0.9999:
+                    signal = "ACHETER"
+                    reason = "Spread compressé + pression acheteuse"
+                elif ask < price * 1.0001:
+                    signal = "VENDRE"
+                    reason = "Spread compressé + pression vendeuse"
+
+        if spread_pct > 0.2 and signal != "ATTENDRE":
+            signal = "ATTENDRE"
+            reason = "Volatilité trop élevée"
+
+        return {
+            "signal": signal,
+            "reason": reason,
+            "price": price,
+            "bid": bid,
+            "ask": ask,
+            "spread": spread,
+            "spread_pct": round(spread_pct, 4),
+            "rsi": round(rsi_val, 1),
+            "duration": duration
+        }
+
+    @staticmethod
+    def _rsi_from_ticks(ticks: list, period: int = 9) -> float:
+        if len(ticks) < period + 1:
+            return 50.0
+        gains, losses = [], []
+        for i in range(1, len(ticks)):
+            diff = ticks[i] - ticks[i-1]
+            gains.append(diff if diff > 0 else 0)
+            losses.append(-diff if diff < 0 else 0)
+        avg_gain = sum(gains[-period:]) / period
+        avg_loss = sum(losses[-period:]) / period
+        if avg_loss == 0:
+            return 100.0
+        rs = avg_gain / avg_loss
+        return 100 - (100 / (1 + rs))
+
+    @staticmethod
+    def _macd_from_ticks(ticks: list, fast: int = 6, slow: int = 13, signal: int = 5):
+        if len(ticks) < slow:
+            return 0, 0
+        import pandas as pd
+        series = pd.Series(ticks)
+        ema_fast = series.ewm(span=fast, adjust=False).mean().iloc[-1]
+        ema_slow = series.ewm(span=slow, adjust=False).mean().iloc[-1]
+        macd_line = ema_fast - ema_slow
+        signal_line = macd_line * 0.9
+        return macd_line, signal_line

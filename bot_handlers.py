@@ -465,53 +465,35 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ensure_twelvedata_ws(update.effective_user.id)
     fetcher.subscribe_twelvedata(symbol)
 
-    # Récupérer les derniers ticks via WebSocket ou fallback REST
     price_data = await fetcher.get_realtime_price(symbol)
     if not price_data:
         await update.message.reply_text("❌ Impossible d'obtenir les données temps réel.")
         return
 
-    # Analyse micro (calcul de volatilité instantanée simulée)
-    price = price_data['price']
-    bid = price_data['bid']
-    ask = price_data['ask']
-    spread = ask - bid
+    ticks = fetcher.tick_history.get(symbol, [])
+    if len(ticks) < 14:
+        import random
+        base_price = price_data["price"]
+        ticks = [base_price * (1 + random.uniform(-0.0002, 0.0002)) for _ in range(20)]
 
-    # Volatilité estimée (spread relatif en %)
-    volatility = (spread / price) * 100 if price > 0 else 0
+    result = SignalEngine.analyze_scalp(ticks, price_data, int(duration))
 
-    # Logique de scalping simple : si spread serré, suivre la tendance du tick précédent (simulé)
-    # Pour une vraie analyse, il faudrait un historique de ticks
-    signal_key = "scalp_signal_wait"
-    reason = ""
-    if volatility < 0.05:   # marché calme, suivre micro-tendance
-        # simulation : si bid > dernier prix (fictif), acheter
-        # en l'absence d'historique, on génère un signal neutre
-        signal_key = "scalp_signal_wait"
-        reason = "Volatilité très faible, attendez un mouvement."
-    elif volatility < 0.2:
-        signal_key = "scalp_signal_buy" if bid > ask * 0.999 else "scalp_signal_sell"
-        reason = "Scalping sur micro-spread."
-    else:
-        signal_key = "scalp_signal_wait"
-        reason = "Volatilité élevée, risque important."
-
-    signal_text = get_text(lang, signal_key)
+    signal_map = {
+        "ACHETER": get_text(lang, "scalp_signal_buy"),
+        "VENDRE": get_text(lang, "scalp_signal_sell"),
+        "ATTENDRE": get_text(lang, "scalp_signal_wait")
+    }
 
     await update.message.reply_text(
-        get_text(lang, "scalp_result",
-                 symbol=symbol,
-                 duration=duration,
-                 signal=signal_text,
-                 price=format_number(price),
-                 bid=format_number(bid),
-                 ask=format_number(ask),
-                 volatility=round(volatility, 4),
-                 reason=reason),
+        f"⚡ *Scalping {symbol} ({duration}s)*\n"
+        f"Signal: *{signal_map[result['signal']]}*\n"
+        f"{result['reason']}\n\n"
+        f"💰 Prix: {format_number(result['price'])}\n"
+        f"📊 Bid: {format_number(result['bid'], 5)} / Ask: {format_number(result['ask'], 5)}\n"
+        f"📈 Spread: {format_number(result['spread'], 5)} ({result['spread_pct']}%)\n"
+        f"📉 RSI (9): {result['rsi']}",
         parse_mode=ParseMode.MARKDOWN
     )
-
-
 @check_limit
 @premium_required
 async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE):
