@@ -8,7 +8,7 @@ class AlertManager:
     _instance = None
 
     def __init__(self):
-        self.alerts = load_json(ALERTS_FILE)  # user_id -> [{"id":..., "symbol":..., "condition": "above/below", "price":..., "triggered": bool}]
+        self.alerts = load_json(ALERTS_FILE)
         self.lock = threading.Lock()
         self.running = False
         self.thread = None
@@ -38,7 +38,6 @@ class AlertManager:
                 for alert in alerts:
                     if alert.get("triggered"):
                         continue
-                    # Récupérer le prix courant
                     price_data = asyncio.run(fetcher.get_realtime_price(alert["symbol"]))
                     if not price_data:
                         continue
@@ -50,14 +49,12 @@ class AlertManager:
                         condition_met = True
                     if condition_met:
                         alert["triggered"] = True
-                        # Envoyer notification
                         asyncio.run(self._notify_user(bot_app, user_id, alert, current_price))
-            # Sauvegarde après vérification
             with self.lock:
                 save_json(ALERTS_FILE, self.alerts)
-            time.sleep(10)  # Vérifier toutes les 10 secondes
+            time.sleep(10)
 
-        async def _notify_user(self, bot_app, user_id: str, alert: Dict, current_price: float):
+    async def _notify_user(self, bot_app, user_id: str, alert: Dict, current_price: float):
         try:
             from user_manager import UserManager
             from i18n import get_text
@@ -75,6 +72,7 @@ class AlertManager:
             )
         except Exception as e:
             print(f"Failed to notify user {user_id}: {e}")
+
     def add_alert(self, user_id: int, symbol: str, condition: str, price: float) -> int:
         user_id = str(user_id)
         with self.lock:
