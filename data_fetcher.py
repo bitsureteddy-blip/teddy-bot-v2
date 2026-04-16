@@ -50,13 +50,10 @@ class DataFetcher:
     # =========================
     # 🚀 WEBSOCKET (PREMIUM)
     # =========================
-    def start_twelvedata_websocket(self):
-        if self.ws_running:
-            return
-        self.ws_running = True
-        self.ws_thread = threading.Thread(target=self._run_ws, daemon=True)
-        self.ws_thread.start()
-
+        def start_twelvedata_websocket(self):
+        # Désactivé car le plan gratuit Twelve Data ne supporte pas le WebSocket
+        logger.info("Twelve Data WebSocket désactivé (plan gratuit)")
+        pass
     def _run_ws(self):
         while self.ws_running:
             try:
