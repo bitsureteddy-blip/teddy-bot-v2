@@ -337,8 +337,6 @@ async def watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "watchlist_show", symbols="\n".join(wl)),
         parse_mode=ParseMode.MARKDOWN
     )
-
-
 @check_limit
 async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -350,7 +348,7 @@ async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for sym in wl:
         df = await fetcher.get_historical_data(sym)
         if df is not None and not df.empty:
-                res = SignalEngine.analyze(df, lang)
+            res = SignalEngine.analyze(df, lang)
             results.append(f"{sym}: {res['signal']} (Score: {res['teddy_score']})")
         else:
             results.append(f"{sym}: données indisponibles")
