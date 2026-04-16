@@ -15,16 +15,17 @@ from config import (
     BB_PERIOD, BB_STD, SMA_SHORT, SMA_LONG,
     SUPPORT_RESISTANCE_LOOKBACK, DIVERGENCE_LOOKBACK
 )
+from i18n import get_text
 
 
 class SignalEngine:
 
     @staticmethod
-    def analyze(df: pd.DataFrame) -> Dict:
+    def analyze(df: pd.DataFrame, lang: str = "en") -> Dict:
         if df is None or df.empty or len(df) < SMA_LONG:
             return {
                 "signal": "ATTENDRE",
-                "reason": "Données insuffisantes",
+                "reason": get_text(lang, "signal_insufficient_data"),
                 "risk_advice": "",
                 "teddy_score": 0,
                 "indicators": {}
@@ -94,28 +95,26 @@ class SignalEngine:
             signal = "ATTENDRE"
 
         # === FILTRE DE TENDANCE ASSOUPLI ===
-        # On autorise un signal contraire si le score est très convaincant
         if trend == "HAUSSIER" and signal == "VENDRE" and teddy_score > 30:
             signal = "ATTENDRE"
         if trend == "BAISSIER" and signal == "ACHETER" and teddy_score < 70:
             signal = "ATTENDRE"
 
-        # === RAISON ===
+        # === RAISON (BILINGUE) ===
         if signal == "ACHETER":
-            reason = "📈 Signaux haussiers détectés"
-            risk_advice = "⚠️ Entrée progressive conseillée"
+            reason = get_text(lang, "signal_buy_reason")
+            risk_advice = get_text(lang, "signal_buy_advice")
         elif signal == "VENDRE":
-            reason = "📉 Signaux baissiers détectés"
-            risk_advice = "⚠️ Risque de continuation"
+            reason = get_text(lang, "signal_sell_reason")
+            risk_advice = get_text(lang, "signal_sell_advice")
         else:
-            # Raison plus informative
             if teddy_score >= 55:
-                reason = "Marché suracheté, attendez une correction"
+                reason = get_text(lang, "signal_wait_overbought")
             elif teddy_score <= 45:
-                reason = "Marché survendu, attendez un rebond"
+                reason = get_text(lang, "signal_wait_oversold")
             else:
-                reason = "Aucun signal clair – phase de consolidation"
-            risk_advice = "⏳ Attendre une confirmation"
+                reason = get_text(lang, "signal_wait_neutral")
+            risk_advice = get_text(lang, "signal_wait_advice")
 
         indicators = {
             "price": last_price,

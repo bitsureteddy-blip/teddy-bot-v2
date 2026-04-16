@@ -57,17 +57,24 @@ class AlertManager:
                 save_json(ALERTS_FILE, self.alerts)
             time.sleep(10)  # Vérifier toutes les 10 secondes
 
-    async def _notify_user(self, bot_app, user_id: str, alert: Dict, current_price: float):
+        async def _notify_user(self, bot_app, user_id: str, alert: Dict, current_price: float):
         try:
+            from user_manager import UserManager
+            from i18n import get_text
+            user_mgr = UserManager.get_instance()
+            lang = user_mgr.get_setting(int(user_id), "lang", "en")
+            text = get_text(lang, "alert_triggered",
+                            symbol=alert['symbol'],
+                            condition=alert['condition'],
+                            price=alert['price'],
+                            current_price=current_price)
             await bot_app.bot.send_message(
                 chat_id=int(user_id),
-                text=f"🚨 *Alerte déclenchée* : {alert['symbol']} a atteint {alert['condition']} {alert['price']}\n"
-                     f"Prix actuel : {current_price}",
+                text=text,
                 parse_mode="Markdown"
             )
         except Exception as e:
             print(f"Failed to notify user {user_id}: {e}")
-
     def add_alert(self, user_id: int, symbol: str, condition: str, price: float) -> int:
         user_id = str(user_id)
         with self.lock:

@@ -48,10 +48,10 @@ TEXTS = {
         "support": "📞 Besoin d'aide ?\n\nContactez l'administrateur : @btsr_teddy09",
 
         "upgrade_title": "💳 *Choisissez votre offre :*\n\n• PRO : 9,99€/mois – illimité, scalping\n• ELITE : 24,99€/mois – PRO + groupe privé + support prioritaire\n\n⚠️ Les prix en Telegram Stars sont majorés en raison des commissions.",
-"button_pro_stars": "💎 PRO – 15,99€/mois (Stars)",
-"button_elite_stars": "👑 ELITE – 39,99€/mois (Stars)",
-"button_pro_stripe": "💳 PRO – 9,99€/mois (Stripe bientôt)",
-"button_elite_stripe": "💳 ELITE – 24,99€/mois (Stripe bientôt)",
+        "button_pro_stars": "💎 PRO – 15,99€/mois (Stars)",
+        "button_elite_stars": "👑 ELITE – 39,99€/mois (Stars)",
+        "button_pro_stripe": "💳 PRO – 9,99€/mois (Stripe bientôt)",
+        "button_elite_stripe": "💳 ELITE – 24,99€/mois (Stripe bientôt)",
         "premium_required": "🔒 *Fonctionnalité Premium*\n\nCette commande est réservée aux membres PRO et ELITE.\nUtilisez /upgrade pour découvrir nos offres.",
 
         "limit_reached": "❌ Vous avez atteint votre limite quotidienne de requêtes. Passez premium pour un accès illimité.",
@@ -72,6 +72,7 @@ TEXTS = {
         "alert_deleted": "✅ Alerte #{id} supprimée.",
         "alert_not_found": "❌ Alerte non trouvée.",
         "alerts_cleared": "✅ Toutes vos alertes ont été supprimées.",
+        "alert_triggered": "🚨 *Alerte déclenchée* : {symbol} a atteint {condition} {price}\nPrix actuel : {current_price}",
 
         "symbole_invalide": "Symbole invalide.",
         "analyse_usage": "Usage: /analyse SYMBOLE",
@@ -144,6 +145,17 @@ TEXTS = {
         "app_message": "📱 *Bitsure Teddy Mobile*\n\nL'application pour Android et iOS est en cours de développement. Elle vous permettra d'accéder à toutes les analyses sans passer par Telegram. Restez à l'écoute ! 🧸",
         "symboles_list": "📊 *SYMBOLES POPULAIRES*\n\n🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Livre/Dollar\nUSDJPY – Dollar/Yen\n\n✨ *Matières premières*\nXAUUSD – Or\nXAGUSD – Argent\n\n📈 *Actions*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n💡 Exemple : /analyse BTCUSD",
         "gift_notification": "🎁 Vous avez reçu un accès {role} gratuit pour {days} jours ! Profitez-en !",
+
+        # --- Signal Engine (Français) ---
+        "signal_insufficient_data": "Données insuffisantes",
+        "signal_buy_reason": "📈 Signaux haussiers détectés",
+        "signal_buy_advice": "⚠️ Entrée progressive conseillée",
+        "signal_sell_reason": "📉 Signaux baissiers détectés",
+        "signal_sell_advice": "⚠️ Risque de continuation",
+        "signal_wait_overbought": "Marché suracheté, attendez une correction",
+        "signal_wait_oversold": "Marché survendu, attendez un rebond",
+        "signal_wait_neutral": "Aucun signal clair – phase de consolidation",
+        "signal_wait_advice": "⏳ Attendre une confirmation",
     },
     "en": {
         "start": "🐻 *Bitsure Teddy* – Professional Market Analysis\n\nStatus: {status}\nCommands: /help\nOffers: /upgrade",
@@ -191,11 +203,11 @@ TEXTS = {
 
         "support": "📞 Need help?\n\nContact admin: @btsr_teddy09",
 
-       "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: 9.99€/month – unlimited, scalping\n• ELITE: 24.99€/month – PRO + private group + priority support\n\n⚠️ Telegram Stars prices are higher due to platform fees.",
-"button_pro_stars": "💎 PRO – 15.99€/month (Stars)",
-"button_elite_stars": "👑 ELITE – 39.99€/month (Stars)",
-"button_pro_stripe": "💳 PRO – 9.99€/month (Stripe soon)",
-"button_elite_stripe": "💳 ELITE – 24.99€/month (Stripe soon)",
+        "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: 9.99€/month – unlimited, scalping\n• ELITE: 24.99€/month – PRO + private group + priority support\n\n⚠️ Telegram Stars prices are higher due to platform fees.",
+        "button_pro_stars": "💎 PRO – 15.99€/month (Stars)",
+        "button_elite_stars": "👑 ELITE – 39.99€/month (Stars)",
+        "button_pro_stripe": "💳 PRO – 9.99€/month (Stripe soon)",
+        "button_elite_stripe": "💳 ELITE – 24.99€/month (Stripe soon)",
         "premium_required": "🔒 *Premium Feature*\n\nThis command is reserved for PRO and ELITE members.\nUse /upgrade to discover our offers.",
 
         "limit_reached": "❌ You have reached your daily request limit. Upgrade to premium for unlimited access.",
@@ -216,6 +228,7 @@ TEXTS = {
         "alert_deleted": "✅ Alert #{id} deleted.",
         "alert_not_found": "❌ Alert not found.",
         "alerts_cleared": "✅ All your alerts have been deleted.",
+        "alert_triggered": "🚨 *Alert triggered*: {symbol} reached {condition} {price}\nCurrent price: {current_price}",
 
         "symbole_invalide": "Invalid symbol.",
         "analyse_usage": "Usage: /analyse SYMBOL",
@@ -289,6 +302,17 @@ TEXTS = {
         "app_message": "📱 *Bitsure Teddy Mobile*\n\nThe Android and iOS app is currently in development. It will allow you to access all analyses without using Telegram. Stay tuned! 🧸",
         "symboles_list": "📊 *POPULAR SYMBOLS*\n\n🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Pound/Dollar\nUSDJPY – Dollar/Yen\n\n✨ *Commodities*\nXAUUSD – Gold\nXAGUSD – Silver\n\n📈 *Stocks*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n💡 Example: /analyse BTCUSD",
         "gift_notification": "🎁 You have been granted free {role} access for {days} days! Enjoy!",
+
+        # --- Signal Engine (English) ---
+        "signal_insufficient_data": "Insufficient data",
+        "signal_buy_reason": "📈 Bullish signals detected",
+        "signal_buy_advice": "⚠️ Consider gradual entry",
+        "signal_sell_reason": "📉 Bearish signals detected",
+        "signal_sell_advice": "⚠️ Continuation risk",
+        "signal_wait_overbought": "Market overbought, wait for pullback",
+        "signal_wait_oversold": "Market oversold, wait for bounce",
+        "signal_wait_neutral": "No clear signal – consolidation phase",
+        "signal_wait_advice": "⏳ Wait for confirmation",
     }
 }
 

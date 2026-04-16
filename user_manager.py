@@ -7,6 +7,7 @@ from config import (
     FREE_DAILY_REQUESTS, ADMIN_ID, TRIAL_DAYS
 )
 from utils import load_json, save_json
+from i18n import get_text  # <-- NOUVEAU
 
 class UserManager:
     _instance = None
@@ -52,7 +53,6 @@ class UserManager:
         if user_id not in self.users:
             self.get_user(user_id)
         self.users[user_id]["role"] = role
-        # Supprimer l'expiration temporaire si on change le rôle manuellement
         if "premium_expiry" in self.users[user_id]:
             del self.users[user_id]["premium_expiry"]
         save_json(USERS_FILE, self.users)
@@ -160,22 +160,21 @@ class UserManager:
         return list(self.users.keys())
 
     def redeem_promo(self, user_id: int, code: str) -> tuple:
-        """Applique un code promo. Retourne (succès, message)."""
         promos = {
             "TRADERBURUNDI": {"type": "trial_extension", "days": 5},
         }
         code = code.upper()
+        lang = self.get_setting(user_id, "lang", "en")
         if code not in promos:
-            return False, "Code promo invalide."
+            return False, get_text(lang, "redeem_invalid")
         promo = promos[code]
         user_id = str(user_id)
         user = self.get_user(user_id)
         if promo["type"] == "trial_extension":
-            # Prolonge l'essai en reculant la date d'inscription
             user["joined"] = user.get("joined", time.time()) - (promo["days"] * 24 * 3600)
             self._save()
-            return True, f"Essai gratuit prolongé de {promo['days']} jours."
-        return False, "Erreur inconnue."
+            return True, get_text(lang, "redeem_success", message=f"{promo['days']} jours")
+        return False, get_text(lang, "redeem_invalid")
 
     def _save(self):
         save_json(USERS_FILE, self.users)

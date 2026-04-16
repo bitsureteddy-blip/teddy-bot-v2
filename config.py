@@ -1,10 +1,7 @@
 import os
 
 # --- Identifiants ---
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-if not TELEGRAM_TOKEN:
-    raise ValueError("TELEGRAM_TOKEN environment variable not set")
-
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")  # Optionnel pour la Web App
 ADMIN_ID = 8376348929
 
 # --- Clés API ---

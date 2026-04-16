@@ -350,7 +350,7 @@ async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for sym in wl:
         df = await fetcher.get_historical_data(sym)
         if df is not None and not df.empty:
-            res = SignalEngine.analyze(df)
+                res = SignalEngine.analyze(df, lang)
             results.append(f"{sym}: {res['signal']} (Score: {res['teddy_score']})")
         else:
             results.append(f"{sym}: données indisponibles")
@@ -376,7 +376,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if df is None or df.empty:
         await msg.edit_text(get_text(lang, "analyse_error", symbol=symbol))
         return
-    result = SignalEngine.analyze(df)
+       result = SignalEngine.analyze(df, lang)
     ind = result['indicators']
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(10, 6))
