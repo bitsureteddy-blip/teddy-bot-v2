@@ -81,7 +81,7 @@ TEXTS = {
         "analyse_usage": "Usage: /analyse SYMBOLE",
         "analyse_wait": "🔍 Analyse de {symbol} en cours...",
         "analyse_error": "❌ Impossible de récupérer les données pour {symbol}.",
-        "analyse_caption": "*{symbol}* – Signal: *{signal}*\n{reason}\n{risk_advice}\n\n💰 Prix: {price}\n📊 RSI: {rsi:.2f}\n📈 SMA20: {sma20}, SMA50: {sma50}\n🧸 Teddy Score: {teddy_score}/100",
+        "analyse_caption": "*{symbol}* – Signal: *{signal}*\n{reason}\n{risk_advice}\n\n💰 Prix: {price}\n📊 RSI: {rsi:.2f}\n📈 SMA20: {sma20}, SMA50: {sma50}\n🧸 Score Teddy: {teddy_score}/100",
         "price_usage": "Usage: /price SYMBOLE",
         "price_error": "❌ Prix non disponible pour {symbol}.",
         "price_format": "*{symbol}*\n💰 Prix: {price}\n📊 Bid: {bid} / Ask: {ask}",
@@ -164,7 +164,7 @@ TEXTS = {
 "challenge_start": "🔥 *DÉFI SCALPING LANCÉ* 🔥\nAnalyse de 5 trades consécutifs sur EURUSD en cours...",
 "challenge_trade": "📊 *Trade {n}/5* – {signal} à {price}\nRésultat : {result} ({pips} pips)",
 "challenge_score": "🏆 *SCORE FINAL* : {wins}/5 gagnés\n{summary}",
-"snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrix: {price}",
+"snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nScore Teddy: {score}/100\nPrix: {price}",
 "verify_not_found": "❌ Aucun signal trouvé avec l'ID `{signal_id}`.",
 "verify_result": "🔍 *Signal #{signal_id}*\nÉmis le : {timestamp}\nSymbole : {symbol}\nSignal : {signal}\nPrix : {price}\nScore : {score}/100",
 
