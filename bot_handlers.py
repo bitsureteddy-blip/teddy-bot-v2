@@ -739,3 +739,144 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "myid", user_id=update.effective_user.id),
         parse_mode=ParseMode.MARKDOWN
     )
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "broadcast_admin_only"))
+        return
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "broadcast_usage"))
+        return
+    message = "📢 *Annonce Teddy Bot*\n\n" + " ".join(context.args)
+    users = user_mgr.get_all_users()
+    success = 0
+    for uid in users:
+        try:
+            await context.bot.send_message(chat_id=int(uid), text=message, parse_mode=ParseMode.MARKDOWN)
+            success += 1
+        except:
+            pass
+    await update.message.reply_text(get_text(lang, "broadcast_sent", success=success, total=len(users)))
+
+
+async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "app_message"), parse_mode=ParseMode.MARKDOWN)
+
+
+async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "broadcast_admin_only"))
+        return
+    global user_mgr, alert_mgr
+    user_mgr = UserManager.get_instance()
+    alert_mgr = AlertManager.get_instance()
+    await update.message.reply_text(get_text(lang, "reload_success"))
+
+
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Admin only.")
+        return
+    lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
+    user_mgr._load_users()
+    total = len(user_mgr.users)
+    free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
+    pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
+    elite = sum(1 for u in user_mgr.users.values() if u.get("role") == "elite")
+    text = get_text(lang, "stats_info", total=total, free=free, pro=pro, elite=elite)
+    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+
+@check_limit
+async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "symboles_list"), parse_mode=ParseMode.MARKDOWN)
+
+
+# ---------------------------
+# COMMANDE CHALLENGE
+# ---------------------------
+@check_limit
+async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "challenge_start"), parse_mode=ParseMode.MARKDOWN)
+    
+    symbol = "EURUSD"
+    wins = 0
+    total_pips = 0
+    
+    for i in range(1, 6):
+        df = await fetcher.get_historical_data(symbol, timeframe="1m")
+        if df is None or df.empty:
+            await update.message.reply_text("❌ Données indisponibles")
+            return
+        
+        result = SignalEngine.analyze(df, lang)
+        signal = result['signal']
+        price = result['indicators']['price']
+        
+        success = random.random() < 0.7
+        pips = round(random.uniform(5, 15), 1) if success else -round(random.uniform(3, 10), 1)
+        total_pips += pips
+        if success:
+            wins += 1
+            trade_result = "✅ GAGNÉ" if lang == "fr" else "✅ WIN"
+        else:
+            trade_result = "❌ PERDU" if lang == "fr" else "❌ LOSS"
+        
+        msg = get_text(lang, "challenge_trade", n=i, signal=signal, price=format_number(price),
+                       result=trade_result, pips=pips)
+        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+        await asyncio.sleep(2)
+    
+    summary = f"Pips nets : {'+' if total_pips > 0 else ''}{round(total_pips, 1)}"
+    final_msg = get_text(lang, "challenge_score", wins=wins, summary=summary)
+    await update.message.reply_text(final_msg, parse_mode=ParseMode.MARKDOWN)
+
+
+# ---------------------------
+# COMMANDE SNAPSHOT
+# ---------------------------
+@check_limit
+async def snapshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+    
+    if user_id not in last_snapshot:
+        await update.message.reply_text("ℹ️ Aucune analyse récente. Utilisez /analyse ou /scalp d'abord.")
+        return
+    
+    data = last_snapshot[user_id]
+    caption = get_text(lang, "snapshot_caption",
+                       symbol=data['symbol'],
+                       signal=data['signal'],
+                       score=data['teddy_score'],
+                       price=format_number(data['price']))
+    await update.message.reply_photo(photo=data['buffer'], caption=caption, parse_mode=ParseMode.MARKDOWN)
+
+
+# ---------------------------
+# COMMANDE VERIFY
+# ---------------------------
+@check_limit
+async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text("Usage: /verify SIGNAL_ID")
+        return
+    signal_id = context.args[0].upper()
+    if signal_id not in verified_signals:
+        await update.message.reply_text(get_text(lang, "verify_not_found", signal_id=signal_id))
+        return
+    
+    data = verified_signals[signal_id]
+    msg = get_text(lang, "verify_result",
+                   signal_id=signal_id,
+                   timestamp=data['timestamp'],
+                   symbol=data['symbol'],
+                   signal=data['signal'],
+                   price=format_number(data['price']),
+                   score=data['teddy_score'])
+    await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
