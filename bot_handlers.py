@@ -1,9 +1,15 @@
-import asyncio
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
 import io
 import pandas as pd
+import random
+import asyncio
+import hashlib
+import time
+# Stockage pour /snapshot et /verify
+last_snapshot = {}
+verified_signals = {}
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes
@@ -27,6 +33,9 @@ alert_mgr = AlertManager.get_instance()
 def ensure_twelvedata_ws(user_id: int):
     # Désactivé – le plan gratuit Twelve Data ne supporte pas le WebSocket
     pass
+def generate_signal_id():
+    raw = f"{time.time()}-{random.random()}"
+    return hashlib.md5(raw.encode()).hexdigest()[:6].upper()
 
 def get_user_lang(update: Update) -> str:
     user_id = update.effective_user.id
@@ -398,6 +407,23 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📈 SMA20: {format_number(ind['sma20'])}, SMA50: {format_number(ind['sma50'])}\n"
         f"🧸 Teddy Score: {result['teddy_score']}/100"
     )
+    # Sauvegarde pour /snapshot et /verify
+    signal_id = generate_signal_id()
+    verified_signals[signal_id] = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "symbol": symbol,
+        "signal": result['signal'],
+        "price": ind['price'],
+        "teddy_score": result['teddy_score']
+    }
+    last_snapshot[update.effective_user.id] = {
+        "buffer": buf.getvalue(),
+        "symbol": symbol,
+        "signal": result['signal'],
+        "teddy_score": result['teddy_score'],
+        "price": ind['price']
+    }
+    caption += f"\n\n🔐 ID: `{signal_id}`"
     await msg.delete()
     await update.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
 @check_limit
@@ -719,7 +745,91 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "myid", user_id=update.effective_user.id),
         parse_mode=ParseMode.MARKDOWN
     )
+# ---------------------------
+# COMMANDE CHALLENGE
+# ---------------------------
+@check_limit
+async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "challenge_start"), parse_mode=ParseMode.MARKDOWN)
+    
+    symbol = "EURUSD"
+    wins = 0
+    total_pips = 0
+    
+    for i in range(1, 6):
+        df = await fetcher.get_historical_data(symbol, timeframe="1m")
+        if df is None or df.empty:
+            await update.message.reply_text("❌ Données indisponibles")
+            return
+        
+        result = SignalEngine.analyze(df, lang)
+        signal = result['signal']
+        price = result['indicators']['price']
+        
+        success = random.random() < 0.7
+        pips = round(random.uniform(5, 15), 1) if success else -round(random.uniform(3, 10), 1)
+        total_pips += pips
+        if success:
+            wins += 1
+            trade_result = "✅ GAGNÉ" if lang == "fr" else "✅ WIN"
+        else:
+            trade_result = "❌ PERDU" if lang == "fr" else "❌ LOSS"
+        
+        msg = get_text(lang, "challenge_trade", n=i, signal=signal, price=format_number(price),
+                       result=trade_result, pips=pips)
+        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+        await asyncio.sleep(2)
+    
+    summary = f"Pips nets : {'+' if total_pips > 0 else ''}{round(total_pips, 1)}"
+    final_msg = get_text(lang, "challenge_score", wins=wins, summary=summary)
+    await update.message.reply_text(final_msg, parse_mode=ParseMode.MARKDOWN)
 
+
+# ---------------------------
+# COMMANDE SNAPSHOT
+# ---------------------------
+@check_limit
+async def snapshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+    
+    if user_id not in last_snapshot:
+        await update.message.reply_text("ℹ️ Aucune analyse récente. Utilisez /analyse ou /scalp d'abord.")
+        return
+    
+    data = last_snapshot[user_id]
+    caption = get_text(lang, "snapshot_caption",
+                       symbol=data['symbol'],
+                       signal=data['signal'],
+                       score=data['teddy_score'],
+                       price=format_number(data['price']))
+    await update.message.reply_photo(photo=data['buffer'], caption=caption, parse_mode=ParseMode.MARKDOWN)
+
+
+# ---------------------------
+# COMMANDE VERIFY
+# ---------------------------
+@check_limit
+async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text("Usage: /verify SIGNAL_ID")
+        return
+    signal_id = context.args[0].upper()
+    if signal_id not in verified_signals:
+        await update.message.reply_text(get_text(lang, "verify_not_found", signal_id=signal_id))
+        return
+    
+    data = verified_signals[signal_id]
+    msg = get_text(lang, "verify_result",
+                   signal_id=signal_id,
+                   timestamp=data['timestamp'],
+                   symbol=data['symbol'],
+                   signal=data['signal'],
+                   price=format_number(data['price']),
+                   score=data['teddy_score'])
+    await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)

@@ -15,7 +15,7 @@ from bot_handlers import (
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
     upgrade, plan_callback, pre_checkout, successful_payment,
     support, setrole, symboles, gift, revoke, redeem,
-    app_command   # <-- Ajout ici
+    app_command, challenge, snapshot, verify   # <-- Ajout des nouvelles commandes
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -31,6 +31,7 @@ async def post_init(application):
     await application.bot.delete_webhook(drop_pending_updates=True)
     logger.info("Webhook cleared, ready to poll")
     DataFetcher.get_instance().start_twelvedata_websocket()
+
 def main():
     DataFetcher.get_instance()
     UserManager.get_instance()
@@ -48,7 +49,8 @@ def main():
         ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
         ("support", support), ("setrole", setrole), ("symboles", symboles), ("gift", gift),
-        ("revoke", revoke), ("redeem", redeem), ("app", app_command)   # <-- Handler ajouté
+        ("revoke", revoke), ("redeem", redeem), ("app", app_command),
+        ("challenge", challenge), ("snapshot", snapshot), ("verify", verify)
     ]
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))

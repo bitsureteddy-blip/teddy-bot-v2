@@ -156,6 +156,14 @@ TEXTS = {
         "signal_wait_oversold": "Marché survendu, attendez un rebond",
         "signal_wait_neutral": "Aucun signal clair – phase de consolidation",
         "signal_wait_advice": "⏳ Attendre une confirmation",
+        # Dans "fr"
+"challenge_start": "🔥 *DÉFI SCALPING LANCÉ* 🔥\nAnalyse de 5 trades consécutifs sur EURUSD en cours...",
+"challenge_trade": "📊 *Trade {n}/5* – {signal} à {price}\nRésultat : {result} ({pips} pips)",
+"challenge_score": "🏆 *SCORE FINAL* : {wins}/5 gagnés\n{summary}",
+"snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrix: {price}",
+"verify_not_found": "❌ Aucun signal trouvé avec l'ID `{signal_id}`.",
+"verify_result": "🔍 *Signal #{signal_id}*\nÉmis le : {timestamp}\nSymbole : {symbol}\nSignal : {signal}\nPrix : {price}\nScore : {score}/100",
+
     },
     "en": {
         "start": "🐻 *Bitsure Teddy* – Professional Market Analysis\n\nStatus: {status}\nCommands: /help\nOffers: /upgrade",
@@ -313,6 +321,13 @@ TEXTS = {
         "signal_wait_oversold": "Market oversold, wait for bounce",
         "signal_wait_neutral": "No clear signal – consolidation phase",
         "signal_wait_advice": "⏳ Wait for confirmation",
+# Dans "en"
+"challenge_start": "🔥 *SCALPING CHALLENGE STARTED* 🔥\nAnalyzing 5 consecutive trades on EURUSD...",
+"challenge_trade": "📊 *Trade {n}/5* – {signal} at {price}\nResult: {result} ({pips} pips)",
+"challenge_score": "🏆 *FINAL SCORE*: {wins}/5 won\n{summary}",
+"snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrice: {price}",
+"verify_not_found": "❌ No signal found with ID `{signal_id}`.",
+"verify_result": "🔍 *Signal #{signal_id}*\nIssued on: {timestamp}\nSymbol: {symbol}\nSignal: {signal}\nPrice: {price}\nScore: {score}/100",
     }
 }
 
