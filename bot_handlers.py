@@ -493,6 +493,21 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "ATTENDRE": get_text(lang, "scalp_signal_wait")
     }
 
+    # Utiliser la clé 'spread_pct' comme volatilité
+    volatility = result.get('spread_pct', 0)
+
+    await update.message.reply_text(
+        get_text(lang, "scalp_result",
+                 symbol=symbol,
+                 duration=duration,
+                 signal=signal_map[result['signal']],
+                 price=format_number(result['price']),
+                 bid=format_number(result['bid'], 5),
+                 ask=format_number(result['ask'], 5),
+                 volatility=round(volatility, 4),
+                 reason=result['reason']),
+        parse_mode=ParseMode.MARKDOWN
+    )
     await update.message.reply_text(
         get_text(lang, "scalp_result",
                  symbol=symbol,
