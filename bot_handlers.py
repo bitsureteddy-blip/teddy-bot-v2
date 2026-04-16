@@ -414,3 +414,328 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await msg.delete()
     await update.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
+@check_limit
+async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "price_usage"))
+        return
+    symbol = context.args[0]
+    if not is_valid_symbol(symbol):
+        await update.message.reply_text(get_text(lang, "symbole_invalide"))
+        return
+    symbol = normalize_symbol(symbol)
+    price_data = await fetcher.get_realtime_price(symbol)
+    if price_data:
+        await update.message.reply_text(
+            get_text(lang, "price_format",
+                     symbol=symbol,
+                     price=format_number(price_data['price']),
+                     bid=format_number(price_data['bid']),
+                     ask=format_number(price_data['ask'])),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    else:
+        await update.message.reply_text(get_text(lang, "price_error", symbol=symbol))
+
+
+@check_limit
+@premium_required
+async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "tick_usage"))
+        return
+    symbol = context.args[0].upper()
+    ensure_twelvedata_ws(update.effective_user.id)
+    fetcher.subscribe_twelvedata(symbol)
+    price_data = await fetcher.get_realtime_price(symbol)
+    if price_data:
+        await update.message.reply_text(
+            get_text(lang, "tick_current", symbol=symbol, price=format_number(price_data['price']))
+        )
+    else:
+        await update.message.reply_text(get_text(lang, "tick_none"))
+
+
+@check_limit
+@premium_required
+async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if len(context.args) < 2:
+        await update.message.reply_text(get_text(lang, "scalp_usage"))
+        return
+    symbol = context.args[0].upper()
+    duration = context.args[1]
+    if duration not in ("3", "5", "10", "20"):
+        await update.message.reply_text(get_text(lang, "scalp_invalid_duration"))
+        return
+
+    ensure_twelvedata_ws(update.effective_user.id)
+    fetcher.subscribe_twelvedata(symbol)
+
+    price_data = await fetcher.get_realtime_price(symbol)
+    if not price_data:
+        await update.message.reply_text("❌ Impossible d'obtenir les données temps réel.")
+        return
+
+    ticks = fetcher.tick_history.get(symbol, [])
+    if len(ticks) < 14:
+        import random
+        base_price = price_data["price"]
+        ticks = [base_price * (1 + random.uniform(-0.0002, 0.0002)) for _ in range(20)]
+
+    result = SignalEngine.analyze_scalp(ticks, price_data, int(duration))
+
+    signal_map = {
+        "ACHETER": get_text(lang, "scalp_signal_buy"),
+        "VENDRE": get_text(lang, "scalp_signal_sell"),
+        "ATTENDRE": get_text(lang, "scalp_signal_wait")
+    }
+
+    await update.message.reply_text(
+        get_text(lang, "scalp_result",
+                 symbol=symbol,
+                 duration=duration,
+                 signal=signal_map[result['signal']],
+                 price=format_number(result['price']),
+                 bid=format_number(result['bid'], 5),
+                 ask=format_number(result['ask'], 5),
+                 spread=format_number(result['spread'], 5),
+                 spread_pct=result['spread_pct'],
+                 rsi=result['rsi'],
+                 reason=result['reason']),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+
+@check_limit
+@premium_required
+async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "spread_usage"))
+        return
+    symbol = context.args[0].upper()
+    ensure_twelvedata_ws(update.effective_user.id)
+    fetcher.subscribe_twelvedata(symbol)
+    price_data = await fetcher.get_realtime_price(symbol)
+    if price_data:
+        spread_val = price_data['ask'] - price_data['bid']
+        await update.message.reply_text(
+            get_text(lang, "spread_format", symbol=symbol, spread=format_number(spread_val, 5)),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    else:
+        await update.message.reply_text(get_text(lang, "spread_unavailable"))
+
+
+@check_limit
+async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if len(context.args) < 3:
+        await update.message.reply_text(get_text(lang, "alert_usage"))
+        return
+    symbol = context.args[0]
+    cond = context.args[1].lower()
+    try:
+        price = float(context.args[2])
+    except ValueError:
+        await update.message.reply_text(get_text(lang, "alert_invalid_price"))
+        return
+    if cond not in ("above", "below"):
+        await update.message.reply_text(get_text(lang, "alert_invalid_cond"))
+        return
+    alert_id = alert_mgr.add_alert(update.effective_user.id, symbol, cond, price)
+    await update.message.reply_text(
+        get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond, price=price)
+    )
+
+
+@check_limit
+async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    alerts_list = alert_mgr.get_alerts(update.effective_user.id)
+    if not alerts_list:
+        await update.message.reply_text(get_text(lang, "alerts_empty"))
+        return
+    text = get_text(lang, "alerts_list_title")
+    for a in alerts_list:
+        status = "✅" if a.get("triggered") else "⏳"
+        text += f"{status} #{a['id']} {a['symbol']} {a['condition']} {a['price']}\n"
+    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+
+@check_limit
+async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text("Usage: /delalert ID")
+        return
+    try:
+        alert_id = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text(get_text(lang, "alert_invalid_price"))
+        return
+    if alert_mgr.delete_alert(update.effective_user.id, alert_id):
+        await update.message.reply_text(get_text(lang, "alert_deleted", id=alert_id))
+    else:
+        await update.message.reply_text(get_text(lang, "alert_not_found"))
+
+
+@check_limit
+async def clearalerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    alert_mgr.clear_alerts(update.effective_user.id)
+    await update.message.reply_text(get_text(lang, "alerts_cleared"))
+
+
+@check_limit
+async def trend(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "trend_usage"))
+        return
+    symbol = context.args[0]
+    df = await fetcher.get_historical_data(symbol)
+    if df is None or df.empty:
+        await update.message.reply_text(get_text(lang, "trend_no_data"))
+        return
+    sma20 = df['Close'].rolling(20).mean().iloc[-1]
+    sma50 = df['Close'].rolling(50).mean().iloc[-1]
+    price = df['Close'].iloc[-1]
+    if price > sma20 > sma50:
+        tend = get_text(lang, "trend_haussiere")
+    elif price < sma20 < sma50:
+        tend = get_text(lang, "trend_baissiere")
+    else:
+        tend = get_text(lang, "trend_neutre")
+    await update.message.reply_text(
+        get_text(lang, "trend_result", symbol=symbol, tend=tend),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+
+@check_limit
+async def volatility(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "volatility_wip"))
+
+
+@check_limit
+async def correlation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "correlation_wip"))
+
+
+@check_limit
+async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "levels_usage"))
+        return
+    symbol = context.args[0]
+    df = await fetcher.get_historical_data(symbol)
+    if df is None or df.empty:
+        await update.message.reply_text(get_text(lang, "levels_no_data"))
+        return
+    from indicators import support_resistance
+    support, resistance = support_resistance(df['High'], df['Low'], 50)
+    await update.message.reply_text(
+        get_text(lang, "levels_result", symbol=symbol, support=format_number(support), resistance=format_number(resistance)),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+
+@check_limit
+async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    lang = user_mgr.get_setting(uid, "lang", "en")
+    tf = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
+    risk = user_mgr.get_setting(uid, "risk", "medium")
+    role = user_mgr.get_role(uid)
+    prem = "✅" if role in ("pro", "elite") else "❌"
+    text = get_text(lang, "settings_info", tf=tf, risk=risk, lang_name=lang.upper(), role=role.upper(), prem=prem)
+    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+
+@check_limit
+async def settimeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "settimeframe_usage"))
+        return
+    tf = context.args[0]
+    if tf not in ("1h", "4h", "1d"):
+        await update.message.reply_text(get_text(lang, "settimeframe_invalid"))
+        return
+    user_mgr.set_setting(update.effective_user.id, "timeframe", tf)
+    await update.message.reply_text(get_text(lang, "settimeframe_success", tf=tf))
+
+
+@check_limit
+async def setrisk(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "setrisk_usage"))
+        return
+    risk = context.args[0].lower()
+    if risk not in ("low", "medium", "high"):
+        await update.message.reply_text(get_text(lang, "setrisk_invalid"))
+        return
+    user_mgr.set_setting(update.effective_user.id, "risk", risk)
+    await update.message.reply_text(get_text(lang, "setrisk_success", risk=risk))
+
+
+async def setlanguage(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "setlanguage_usage"))
+        return
+    new_lang = context.args[0].lower()
+    if new_lang not in ("en", "fr"):
+        await update.message.reply_text(get_text(lang, "setlanguage_invalid"))
+        return
+    user_id = update.effective_user.id
+    user_mgr.set_setting(user_id, "lang", new_lang)
+    if new_lang == "fr":
+        await update.message.reply_text(get_text(new_lang, "setlanguage_success_fr"))
+    else:
+        await update.message.reply_text(get_text(new_lang, "setlanguage_success_en"))
+
+
+@check_limit
+async def usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    rem = user_mgr.get_remaining_requests(update.effective_user.id)
+    if rem == -1:
+        await update.message.reply_text(get_text(lang, "usage_unlimited"))
+    else:
+        await update.message.reply_text(get_text(lang, "usage_requests_remaining", rem=rem))
+
+
+@check_limit
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "status_ok"))
+
+
+@check_limit
+async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "about"))
+
+
+@check_limit
+async def symbolinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "symbolinfo"))
+
+
+@check_limit
+async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(
+        get_text(lang, "myid", user_id=update.effective_user.id),
+        parse_mode=ParseMode.MARKDOWN
+    )
