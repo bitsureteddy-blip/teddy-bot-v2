@@ -41,6 +41,9 @@ TEXTS = {
             "/upgrade – Offres Premium\n"
             "/support – Contacter admin\n"
             "/symboles – Symboles populaires\n"
+            "/challenge – Défi scalping (5 trades)\n"
+            "/snapshot – Image pour Instagram\n"
+            "/verify ID – Vérifier un signal\n"
             "/redeem CODE – Utiliser un code promo"
         ),
         "help_admin": "\n\nAdmin : /broadcast, /reload, /stats, /setrole, /gift, /revoke",
@@ -78,6 +81,7 @@ TEXTS = {
         "analyse_usage": "Usage: /analyse SYMBOLE",
         "analyse_wait": "🔍 Analyse de {symbol} en cours...",
         "analyse_error": "❌ Impossible de récupérer les données pour {symbol}.",
+        "analyse_caption": "*{symbol}* – Signal: *{signal}*\n{reason}\n{risk_advice}\n\n💰 Prix: {price}\n📊 RSI: {rsi:.2f}\n📈 SMA20: {sma20}, SMA50: {sma50}\n🧸 Teddy Score: {teddy_score}/100",
         "price_usage": "Usage: /price SYMBOLE",
         "price_error": "❌ Prix non disponible pour {symbol}.",
         "price_format": "*{symbol}*\n💰 Prix: {price}\n📊 Bid: {bid} / Ask: {ask}",
@@ -205,6 +209,9 @@ TEXTS = {
             "/upgrade – Premium offers\n"
             "/support – Contact admin\n"
             "/symboles – Popular symbols\n"
+            "/challenge – Scalping challenge (5 trades)\n"
+            "/snapshot – Instagram-ready image\n"
+            "/verify ID – Verify a signal\n" 
             "/redeem CODE – Use a promo code"
         ),
         "help_admin": "\n\nAdmin: /broadcast, /reload, /stats, /setrole, /gift, /revoke",
@@ -242,6 +249,7 @@ TEXTS = {
         "analyse_usage": "Usage: /analyse SYMBOL",
         "analyse_wait": "🔍 Analyzing {symbol}...",
         "analyse_error": "❌ Could not retrieve data for {symbol}.",
+        "analyse_caption": "*{symbol}* – Signal: *{signal}*\n{reason}\n{risk_advice}\n\n💰 Price: {price}\n📊 RSI: {rsi:.2f}\n📈 SMA20: {sma20}, SMA50: {sma50}\n🧸 Teddy Score: {teddy_score}/100",
         "price_usage": "Usage: /price SYMBOL",
         "price_error": "❌ Price not available for {symbol}.",
         "price_format": "*{symbol}*\n💰 Price: {price}\n📊 Bid: {bid} / Ask: {ask}",

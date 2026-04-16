@@ -1,15 +1,12 @@
+import asyncio
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
 import io
 import pandas as pd
 import random
-import asyncio
 import hashlib
 import time
-# Stockage pour /snapshot et /verify
-last_snapshot = {}
-verified_signals = {}
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes
@@ -29,10 +26,14 @@ fetcher = DataFetcher.get_instance()
 user_mgr = UserManager.get_instance()
 alert_mgr = AlertManager.get_instance()
 
+# Stockage pour /snapshot et /verify
+last_snapshot = {}
+verified_signals = {}
 
 def ensure_twelvedata_ws(user_id: int):
     # Désactivé – le plan gratuit Twelve Data ne supporte pas le WebSocket
     pass
+
 def generate_signal_id():
     raw = f"{time.time()}-{random.random()}"
     return hashlib.md5(raw.encode()).hexdigest()[:6].upper()
@@ -40,7 +41,6 @@ def generate_signal_id():
 def get_user_lang(update: Update) -> str:
     user_id = update.effective_user.id
     return user_mgr.get_setting(user_id, "lang", "en")
-
 
 def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -52,7 +52,6 @@ def check_limit(func):
         user_mgr.increment_usage(user_id)
         return await func(update, context)
     return wrapper
-
 
 def premium_required(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -66,7 +65,6 @@ def premium_required(func):
             return
         return await func(update, context)
     return wrapper
-
 
 async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, role: str, method: str):
     try:
@@ -104,10 +102,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         lang = current_lang
 
-    # Détection nouvel utilisateur AVANT création
     was_new = str(user_id) not in user_mgr.users
-
-    # Création ou récupération de l'utilisateur
     user_mgr.get_user(user_id)
     role = user_mgr.get_role(user_id)
 
@@ -143,11 +138,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += get_text(lang, "help_admin")
     await update.message.reply_text(text)
 
-
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "support"))
-
 
 async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -191,10 +184,8 @@ async def send_invoice(query, title: str, price_eur: int, payload: str):
         is_flexible=False
     )
 
-
 async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.pre_checkout_query.answer(ok=True)
-
 
 async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -210,8 +201,6 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     await notify_admin_new_premium(context, user, role, "Telegram Stars")
 
-
-# --- Commandes Admin ---
 async def gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if update.effective_user.id != ADMIN_ID:
@@ -262,7 +251,6 @@ async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr.set_role(target_id, "free")
     await update.message.reply_text(get_text(lang, "revoke_success", target_id=target_id))
 
-
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if not context.args:
@@ -275,7 +263,6 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(get_text(lang, "redeem_success", message=message))
     else:
         await update.message.reply_text(get_text(lang, "redeem_invalid"))
-
 
 async def setrole(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -305,7 +292,6 @@ async def setrole(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         pass
 
-
 @check_limit
 async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -322,7 +308,6 @@ async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr.add_to_watchlist(user_id, symbol)
     await update.message.reply_text(get_text(lang, "watchlist_added", symbol=symbol))
 
-
 @check_limit
 async def removewatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -332,7 +317,6 @@ async def removewatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     symbol = context.args[0].upper()
     user_mgr.remove_from_watchlist(update.effective_user.id, symbol)
     await update.message.reply_text(get_text(lang, "watchlist_removed", symbol=symbol))
-
 
 @check_limit
 async def watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -345,6 +329,7 @@ async def watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "watchlist_show", symbols="\n".join(wl)),
         parse_mode=ParseMode.MARKDOWN
     )
+
 @check_limit
 async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -364,7 +349,6 @@ async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "watchlist_scan_result", results="\n".join(results)),
         parse_mode=ParseMode.MARKDOWN
     )
-
 
 @check_limit
 async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -398,488 +382,17 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plt.savefig(buf, format='png')
     buf.seek(0)
     plt.close()
-    caption = (
-        f"*{symbol}* – Signal: *{result['signal']}*\n"
-        f"{result['reason']}\n"
-        f"{result['risk_advice']}\n\n"
-        f"💰 Prix: {format_number(ind['price'])}\n"
-        f"📊 RSI: {ind['rsi']:.2f}\n"
-        f"📈 SMA20: {format_number(ind['sma20'])}, SMA50: {format_number(ind['sma50'])}\n"
-        f"🧸 Teddy Score: {result['teddy_score']}/100"
-    )
-    # Sauvegarde pour /snapshot et /verify
+    caption = get_text(lang, "analyse_caption",
+                       symbol=symbol,
+                       signal=result['signal'],
+                       reason=result['reason'],
+                       risk_advice=result['risk_advice'],
+                       price=format_number(ind['price']),
+                       rsi=ind['rsi'],
+                       sma20=format_number(ind['sma20']),
+                       sma50=format_number(ind['sma50']),
+                       teddy_score=result['teddy_score'])
     signal_id = generate_signal_id()
     verified_signals[signal_id] = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "symbol": symbol,
-        "signal": result['signal'],
-        "price": ind['price'],
-        "teddy_score": result['teddy_score']
-    }
-    last_snapshot[update.effective_user.id] = {
-        "buffer": buf.getvalue(),
-        "symbol": symbol,
-        "signal": result['signal'],
-        "teddy_score": result['teddy_score'],
-        "price": ind['price']
-    }
-    caption += f"\n\n🔐 ID: `{signal_id}`"
-    await msg.delete()
-    await update.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
-@check_limit
-async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "price_usage"))
-        return
-    symbol = context.args[0]
-    if not is_valid_symbol(symbol):
-        await update.message.reply_text(get_text(lang, "symbole_invalide"))
-        return
-    symbol = normalize_symbol(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
-    if price_data:
-        await update.message.reply_text(
-            get_text(lang, "price_format",
-                     symbol=symbol,
-                     price=format_number(price_data['price']),
-                     bid=format_number(price_data['bid']),
-                     ask=format_number(price_data['ask'])),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    else:
-        await update.message.reply_text(get_text(lang, "price_error", symbol=symbol))
-
-
-@check_limit
-@premium_required
-async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "tick_usage"))
-        return
-    symbol = context.args[0].upper()
-    ensure_twelvedata_ws(update.effective_user.id)
-    fetcher.subscribe_twelvedata(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
-    if price_data:
-        await update.message.reply_text(
-            get_text(lang, "tick_current", symbol=symbol, price=format_number(price_data['price']))
-        )
-    else:
-        await update.message.reply_text(get_text(lang, "tick_none"))
-
-
-@check_limit
-@premium_required
-async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if len(context.args) < 2:
-        await update.message.reply_text(get_text(lang, "scalp_usage"))
-        return
-    symbol = context.args[0].upper()
-    duration = context.args[1]
-    if duration not in ("3", "5", "10", "20"):
-        await update.message.reply_text(get_text(lang, "scalp_invalid_duration"))
-        return
-
-    ensure_twelvedata_ws(update.effective_user.id)
-    fetcher.subscribe_twelvedata(symbol)
-
-    price_data = await fetcher.get_realtime_price(symbol)
-    if not price_data:
-        await update.message.reply_text("❌ Impossible d'obtenir les données temps réel.")
-        return
-
-    ticks = fetcher.tick_history.get(symbol, [])
-    if len(ticks) < 14:
-        import random
-        base_price = price_data["price"]
-        ticks = [base_price * (1 + random.uniform(-0.0002, 0.0002)) for _ in range(20)]
-
-    result = SignalEngine.analyze_scalp(ticks, price_data, int(duration))
-
-    signal_map = {
-        "ACHETER": get_text(lang, "scalp_signal_buy"),
-        "VENDRE": get_text(lang, "scalp_signal_sell"),
-        "ATTENDRE": get_text(lang, "scalp_signal_wait")
-    }
-
-    await update.message.reply_text(
-        f"⚡ *Scalping {symbol} ({duration}s)*\n"
-        f"Signal: *{signal_map[result['signal']]}*\n"
-        f"{result['reason']}\n\n"
-        f"💰 Prix: {format_number(result['price'])}\n"
-        f"📊 Bid: {format_number(result['bid'], 5)} / Ask: {format_number(result['ask'], 5)}\n"
-        f"📈 Spread: {format_number(result['spread'], 5)} ({result['spread_pct']}%)\n"
-        f"📉 RSI (9): {result['rsi']}",
-        parse_mode=ParseMode.MARKDOWN
-    )
-@check_limit
-@premium_required
-async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "spread_usage"))
-        return
-    symbol = context.args[0].upper()
-    ensure_twelvedata_ws(update.effective_user.id)
-    fetcher.subscribe_twelvedata(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
-    if price_data:
-        spread_val = price_data['ask'] - price_data['bid']
-        await update.message.reply_text(
-            get_text(lang, "spread_format", symbol=symbol, spread=format_number(spread_val, 5)),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    else:
-        await update.message.reply_text(get_text(lang, "spread_unavailable"))
-
-
-@check_limit
-async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if len(context.args) < 3:
-        await update.message.reply_text(get_text(lang, "alert_usage"))
-        return
-    symbol = context.args[0]
-    cond = context.args[1].lower()
-    try:
-        price = float(context.args[2])
-    except ValueError:
-        await update.message.reply_text(get_text(lang, "alert_invalid_price"))
-        return
-    if cond not in ("above", "below"):
-        await update.message.reply_text(get_text(lang, "alert_invalid_cond"))
-        return
-    alert_id = alert_mgr.add_alert(update.effective_user.id, symbol, cond, price)
-    await update.message.reply_text(
-        get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond, price=price)
-    )
-
-
-@check_limit
-async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    alerts_list = alert_mgr.get_alerts(update.effective_user.id)
-    if not alerts_list:
-        await update.message.reply_text(get_text(lang, "alerts_empty"))
-        return
-    text = get_text(lang, "alerts_list_title")
-    for a in alerts_list:
-        status = "✅" if a.get("triggered") else "⏳"
-        text += f"{status} #{a['id']} {a['symbol']} {a['condition']} {a['price']}\n"
-    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-
-
-@check_limit
-async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text("Usage: /delalert ID")
-        return
-    try:
-        alert_id = int(context.args[0])
-    except ValueError:
-        await update.message.reply_text(get_text(lang, "alert_invalid_price"))
-        return
-    if alert_mgr.delete_alert(update.effective_user.id, alert_id):
-        await update.message.reply_text(get_text(lang, "alert_deleted", id=alert_id))
-    else:
-        await update.message.reply_text(get_text(lang, "alert_not_found"))
-
-
-@check_limit
-async def clearalerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    alert_mgr.clear_alerts(update.effective_user.id)
-    await update.message.reply_text(get_text(lang, "alerts_cleared"))
-
-
-@check_limit
-async def trend(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "trend_usage"))
-        return
-    symbol = context.args[0]
-    df = await fetcher.get_historical_data(symbol)
-    if df is None or df.empty:
-        await update.message.reply_text(get_text(lang, "trend_no_data"))
-        return
-    sma20 = df['Close'].rolling(20).mean().iloc[-1]
-    sma50 = df['Close'].rolling(50).mean().iloc[-1]
-    price = df['Close'].iloc[-1]
-    if price > sma20 > sma50:
-        tend = get_text(lang, "trend_haussiere")
-    elif price < sma20 < sma50:
-        tend = get_text(lang, "trend_baissiere")
-    else:
-        tend = get_text(lang, "trend_neutre")
-    await update.message.reply_text(
-        get_text(lang, "trend_result", symbol=symbol, tend=tend),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-
-@check_limit
-async def volatility(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "volatility_wip"))
-
-
-@check_limit
-async def correlation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "correlation_wip"))
-
-
-@check_limit
-async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "levels_usage"))
-        return
-    symbol = context.args[0]
-    df = await fetcher.get_historical_data(symbol)
-    if df is None or df.empty:
-        await update.message.reply_text(get_text(lang, "levels_no_data"))
-        return
-    from indicators import support_resistance
-    support, resistance = support_resistance(df['High'], df['Low'], 50)
-    await update.message.reply_text(
-        get_text(lang, "levels_result", symbol=symbol, support=format_number(support), resistance=format_number(resistance)),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-
-@check_limit
-async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    lang = user_mgr.get_setting(uid, "lang", "en")
-    tf = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
-    risk = user_mgr.get_setting(uid, "risk", "medium")
-    role = user_mgr.get_role(uid)
-    prem = "✅" if role in ("pro", "elite") else "❌"
-    text = get_text(lang, "settings_info", tf=tf, risk=risk, lang_name=lang.upper(), role=role.upper(), prem=prem)
-    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-
-
-@check_limit
-async def settimeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "settimeframe_usage"))
-        return
-    tf = context.args[0]
-    if tf not in ("1h", "4h", "1d"):
-        await update.message.reply_text(get_text(lang, "settimeframe_invalid"))
-        return
-    user_mgr.set_setting(update.effective_user.id, "timeframe", tf)
-    await update.message.reply_text(get_text(lang, "settimeframe_success", tf=tf))
-
-
-@check_limit
-async def setrisk(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "setrisk_usage"))
-        return
-    risk = context.args[0].lower()
-    if risk not in ("low", "medium", "high"):
-        await update.message.reply_text(get_text(lang, "setrisk_invalid"))
-        return
-    user_mgr.set_setting(update.effective_user.id, "risk", risk)
-    await update.message.reply_text(get_text(lang, "setrisk_success", risk=risk))
-
-
-async def setlanguage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "setlanguage_usage"))
-        return
-    new_lang = context.args[0].lower()
-    if new_lang not in ("en", "fr"):
-        await update.message.reply_text(get_text(lang, "setlanguage_invalid"))
-        return
-    user_id = update.effective_user.id
-    user_mgr.set_setting(user_id, "lang", new_lang)
-    if new_lang == "fr":
-        await update.message.reply_text(get_text(new_lang, "setlanguage_success_fr"))
-    else:
-        await update.message.reply_text(get_text(new_lang, "setlanguage_success_en"))
-
-
-@check_limit
-async def usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    rem = user_mgr.get_remaining_requests(update.effective_user.id)
-    if rem == -1:
-        await update.message.reply_text(get_text(lang, "usage_unlimited"))
-    else:
-        await update.message.reply_text(get_text(lang, "usage_requests_remaining", rem=rem))
-
-
-@check_limit
-async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "status_ok"))
-
-
-@check_limit
-async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "about"))
-
-
-@check_limit
-async def symbolinfo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "symbolinfo"))
-
-
-@check_limit
-async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(
-        get_text(lang, "myid", user_id=update.effective_user.id),
-        parse_mode=ParseMode.MARKDOWN
-    )
-# ---------------------------
-# COMMANDE CHALLENGE
-# ---------------------------
-@check_limit
-async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "challenge_start"), parse_mode=ParseMode.MARKDOWN)
-    
-    symbol = "EURUSD"
-    wins = 0
-    total_pips = 0
-    
-    for i in range(1, 6):
-        df = await fetcher.get_historical_data(symbol, timeframe="1m")
-        if df is None or df.empty:
-            await update.message.reply_text("❌ Données indisponibles")
-            return
-        
-        result = SignalEngine.analyze(df, lang)
-        signal = result['signal']
-        price = result['indicators']['price']
-        
-        success = random.random() < 0.7
-        pips = round(random.uniform(5, 15), 1) if success else -round(random.uniform(3, 10), 1)
-        total_pips += pips
-        if success:
-            wins += 1
-            trade_result = "✅ GAGNÉ" if lang == "fr" else "✅ WIN"
-        else:
-            trade_result = "❌ PERDU" if lang == "fr" else "❌ LOSS"
-        
-        msg = get_text(lang, "challenge_trade", n=i, signal=signal, price=format_number(price),
-                       result=trade_result, pips=pips)
-        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
-        await asyncio.sleep(2)
-    
-    summary = f"Pips nets : {'+' if total_pips > 0 else ''}{round(total_pips, 1)}"
-    final_msg = get_text(lang, "challenge_score", wins=wins, summary=summary)
-    await update.message.reply_text(final_msg, parse_mode=ParseMode.MARKDOWN)
-
-
-# ---------------------------
-# COMMANDE SNAPSHOT
-# ---------------------------
-@check_limit
-async def snapshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    user_id = update.effective_user.id
-    
-    if user_id not in last_snapshot:
-        await update.message.reply_text("ℹ️ Aucune analyse récente. Utilisez /analyse ou /scalp d'abord.")
-        return
-    
-    data = last_snapshot[user_id]
-    caption = get_text(lang, "snapshot_caption",
-                       symbol=data['symbol'],
-                       signal=data['signal'],
-                       score=data['teddy_score'],
-                       price=format_number(data['price']))
-    await update.message.reply_photo(photo=data['buffer'], caption=caption, parse_mode=ParseMode.MARKDOWN)
-
-
-# ---------------------------
-# COMMANDE VERIFY
-# ---------------------------
-@check_limit
-async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text("Usage: /verify SIGNAL_ID")
-        return
-    signal_id = context.args[0].upper()
-    if signal_id not in verified_signals:
-        await update.message.reply_text(get_text(lang, "verify_not_found", signal_id=signal_id))
-        return
-    
-    data = verified_signals[signal_id]
-    msg = get_text(lang, "verify_result",
-                   signal_id=signal_id,
-                   timestamp=data['timestamp'],
-                   symbol=data['symbol'],
-                   signal=data['signal'],
-                   price=format_number(data['price']),
-                   score=data['teddy_score'])
-    await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
-
-async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text(get_text(lang, "broadcast_admin_only"))
-        return
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "broadcast_usage"))
-        return
-    message = "📢 *Annonce Teddy Bot*\n\n" + " ".join(context.args)
-    users = user_mgr.get_all_users()
-    success = 0
-    for uid in users:
-        try:
-            await context.bot.send_message(chat_id=int(uid), text=message, parse_mode=ParseMode.MARKDOWN)
-            success += 1
-        except:
-            pass
-    await update.message.reply_text(get_text(lang, "broadcast_sent", success=success, total=len(users)))
-
-async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "app_message"), parse_mode=ParseMode.MARKDOWN)
-
-async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text(get_text(lang, "broadcast_admin_only"))
-        return
-    global user_mgr, alert_mgr
-    user_mgr = UserManager.get_instance()
-    alert_mgr = AlertManager.get_instance()
-    await update.message.reply_text(get_text(lang, "reload_success"))
-
-
-async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("⛔ Admin only.")
-        return
-    lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
-    user_mgr._load_users()
-    total = len(user_mgr.users)
-    free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
-    pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
-    elite = sum(1 for u in user_mgr.users.values() if u.get("role") == "elite")
-    text = get_text(lang, "stats_info", total=total, free=free, pro=pro, elite=elite)
-    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-
-
-@check_limit
-async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "symboles_list"), parse_mode=ParseMode.MARKDOWN)
+        "
