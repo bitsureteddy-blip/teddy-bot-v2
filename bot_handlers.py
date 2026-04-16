@@ -374,7 +374,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if df is None or df.empty:
         await msg.edit_text(get_text(lang, "analyse_error", symbol=symbol))
         return
-       result = SignalEngine.analyze(df, lang)
+    result = SignalEngine.analyze(df, lang)
     ind = result['indicators']
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -401,8 +401,6 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await msg.delete()
     await update.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
-
-
 @check_limit
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
