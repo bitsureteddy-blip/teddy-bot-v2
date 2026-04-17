@@ -277,6 +277,22 @@ async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Code existant
     pass
+async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Validation de la pré-facture pour les paiements Telegram Stars."""
+    query = update.pre_checkout_query
+    # Toujours accepter (on peut ajouter des vérifications plus tard)
+    await query.answer(ok=True)
+
+async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Traitement après un paiement réussi."""
+    user_id = update.effective_user.id
+    lang = get_user_lang(update)
+    # Récupérer les infos du paiement
+    payment = update.message.successful_payment
+    # Mettre à jour le rôle de l'utilisateur selon le produit acheté
+    # Exemple simplifié : on active PRO pour 30 jours
+    user_mgr.set_role(user_id, "PRO", 30)
+    await update.message.reply_text(get_text(lang, "payment_success"))
 
 # ------------------- NOUVELLES COMMANDES -------------------
 @check_limit
