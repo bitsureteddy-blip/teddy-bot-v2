@@ -619,14 +619,65 @@ async def trend(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @check_limit
 async def volatility(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "volatility_wip"))
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "volatility_usage"))
+        return
+    symbol = context.args[0]
+    if not is_valid_symbol(symbol):
+        await update.message.reply_text(get_text(lang, "symbole_invalide"))
+        return
+    symbol = normalize_symbol(symbol)
+    msg = await update.message.reply_text(get_text(lang, "volatility_wait", symbol=symbol))
+    df = await fetcher.get_historical_data(symbol)
+    if df is None or df.empty:
+        await msg.edit_text(get_text(lang, "volatility_error", symbol=symbol))
+        return
+
+    # Calcul de l'ATR (période 14)
+    high = df['High']
+    low = df['Low']
+    close = df['Close']
+    tr1 = high - low
+    tr2 = (high - close.shift()).abs()
+    tr3 = (low - close.shift()).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    atr = tr.rolling(window=14).mean().iloc[-1]
+
+    await msg.edit_text(get_text(lang, "volatility_result", symbol=symbol, atr=format_number(atr, 5)))
 
 
 @check_limit
 async def correlation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "correlation_wip"))
+    if len(context.args) < 2:
+        await update.message.reply_text(get_text(lang, "correlation_usage"))
+        return
+    symbol1 = context.args[0].upper()
+    symbol2 = context.args[1].upper()
+    if not is_valid_symbol(symbol1) or not is_valid_symbol(symbol2):
+        await update.message.reply_text(get_text(lang, "symbole_invalide"))
+        return
+    symbol1 = normalize_symbol(symbol1)
+    symbol2 = normalize_symbol(symbol2)
+    msg = await update.message.reply_text(get_text(lang, "correlation_wait", sym1=symbol1, sym2=symbol2))
 
+    df1 = await fetcher.get_historical_data(symbol1, period="1mo")
+    df2 = await fetcher.get_historical_data(symbol2, period="1mo")
+    if df1 is None or df1.empty or df2 is None or df2.empty:
+        await msg.edit_text(get_text(lang, "correlation_error"))
+        return
+
+    # Aligner les dates
+    common_index = df1.index.intersection(df2.index)
+    if len(common_index) < 10:
+        await msg.edit_text(get_text(lang, "correlation_insufficient_data"))
+        return
+
+    returns1 = df1.loc[common_index, 'Close'].pct_change().dropna()
+    returns2 = df2.loc[common_index, 'Close'].pct_change().dropna()
+    corr = returns1.corr(returns2)
+
+    await msg.edit_text(get_text(lang, "correlation_result", sym1=symbol1, sym2=symbol2, corr=round(corr, 4)))
 
 @check_limit
 async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
