@@ -14,7 +14,7 @@ from bot_handlers import (
     status, about, symbolinfo, myid, upgrade, support, symboles,
     challenge, snapshot, verify, redeem, ask, historique,
     broadcast, reload_config, stats, setrole, gift, revoke,
-    plan_callback, pre_checkout, successful_payment, app_command,
+    pre_checkout, successful_payment, app_command,
     button_callback
 )
 from data_fetcher import DataFetcher
