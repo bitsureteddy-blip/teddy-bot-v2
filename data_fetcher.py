@@ -1,9 +1,12 @@
+import asyncio
 import json
 import time
 import logging
 from typing import Optional, Dict
 from datetime import datetime, timedelta
 import requests
+import websocket
+import threading
 import pandas as pd
 
 from config import (
@@ -22,9 +25,14 @@ class DataFetcher:
     def __init__(self):
         self.price_cache = {}
         self.history_cache = {}
-        # WebSocket désactivé par défaut (gratuit)
-        self.ws_enabled = False
-        self.tick_history = {}
+
+        self.ws_twelvedata = None
+        self.ws_thread = None
+        self.ws_running = False
+        self.subscribed_symbols = set()
+        self.ws_authenticated = False
+
+        self.tick_history = {}  # symbole -> liste des derniers ticks
 
     @classmethod
     def get_instance(cls):
@@ -32,33 +40,128 @@ class DataFetcher:
             cls._instance = cls()
         return cls._instance
 
+    # =========================
+    # COMPATIBILITÉ AVEC MAIN.PY
+    # =========================
     def start_websocket(self):
-        """Méthode de compatibilité (WebSocket désactivé)."""
-        logger.info("WebSocket non activé (plan gratuit).")
+        """Méthode de compatibilité appelée par main.py"""
+        self.start_twelvedata_websocket()
+
+    # =========================
+    # 🚀 WEBSOCKET (PREMIUM)
+    # =========================
+    def start_twelvedata_websocket(self):
+        # Désactivé car le plan gratuit Twelve Data ne supporte pas le WebSocket
+        logger.info("Twelve Data WebSocket désactivé (plan gratuit)")
         pass
+
+    def _run_ws(self):
+        while self.ws_running:
+            try:
+                ws = websocket.WebSocketApp(
+                    "wss://ws.twelvedata.com/v1/quotes/price",
+                    on_open=self._on_open,
+                    on_message=self._on_message,
+                    on_error=self._on_error,
+                    on_close=self._on_close
+                )
+                self.ws_twelvedata = ws
+                self.ws_authenticated = False
+                ws.run_forever()
+            except Exception as e:
+                logger.error(f"WS error: {e}")
+            time.sleep(5)
+
+    def _on_open(self, ws):
+        logger.info("WS connected")
+        ws.send(json.dumps({
+            "action": "auth",
+            "params": {"apikey": TWELVEDATA_API_KEY}
+        }))
+
+    def _on_message(self, ws, message):
+        try:
+            data = json.loads(message)
+
+            if data.get("event") == "price":
+                symbol = data.get("symbol")
+                price = float(data.get("price", 0))
+
+                bid = data.get("bid")
+                ask = data.get("ask")
+
+                if bid is None or ask is None:
+                    spread = max(price * 0.0003, 0.0001)
+                    bid = price - spread / 2
+                    ask = price + spread / 2
+                else:
+                    bid = float(bid)
+                    ask = float(ask)
+
+                self.price_cache[symbol] = {
+                    "price": price,
+                    "bid": bid,
+                    "ask": ask,
+                    "timestamp": time.time()
+                }
+
+                self.add_tick(symbol, price)
+
+            elif data.get("status") == "ok":
+                self.ws_authenticated = True
+                logger.info("WS authenticated")
+
+                if self.subscribed_symbols:
+                    ws.send(json.dumps({
+                        "action": "subscribe",
+                        "params": {"symbols": ",".join(self.subscribed_symbols)}
+                    }))
+
+        except Exception as e:
+            logger.error(f"WS message error: {e}")
+
+    def _on_error(self, ws, error):
+        logger.error(f"WS error: {error}")
+
+    def _on_close(self, ws, *args):
+        logger.info("WS closed")
+        self.ws_authenticated = False
+
+    def subscribe_twelvedata(self, symbol: str):
+        symbol = normalize_symbol(symbol)
+        self.subscribed_symbols.add(symbol)
+
+        if self.ws_authenticated and self.ws_twelvedata and self.ws_twelvedata.sock and self.ws_twelvedata.sock.connected:
+            self.ws_twelvedata.send(json.dumps({
+                "action": "subscribe",
+                "params": {"symbols": symbol}
+            }))
+
+    def add_tick(self, symbol: str, price: float):
+        symbol = normalize_symbol(symbol)
+        if symbol not in self.tick_history:
+            self.tick_history[symbol] = []
+        self.tick_history[symbol].append(price)
+        if len(self.tick_history[symbol]) > 30:
+            self.tick_history[symbol].pop(0)
 
     # =========================
     # 💰 PRIX TEMPS RÉEL
     # =========================
-    def get_current_price(self, symbol: str) -> Optional[float]:
-        """Retourne le prix actuel (float) pour un symbole."""
-        data = self._fetch_price_sync(symbol)
-        if data:
-            return data.get("price")
-        return None
-
-    def get_current_price_full(self, symbol: str) -> Optional[Dict]:
-        """Retourne un dict complet avec 'price', 'bid', 'ask'."""
-        return self._fetch_price_sync(symbol)
-
-    def _fetch_price_sync(self, symbol: str) -> Optional[Dict]:
+    async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
 
-        # Vérifier le cache
         if symbol in self.price_cache:
             if time.time() - self.price_cache[symbol]["timestamp"] < PRICE_CACHE_TTL:
                 return self.price_cache[symbol]
 
+        price = await self._fetch_price(symbol)
+        if price:
+            self.price_cache[symbol] = price
+            return price
+        return None
+
+    async def _fetch_price(self, symbol: str) -> Optional[Dict]:
         if not TWELVEDATA_API_KEY:
             return None
 
@@ -75,7 +178,6 @@ class DataFetcher:
                 ask = data.get("ask")
 
                 if bid is None or ask is None:
-                    # Spread estimé
                     spread = max(price * 0.0003, 0.0001)
                     bid = price - spread / 2
                     ask = price + spread / 2
@@ -83,14 +185,12 @@ class DataFetcher:
                     bid = float(bid)
                     ask = float(ask)
 
-                result = {
+                return {
                     "price": price,
                     "bid": bid,
                     "ask": ask,
                     "timestamp": time.time()
                 }
-                self.price_cache[symbol] = result
-                return result
         except Exception as e:
             logger.warning(f"Price error {symbol}: {e}")
         return None
@@ -122,41 +222,36 @@ class DataFetcher:
         return s
 
     # =========================
-    # 📊 HISTORIQUE (SYNCHRONE)
+    # 📊 HISTORIQUE
     # =========================
-    def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
-                            limit: int = 100) -> Optional[pd.DataFrame]:
-        """
-        Récupère les données historiques.
-        - timeframe: "1m", "5m", "1h", "4h", "1d"
-        - limit: nombre de bougies à récupérer
-        """
+    async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
+                                  period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
         symbol = normalize_symbol(symbol)
-        key = f"{symbol}_{timeframe}_{limit}"
+        key = cache_key(symbol, timeframe, period)
 
         if key in self.history_cache:
             if time.time() - self.history_cache[key]["timestamp"] < HISTORY_CACHE_TTL:
                 return self.history_cache[key]["data"]
 
-        df = self._fetch_history(symbol, timeframe, limit)
+        df = await self._fetch_history(symbol, timeframe)
         if df is None and FCS_API_KEY:
-            df = self._fetch_fcs_history(symbol, timeframe, limit)
+            df = await self._fetch_fcs_history(symbol, timeframe, period)
         if df is None:
-            df = self._fetch_yahoo_history(symbol, timeframe, limit)
+            df = await self._fetch_yahoo_history(symbol, timeframe, period)
 
         if df is not None and not df.empty:
             self.history_cache[key] = {"data": df, "timestamp": time.time()}
             return df
         return None
 
-    def _fetch_history(self, symbol: str, timeframe: str, limit: int):
+    async def _fetch_history(self, symbol: str, timeframe: str):
         try:
             td_symbol = self._format_symbol(symbol)
 
             interval_map = {"1m": "1min", "5m": "5min", "1h": "1h", "4h": "4h", "1d": "1day"}
             interval = interval_map.get(timeframe, "1day")
 
-            url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&outputsize={limit}&apikey={TWELVEDATA_API_KEY}"
+            url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&outputsize=200&apikey={TWELVEDATA_API_KEY}"
             r = requests.get(url, timeout=10)
 
             if r.status_code == 200:
@@ -169,45 +264,30 @@ class DataFetcher:
                     "datetime": "Date", "open": "Open", "high": "High",
                     "low": "Low", "close": "Close", "volume": "Volume"
                 })
-                df = df.iloc[::-1]  # du plus ancien au plus récent
+                df = df.iloc[::-1]
                 df["Date"] = pd.to_datetime(df["Date"])
                 df.set_index("Date", inplace=True)
-                for col in ["Open", "High", "Low", "Close", "Volume"]:
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
-                return df
+                return df.astype(float)
         except Exception as e:
             logger.warning(f"History error {symbol}: {e}")
         return None
 
-    def _fetch_yahoo_history(self, symbol: str, timeframe: str, limit: int):
+    async def _fetch_yahoo_history(self, symbol: str, timeframe: str, period: str):
         try:
             import yfinance as yf
-
-            # Déterminer la période en fonction du nombre de bougies
-            if timeframe in ["1m", "5m"]:
-                period = "5d"
-            elif timeframe == "1h":
-                period = "1mo"
-            else:
-                period = "3mo"
-
             if symbol.upper() in ["BTCUSD", "ETHUSD", "XAUUSD"]:
                 ticker = symbol.replace("USD", "-USD")
             elif len(symbol) == 6 and symbol.endswith("USD"):
                 ticker = symbol + "=X"
             else:
                 ticker = symbol
-
             df = yf.Ticker(ticker).history(period=period, interval=timeframe)
-            if df.empty:
-                return None
-            # Limiter au nombre demandé
-            return df.tail(limit)
+            return df if not df.empty else None
         except Exception as e:
             logger.warning(f"Yahoo fallback error: {e}")
         return None
 
-    def _fetch_fcs_history(self, symbol: str, timeframe: str, limit: int):
+    async def _fetch_fcs_history(self, symbol: str, timeframe: str, period: str):
         if not FCS_API_KEY:
             return None
         try:
@@ -232,7 +312,7 @@ class DataFetcher:
                     df = pd.DataFrame(rows)
                     df["Date"] = pd.to_datetime(df["Date"])
                     df.set_index("Date", inplace=True)
-                    return df.tail(limit)
+                    return df
         except Exception as e:
             logger.warning(f"FCS fallback error: {e}")
         return None
