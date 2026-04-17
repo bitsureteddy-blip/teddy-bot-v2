@@ -45,6 +45,7 @@ TEXTS = {
             "/snapshot – Image pour Instagram\n"
             "/verify ID – Vérifier un signal\n"
             "/redeem CODE – Utiliser un code promo"
+
             "/ask QUESTION – Poser une question à l'IA\n"
         ),
         "help_admin": "\n\nAdmin : /broadcast, /reload, /stats, /setrole, /gift, /revoke",
@@ -223,6 +224,7 @@ TEXTS = {
             "/snapshot – Instagram-ready image\n"
             "/verify ID – Verify a signal\n" 
             "/redeem CODE – Use a promo code"
+
             "/ask QUESTION – Ask the AI a question\n"
         ),
         "help_admin": "\n\nAdmin: /broadcast, /reload, /stats, /setrole, /gift, /revoke",
