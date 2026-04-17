@@ -20,6 +20,7 @@ from bot_handlers import (
 from data_fetcher import DataFetcher
 from user_manager import UserManager
 from alert_manager import AlertManager
+alert_mgr = AlertManager.get_instance()
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
