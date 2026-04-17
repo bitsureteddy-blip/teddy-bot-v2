@@ -277,6 +277,10 @@ async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Code existant
     pass
+async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Informations sur l'application mobile Bitsure Teddy."""
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "app_message"), parse_mode=ParseMode.MARKDOWN)
 async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Validation de la pré-facture pour les paiements Telegram Stars."""
     query = update.pre_checkout_query
