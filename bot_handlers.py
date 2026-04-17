@@ -7,6 +7,7 @@ import pandas as pd
 import random
 import hashlib
 import time
+from typing import Dict, Optional, List   # <-- AJOUTE CETTE LIGNE
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes
