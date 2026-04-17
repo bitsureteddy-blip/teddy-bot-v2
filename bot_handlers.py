@@ -145,6 +145,7 @@ async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @check_limit
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from config import GEMINI_API_KEY
     lang = get_user_lang(update)
     if not GEMINI_API_KEY:
         await update.message.reply_text("❌ L'IA n'est pas configurée.")
@@ -171,7 +172,6 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(reply)
     except Exception as e:
         await msg.edit_text(get_text(lang, "ask_error", error=str(e)))
-
 async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
