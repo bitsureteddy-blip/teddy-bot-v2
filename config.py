@@ -47,3 +47,5 @@ PREMIUM_ROLES = {
     "PRO": "pro",
     "ELITE": "elite"
 }
+# --- IA Gemini ---
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")

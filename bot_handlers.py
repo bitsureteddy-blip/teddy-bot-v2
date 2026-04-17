@@ -12,6 +12,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Labeled
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 
+from openai import OpenAI
 from config import ADMIN_ID, DEFAULT_TIMEFRAME
 from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
@@ -141,6 +142,35 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "support"))
+
+@check_limit
+async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not GEMINI_API_KEY:
+        await update.message.reply_text("❌ L'IA n'est pas configurée.")
+        return
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "ask_usage"))
+        return
+    
+    question = " ".join(context.args)
+    msg = await update.message.reply_text(get_text(lang, "ask_thinking"))
+    
+    try:
+        client = OpenAI(
+            api_key=GEMINI_API_KEY,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+        )
+        response = client.chat.completions.create(
+            model="gemini-2.0-flash",
+            messages=[{"role": "user", "content": question}],
+            temperature=0.7,
+            max_tokens=500
+        )
+        reply = response.choices[0].message.content
+        await msg.edit_text(reply)
+    except Exception as e:
+        await msg.edit_text(get_text(lang, "ask_error", error=str(e)))
 
 async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)

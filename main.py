@@ -6,6 +6,7 @@ Teddy Trading Bot - Bitsure Teddy
 import logging
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, PreCheckoutQueryHandler, MessageHandler, filters
 
+from bot_handlers import (..., ask)
 from config import TELEGRAM_TOKEN
 from bot_handlers import (
     start, help_command, analyse, price, scalp, tick, spread,
@@ -48,7 +49,7 @@ def main():
         ("settings", settings), ("settimeframe", settimeframe), ("setrisk", setrisk), ("setlanguage", setlanguage),
         ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
-        ("support", support), ("setrole", setrole), ("symboles", symboles), ("gift", gift),
+        ("support", support), ("ask", ask), ("setrole", setrole), ("symboles", symboles), ("gift", gift),
         ("revoke", revoke), ("redeem", redeem), ("app", app_command),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify)
     ]
