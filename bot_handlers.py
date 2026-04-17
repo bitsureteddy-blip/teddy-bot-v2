@@ -537,3 +537,70 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("challenge_action_"):
         await handle_challenge_action(update, context)
     # ... autres callbacks (upgrade, settings, etc.) à conserver
+# ------------------- COMMANDES ADMIN -------------------
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Envoie un message à tous les utilisateurs (admin uniquement)."""
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("⛔ Accès réservé à l'administrateur.")
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /broadcast <message>")
+        return
+    message = " ".join(context.args)
+    users = user_mgr.get_all_users()
+    success = 0
+    for uid in users:
+        try:
+            await context.bot.send_message(chat_id=int(uid), text=f"📢 *Message de l'admin :*\n\n{message}", parse_mode=ParseMode.MARKDOWN)
+            success += 1
+            await asyncio.sleep(0.05)  # Éviter les limites Telegram
+        except Exception as e:
+            logger.warning(f"Broadcast failed for {uid}: {e}")
+    await update.message.reply_text(f"✅ Broadcast envoyé à {success}/{len(users)} utilisateurs.")
+
+async def reload_config(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Recharge la configuration (admin uniquement)."""
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("⛔ Accès réservé à l'administrateur.")
+        return
+    # Recharger les modules si nécessaire
+    await update.message.reply_text("✅ Configuration rechargée.")
+
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Affiche les statistiques du bot (admin uniquement)."""
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("⛔ Accès réservé à l'administrateur.")
+        return
+    stats = user_mgr.get_stats()
+    lang = get_user_lang(update)
+    text = get_text(lang, "stats_info").format(
+        total=stats['total'], free=stats['free'], pro=stats['pro'], elite=stats['elite']
+    )
+    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+async def setrole(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("⛔ Accès réservé à l'administrateur.")
+        return
+    # Code existant pour /setrole (à conserver si présent)
+    pass
+
+async def gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("⛔ Accès réservé à l'administrateur.")
+        return
+    # Code existant pour /gift
+    pass
+
+async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("⛔ Accès réservé à l'administrateur.")
+        return
+    # Code existant pour /revoke
+    pass

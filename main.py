@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Teddy Trading Bot - Bitsure Teddy
 """
@@ -12,10 +11,11 @@ from bot_handlers import (
     alert, alerts, delalert, clearalerts, watchlist, addwatch,
     removewatch, scan, trend, volatility, correlation, levels,
     settings, settimeframe, setrisk, setlanguage, usage,
-    status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
-    upgrade, plan_callback, pre_checkout, successful_payment,
-    support, setrole, symboles, gift, revoke, redeem,
-    app_command, challenge, snapshot, verify, ask   # <-- ask ajouté ici
+    status, about, symbolinfo, myid, upgrade, support, symboles,
+    challenge, snapshot, verify, redeem, ask, historique,
+    broadcast, reload_config, stats, setrole, gift, revoke,
+    plan_callback, pre_checkout, successful_payment, app_command,
+    button_callback
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -25,42 +25,66 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-logger = logging.getLogger(__name__)
-
-async def post_init(application):
-    await application.bot.delete_webhook(drop_pending_updates=True)
-    logger.info("Webhook cleared, ready to poll")
-    DataFetcher.get_instance().start_twelvedata_websocket()
 
 def main():
-    DataFetcher.get_instance()
-    UserManager.get_instance()
-    AlertManager.get_instance()
+    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).post_init(post_init).build()
+    # Commandes utilisateur
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("analyse", analyse))
+    application.add_handler(CommandHandler("price", price))
+    application.add_handler(CommandHandler("scalp", scalp))
+    application.add_handler(CommandHandler("tick", tick))
+    application.add_handler(CommandHandler("spread", spread))
+    application.add_handler(CommandHandler("alert", alert))
+    application.add_handler(CommandHandler("alerts", alerts))
+    application.add_handler(CommandHandler("delalert", delalert))
+    application.add_handler(CommandHandler("clearalerts", clearalerts))
+    application.add_handler(CommandHandler("watchlist", watchlist))
+    application.add_handler(CommandHandler("addwatch", addwatch))
+    application.add_handler(CommandHandler("removewatch", removewatch))
+    application.add_handler(CommandHandler("scan", scan))
+    application.add_handler(CommandHandler("trend", trend))
+    application.add_handler(CommandHandler("volatility", volatility))
+    application.add_handler(CommandHandler("correlation", correlation))
+    application.add_handler(CommandHandler("levels", levels))
+    application.add_handler(CommandHandler("settings", settings))
+    application.add_handler(CommandHandler("settimeframe", settimeframe))
+    application.add_handler(CommandHandler("setrisk", setrisk))
+    application.add_handler(CommandHandler("setlanguage", setlanguage))
+    application.add_handler(CommandHandler("usage", usage))
+    application.add_handler(CommandHandler("status", status))
+    application.add_handler(CommandHandler("about", about))
+    application.add_handler(CommandHandler("symbolinfo", symbolinfo))
+    application.add_handler(CommandHandler("myid", myid))
+    application.add_handler(CommandHandler("upgrade", upgrade))
+    application.add_handler(CommandHandler("support", support))
+    application.add_handler(CommandHandler("symboles", symboles))
+    application.add_handler(CommandHandler("challenge", challenge))
+    application.add_handler(CommandHandler("snapshot", snapshot))
+    application.add_handler(CommandHandler("verify", verify))
+    application.add_handler(CommandHandler("redeem", redeem))
+    application.add_handler(CommandHandler("ask", ask))
+    application.add_handler(CommandHandler("historique", historique))
+    application.add_handler(CommandHandler("app", app_command))
 
-    handlers = [
-        ("start", start), ("help", help_command), ("analyse", analyse), ("price", price),
-        ("scalp", scalp), ("tick", tick), ("spread", spread),
-        ("alert", alert), ("alerts", alerts), ("delalert", delalert), ("clearalerts", clearalerts),
-        ("watchlist", watchlist), ("addwatch", addwatch), ("removewatch", removewatch), ("scan", scan),
-        ("trend", trend), ("volatility", volatility), ("correlation", correlation), ("levels", levels),
-        ("settings", settings), ("settimeframe", settimeframe), ("setrisk", setrisk), ("setlanguage", setlanguage),
-        ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
-        ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
-        ("support", support), ("ask", ask), ("setrole", setrole), ("symboles", symboles), ("gift", gift),
-        ("revoke", revoke), ("redeem", redeem), ("app", app_command),
-        ("challenge", challenge), ("snapshot", snapshot), ("verify", verify)
-    ]
-    for cmd, func in handlers:
-        app.add_handler(CommandHandler(cmd, func))
+    # Commandes admin
+    application.add_handler(CommandHandler("broadcast", broadcast))
+    application.add_handler(CommandHandler("reload", reload_config))
+    application.add_handler(CommandHandler("stats", stats))
+    application.add_handler(CommandHandler("setrole", setrole))
+    application.add_handler(CommandHandler("gift", gift))
+    application.add_handler(CommandHandler("revoke", revoke))
 
-    app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
-    app.add_handler(PreCheckoutQueryHandler(pre_checkout))
-    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
+    # Handlers pour les paiements Telegram Stars
+    application.add_handler(PreCheckoutQueryHandler(pre_checkout))
+    application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
 
-    logger.info("Teddy Trading Bot started")
-    app.run_polling(drop_pending_updates=True)
+    # Callback pour les boutons inline
+    application.add_handler(CallbackQueryHandler(button_callback))
+
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
