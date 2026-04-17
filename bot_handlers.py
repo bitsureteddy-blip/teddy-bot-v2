@@ -147,9 +147,11 @@ async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from config import GEMINI_API_KEY
     lang = get_user_lang(update)
+    
     if not GEMINI_API_KEY:
         await update.message.reply_text("❌ L'IA n'est pas configurée.")
         return
+    
     if not context.args:
         await update.message.reply_text(get_text(lang, "ask_usage"))
         return
@@ -158,34 +160,14 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = await update.message.reply_text(get_text(lang, "ask_thinking"))
     
     try:
-        client = OpenAI(
-            api_key=GEMINI_API_KEY,
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-        )
-        response = client.chat.completions.create(
-            model="gemini-2.0-flash",
-            messages=[{"role": "user", "content": question}],
-            temperature=0.7,
-            max_tokens=500
-        )
-        reply = response.choices[0].message.content
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(question)
+        reply = response.text
         await msg.edit_text(reply)
     except Exception as e:
         await msg.edit_text(get_text(lang, "ask_error", error=str(e)))
-async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    keyboard = [
-        [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
-        [InlineKeyboardButton(get_text(lang, "button_elite_stars"), callback_data="plan_elite_stars")],
-        [InlineKeyboardButton(get_text(lang, "button_pro_stripe"), callback_data="plan_pro_stripe")],
-        [InlineKeyboardButton(get_text(lang, "button_elite_stripe"), callback_data="plan_elite_stripe")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        get_text(lang, "upgrade_title"),
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=reply_markup
-    )
 
 async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
