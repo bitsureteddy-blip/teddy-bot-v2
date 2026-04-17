@@ -12,7 +12,6 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Labeled
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 
-from openai import OpenAI
 from config import ADMIN_ID, DEFAULT_TIMEFRAME
 from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
