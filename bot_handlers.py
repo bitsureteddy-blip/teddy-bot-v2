@@ -141,6 +141,25 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "support"))
+@check_limit
+async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Affiche les offres premium disponibles"""
+    lang = get_user_lang(update)
+    text = get_text(lang, "upgrade_message")
+    
+    # Ajout des boutons de paiement Stripe ou lien Telegram Stars
+    keyboard = []
+    if lang == "fr":
+        keyboard.append([InlineKeyboardButton("💳 Payer par carte (9,99€/mois)", callback_data="upgrade_stripe_pro")])
+        keyboard.append([InlineKeyboardButton("⭐ Acheter avec Stars (15,99€)", url="https://t.me/BitsureTeddyBot?start=stars_pro")])
+        keyboard.append([InlineKeyboardButton("👑 Offre ELITE (24,99€)", callback_data="upgrade_stripe_elite")])
+    else:
+        keyboard.append([InlineKeyboardButton("💳 Pay with card ($9.99/mo)", callback_data="upgrade_stripe_pro")])
+        keyboard.append([InlineKeyboardButton("⭐ Buy with Stars ($15.99)", url="https://t.me/BitsureTeddyBot?start=stars_pro")])
+        keyboard.append([InlineKeyboardButton("👑 ELITE Offer ($24.99)", callback_data="upgrade_stripe_elite")])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(text, reply_markup=reply_markup, parse_mode="Markdown")
 
 @check_limit
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
