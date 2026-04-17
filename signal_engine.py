@@ -4,7 +4,7 @@ et calcul du Teddy Score.
 """
 
 import pandas as pd
-from typing import Dict
+from typing import Dict, Optional
 
 from indicators import (
     rsi, macd, bollinger_bands, sma, support_resistance, detect_divergence
@@ -19,21 +19,38 @@ from i18n import get_text
 
 
 class SignalEngine:
+    """
+    Moteur d'analyse technique.
+    Utilisation :
+        engine = SignalEngine(df, timeframe)
+        signal = engine.analyze(lang)
+    """
 
-    @staticmethod
-    def analyze(df: pd.DataFrame, lang: str = "en") -> Dict:
+    def __init__(self, df: pd.DataFrame, timeframe: str = "1d"):
+        self.df = df
+        self.timeframe = timeframe
+        self.close = df["Close"]
+        self.high = df["High"]
+        self.low = df["Low"]
+        self.volume = df.get("Volume", None)
+
+    def analyze(self, lang: str = "en") -> Dict:
+        """Retourne un dictionnaire contenant le signal, le score, les raisons, etc."""
+        df = self.df
         if df is None or df.empty or len(df) < SMA_LONG:
             return {
+                "action": "ATTENDRE",
                 "signal": "ATTENDRE",
                 "reason": get_text(lang, "signal_insufficient_data"),
                 "risk_advice": "",
+                "score": 0,
                 "teddy_score": 0,
-                "indicators": {}
+                "reasons": [get_text(lang, "signal_insufficient_data")]
             }
 
-        close = df["Close"]
-        high = df["High"]
-        low = df["Low"]
+        close = self.close
+        high = self.high
+        low = self.low
 
         # === INDICATEURS ===
         rsi_series = rsi(close, RSI_PERIOD)
@@ -72,9 +89,8 @@ class SignalEngine:
         else:
             trend = "NEUTRE"
 
-        # === TEDDY SCORE AMÉLIORÉ ===
-        teddy_score = SignalEngine._compute_teddy_score(
-            df,
+        # === TEDDY SCORE ===
+        teddy_score = self._compute_teddy_score(
             rsi_val,
             sma20,
             sma50,
@@ -86,25 +102,26 @@ class SignalEngine:
             divergence
         )
 
-        # === SIGNAL (SEUILS ASSOUPLIS) ===
+        # === SIGNAL ===
         if teddy_score >= 55:
-            signal = "ACHETER"
+            action = "ACHETER"
         elif teddy_score <= 45:
-            signal = "VENDRE"
+            action = "VENDRE"
         else:
-            signal = "ATTENDRE"
+            action = "ATTENDRE"
 
-        # === FILTRE DE TENDANCE ASSOUPLI ===
-        if trend == "HAUSSIER" and signal == "VENDRE" and teddy_score > 30:
-            signal = "ATTENDRE"
-        if trend == "BAISSIER" and signal == "ACHETER" and teddy_score < 70:
-            signal = "ATTENDRE"
+        # Filtre de tendance
+        if trend == "HAUSSIER" and action == "VENDRE" and teddy_score > 30:
+            action = "ATTENDRE"
+        if trend == "BAISSIER" and action == "ACHETER" and teddy_score < 70:
+            action = "ATTENDRE"
 
-        # === RAISON (BILINGUE) ===
-        if signal == "ACHETER":
+        # === RAISONS (pour affichage) ===
+        reasons = []
+        if action == "ACHETER":
             reason = get_text(lang, "signal_buy_reason")
             risk_advice = get_text(lang, "signal_buy_advice")
-        elif signal == "VENDRE":
+        elif action == "VENDRE":
             reason = get_text(lang, "signal_sell_reason")
             risk_advice = get_text(lang, "signal_sell_advice")
         else:
@@ -116,44 +133,64 @@ class SignalEngine:
                 reason = get_text(lang, "signal_wait_neutral")
             risk_advice = get_text(lang, "signal_wait_advice")
 
-        indicators = {
-            "price": last_price,
-            "rsi": rsi_val,
-            "sma20": sma20,
-            "sma50": sma50,
-            "macd": macd_val,
-            "macd_signal": macd_sig_val,
-            "bb_upper": upper_bb.iloc[-1],
-            "bb_lower": lower_bb.iloc[-1],
-            "support": support,
-            "resistance": resistance,
-            "trend": trend
-        }
+        # Construction des raisons détaillées
+        if rsi_val < 30:
+            reasons.append(f"RSI survendu ({rsi_val:.1f})")
+        elif rsi_val > 70:
+            reasons.append(f"RSI suracheté ({rsi_val:.1f})")
+        if macd_val > macd_sig_val:
+            reasons.append("MACD haussier")
+        elif macd_val < macd_sig_val:
+            reasons.append("MACD baissier")
+        if last_price > sma20:
+            reasons.append(f"Prix > SMA20 ({sma20:.2f})")
+        if last_price > sma50:
+            reasons.append(f"Prix > SMA50 ({sma50:.2f})")
+        if divergence == "bullish":
+            reasons.append("Divergence haussière détectée")
+        elif divergence == "bearish":
+            reasons.append("Divergence baissière détectée")
+        if not reasons:
+            reasons.append(reason)
 
         return {
-            "signal": signal,
+            "action": action,
+            "signal": action,  # pour compatibilité
             "reason": reason,
             "risk_advice": risk_advice,
+            "score": teddy_score,
             "teddy_score": teddy_score,
-            "indicators": indicators
+            "reasons": reasons,
+            "indicators": {
+                "price": last_price,
+                "rsi": rsi_val,
+                "sma20": sma20,
+                "sma50": sma50,
+                "macd": macd_val,
+                "macd_signal": macd_sig_val,
+                "bb_upper": upper_bb.iloc[-1],
+                "bb_lower": lower_bb.iloc[-1],
+                "support": support,
+                "resistance": resistance,
+                "trend": trend
+            }
         }
 
-    @staticmethod
     def _compute_teddy_score(
-        df,
-        rsi_val,
-        sma20,
-        sma50,
-        support,
-        resistance,
-        price,
-        macd,
-        macd_signal,
-        divergence
-    ):
+        self,
+        rsi_val: float,
+        sma20: float,
+        sma50: float,
+        support: Optional[float],
+        resistance: Optional[float],
+        price: float,
+        macd: float,
+        macd_signal: float,
+        divergence: str
+    ) -> int:
         score = 50
 
-        # RSI – seuils assouplis
+        # RSI
         if rsi_val < 40:
             score += 12
         elif rsi_val > 60:
@@ -170,7 +207,7 @@ class SignalEngine:
         else:
             score -= 10
 
-        # Support / Résistance – seuils élargis
+        # Support / Résistance
         if support is not None and price <= support * 1.03:
             score += 10
         if resistance is not None and price >= resistance * 0.97:
@@ -182,16 +219,16 @@ class SignalEngine:
         elif divergence == "bearish":
             score -= 15
 
-        # MACD – poids augmenté
+        # MACD
         if macd > macd_signal:
             score += 15
         else:
             score -= 15
 
         # Volume
-        if "Volume" in df.columns:
-            avg_vol = df["Volume"].rolling(20).mean().iloc[-1]
-            current_vol = df["Volume"].iloc[-1]
+        if self.volume is not None and not self.volume.empty:
+            avg_vol = self.volume.rolling(20).mean().iloc[-1]
+            current_vol = self.volume.iloc[-1]
             if pd.notna(avg_vol) and current_vol > avg_vol * 1.3:
                 score += 5
 
@@ -278,10 +315,23 @@ class SignalEngine:
     def _macd_from_ticks(ticks: list, fast: int = 6, slow: int = 13, signal: int = 5):
         if len(ticks) < slow:
             return 0, 0
-        import pandas as pd
         series = pd.Series(ticks)
         ema_fast = series.ewm(span=fast, adjust=False).mean().iloc[-1]
         ema_slow = series.ewm(span=slow, adjust=False).mean().iloc[-1]
         macd_line = ema_fast - ema_slow
-        signal_line = macd_line * 0.9
+        signal_line = macd_line * 0.9  # approximation simple
         return macd_line, signal_line
+
+    # Méthodes pour compatibilité avec d'anciens appels
+    def rsi(self) -> pd.Series:
+        return rsi(self.close, RSI_PERIOD)
+
+    def macd(self):
+        return macd(self.close, MACD_FAST, MACD_SLOW, MACD_SIGNAL)
+
+    def atr(self, period: int = 14) -> pd.Series:
+        high_low = self.high - self.low
+        high_close = (self.high - self.close.shift()).abs()
+        low_close = (self.low - self.close.shift()).abs()
+        tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+        return tr.rolling(period).mean()

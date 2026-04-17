@@ -84,6 +84,7 @@ def main():
     # Callback pour les boutons inline
     application.add_handler(CallbackQueryHandler(button_callback))
 
+    alert_mgr.start_monitoring(application)
     application.run_polling()
 
 if __name__ == "__main__":
