@@ -8,6 +8,7 @@ ADMIN_ID = 8376348929
 FCS_API_KEY = os.environ.get("FCS_API_KEY", "")
 REALMARKET_API_KEY = os.environ.get("REALMARKET_API_KEY", "")
 TWELVEDATA_API_KEY = os.environ.get("TWELVEDATA_API_KEY", "c7b582eed7b24bff942030a3623c6429")  # Ta clé
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 # --- Limites utilisateur ---
 FREE_DAILY_REQUESTS = 5          # Réduit à 5 requêtes/jour
