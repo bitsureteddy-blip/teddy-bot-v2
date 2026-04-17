@@ -175,6 +175,25 @@ class UserManager:
             self._save()
             return True, get_text(lang, "redeem_success", message=f"{promo['days']} jours")
         return False, get_text(lang, "redeem_invalid")
+       def update_challenge_score(self, user_id: int, wins: int, total: int):
+    user = self.get_user(user_id)
+    if "challenge_scores" not in user:
+        user["challenge_scores"] = []
+    user["challenge_scores"].append({
+        "wins": wins,
+        "total": total,
+        "date": datetime.utcnow().isoformat()
+    })
+    user["challenge_scores"] = user["challenge_scores"][-10:]
+    self._save()
 
+def get_top_challenge_scores(self, limit: int = 5):
+    scores = []
+    for uid, data in self.users.items():
+        if "challenge_scores" in data and data["challenge_scores"]:
+            best = max(data["challenge_scores"], key=lambda x: x["wins"]/x["total"] if x["total"]>0 else 0)
+            scores.append((uid, best))
+    scores.sort(key=lambda x: x[1]["wins"]/x[1]["total"] if x[1]["total"]>0 else 0, reverse=True)
+    return scores[:limit]
     def _save(self):
         save_json(USERS_FILE, self.users)

@@ -68,3 +68,11 @@ def cache_key(*args) -> str:
     """Génère une clé de cache unique"""
     raw = "|".join(str(a) for a in args)
     return hashlib.md5(raw.encode()).hexdigest()
+
+def is_valid_symbol(symbol: str) -> bool:
+    """Vérifie si le symbole a un format valide."""
+    if not symbol or len(symbol) < 2:
+        return False
+    # Autorise lettres, chiffres, slash, tiret
+    import re
+    return bool(re.match(r'^[A-Z0-9/.-]+$', symbol.upper()))

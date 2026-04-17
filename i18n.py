@@ -9,7 +9,6 @@ TEXTS = {
         "status_pro": "💎 PRO",
         "status_elite": "👑 ELITE",
         "international_payment_info": "\n\n🌍 *Vous êtes dans un pays où les paiements internationaux sont difficiles ?*\nPas de problème. Contactez l'administrateur pour un arrangement manuel : /support",
-
         "help_full": (
             "🧸 *Commandes disponibles :*\n\n"
             "/analyse SYMBOLE – Analyse complète\n"
@@ -42,22 +41,59 @@ TEXTS = {
             "/support – Contacter admin\n"
             "/symboles – Symboles populaires\n"
             "/challenge – Défi scalping (5 trades)\n"
+            "/historique – Historique des signaux\n"
             "/snapshot – Image pour Instagram\n"
             "/verify ID – Vérifier un signal\n"
             "/redeem CODE – Utiliser un code promo\n"
             "/ask QUESTION – Poser une question à l'IA\n"
         ),
-        "help_admin": "\n\nAdmin : /broadcast, /reload, /stats, /setrole, /gift, /revoke",
-
-        "support": "📞 Besoin d'aide ?\n\nContactez l'administrateur : @btsr_teddy09",
-
-        "upgrade_title": "💳 *Choisissez votre offre :*\n\n• PRO : 9,99€/mois – illimité, scalping\n• ELITE : 24,99€/mois – PRO + groupe privé + support prioritaire\n\n⚠️ Les prix en Telegram Stars sont majorés en raison des commissions.",
-        "button_pro_stars": "💎 PRO – 15,99€/mois (Stars)",
-        "button_elite_stars": "👑 ELITE – 39,99€/mois (Stars)",
-        "button_pro_stripe": "💳 PRO – 9,99€/mois (Stripe bientôt)",
-        "button_elite_stripe": "💳 ELITE – 24,99€/mois (Stripe bientôt)",
-        "premium_required": "🔒 *Fonctionnalité Premium*\n\nCette commande est réservée aux membres PRO et ELITE.\nUtilisez /upgrade pour découvrir nos offres.",
-
+        "help_admin": "\n\nAdmin: /broadcast, /reload, /stats, /setrole, /gift, /revoke",
+        "history_empty": "🧸 Aucun signal enregistré pour le moment. Utilisez /analyse pour commencer !",
+        "history_header": "📜 *Derniers signaux Bitsure Teddy* :\n",
+        "history_pending": "En cours",
+        "challenge_intro": "🧸 *Défi Scalping Bitsure Teddy*\n\nVous allez recevoir 5 signaux simulés sur *{symbol}*. Pour chaque trade, choisissez si vous suivez le signal ou non. Le résultat est calculé en temps réel.\n\nPrêt à relever le défi ?",
+        "challenge_start_btn": "🚀 Commencer le défi",
+        "challenge_already_active": "⚠️ Vous avez déjà un défi en cours. Continuez ou annulez.",
+        "challenge_continue": "➡️ Continuer",
+        "challenge_cancel": "❌ Annuler le défi",
+        "challenge_trade_prompt": "🔔 *Trade {num}/{total}* – {symbol}\nPrix actuel : {price}\nSignal : *{action}*\n\nQue faites-vous ?",
+        "challenge_follow": "✅ Suivre le signal",
+        "challenge_skip": "⏭️ Passer",
+        "challenge_trade_skipped": "⏭️ Trade ignoré. Passage au suivant...",
+        "challenge_trade_result": "Résultat : {result} ({status})",
+        "challenge_finished": "🏁 *Défi terminé !*\n\n✅ Gagnés : {win}\n❌ Perdus : {loss}\n📊 Taux de réussite : {rate:.1f}%",
+        "challenge_cancelled": "❌ Défi annulé.",
+        "challenge_expired": "⌛ Session expirée. Lancez un nouveau défi avec /challenge.",
+        "challenge_no_scores": "Aucun score enregistré pour le moment.",
+        "challenge_top_header": "🏆 *Classement Défi Scalping*\n",
+        "challenge_start": "🔥 *DÉFI SCALPING LANCÉ* 🔥\nAnalyse de 5 trades consécutifs sur EURUSD en cours...",
+        "challenge_trade": "📊 *Trade {n}/5* – {signal} à {price}\nRésultat : {result} ({pips} pips)",
+        "challenge_score": "🏆 *SCORE FINAL* : {wins}/5 gagnés\n{summary}",
+        "ask_quota_exceeded": "🧸 L'IA est temporairement indisponible (limite de requêtes atteinte). Veuillez réessayer dans quelques minutes.",
+        "verify_usage": "Utilisation : /verify <ID du signal>",
+        "verify_not_found": "❌ Aucun signal trouvé avec l'ID `{signal_id}`.",
+        "verify_message": "🔍 *Vérification du signal*\n\n🆔 ID: `{id}`\n📊 Symbole: {symbol}\n📈 Direction: {direction}\n💰 Prix d'entrée: {entry}\n⏱ Timeframe: {timeframe}\n📅 Date: {date}\n📌 Statut: {status}",
+        "verify_result": "🔍 *Signal #{signal_id}*\nÉmis le : {timestamp}\nSymbole : {symbol}\nSignal : {signal}\nPrix : {price}\nScore : {score}/100",
+        "upgrade_message": (
+            "🧸 *Bitsure Teddy – Offres Premium*\n\n"
+            "🔓 *PRO* – 9,99€/mois (ou 15,99€ en Stars)\n"
+            "• Analyses illimitées\n"
+            "• Tous les timeframes\n"
+            "• /scalp, /tick, /spread\n\n"
+            "👑 *ELITE* – 24,99€/mois (ou 39,99€ en Stars)\n"
+            "• Tout PRO +\n"
+            "• Groupe privé\n"
+            "• Support prioritaire"
+        ),
+        "upgrade_free_status": "🟢 Votre statut actuel : *FREE*",
+        "upgrade_pro_status": "🔵 Votre statut actuel : *PRO*",
+        "upgrade_elite_status": "👑 Votre statut actuel : *ELITE*",
+        "upgrade_btn_pro_stripe": "💳 PRO – Carte (9,99€/mois)",
+        "upgrade_btn_pro_stars": "⭐ PRO – Stars (15,99€)",
+        "upgrade_btn_elite_stripe": "👑 ELITE – Carte (24,99€/mois)",
+        "upgrade_btn_elite_stars": "⭐ ELITE – Stars (39,99€)",
+        "upgrade_already_elite": "✅ Vous êtes déjà ELITE",
+        "support_contact": "📞 Contacter le support",
         "limit_reached": "❌ Vous avez atteint votre limite quotidienne de requêtes. Passez premium pour un accès illimité.",
         "watchlist_limit": "❌ Vous avez atteint la limite de 3 symboles en mode gratuit.\nPassez Premium pour en ajouter plus : /upgrade",
         "watchlist_added": "✅ {symbol} ajouté à votre watchlist.",
@@ -66,7 +102,6 @@ TEXTS = {
         "watchlist_scan_empty": "Watchlist vide.",
         "watchlist_scan_result": "📊 *Scan watchlist:*\n{results}",
         "watchlist_show": "📋 *Watchlist:*\n{symbols}",
-
         "alert_usage": "Usage: /alert SYMBOLE above/below PRIX",
         "alert_invalid_price": "Prix invalide.",
         "alert_invalid_cond": "Condition doit être 'above' ou 'below'.",
@@ -77,7 +112,6 @@ TEXTS = {
         "alert_not_found": "❌ Alerte non trouvée.",
         "alerts_cleared": "✅ Toutes vos alertes ont été supprimées.",
         "alert_triggered": "🚨 *Alerte déclenchée* : {symbol} a atteint {condition} {price}\nPrix actuel : {current_price}",
-
         "symbole_invalide": "Symbole invalide.",
         "analyse_usage": "Usage: /analyse SYMBOLE",
         "analyse_wait": "🔍 Analyse de {symbol} en cours...",
@@ -86,21 +120,18 @@ TEXTS = {
         "price_usage": "Usage: /price SYMBOLE",
         "price_error": "❌ Prix non disponible pour {symbol}.",
         "price_format": "*{symbol}*\n💰 Prix: {price}\n📊 Bid: {bid} / Ask: {ask}",
-
         "tick_usage": "Usage: /tick SYMBOLE",
         "tick_none": "❌ Aucun tick récent.",
         "tick_current": "🕒 Dernier tick {symbol}: {price}",
         "spread_usage": "Usage: /spread SYMBOLE",
         "spread_format": "*{symbol}* Spread: {spread}",
         "spread_unavailable": "❌ Spread non disponible.",
-
         "scalp_usage": "Usage: /scalp SYMBOLE DURÉE (3,5,10,20)",
         "scalp_invalid_duration": "Durée invalide. Choisissez 3, 5, 10 ou 20 secondes.",
         "scalp_signal_buy": "ACHETER",
         "scalp_signal_sell": "VENDRE",
         "scalp_signal_wait": "ATTENDRE",
         "scalp_result": "⚡ *Scalping {symbol} ({duration}s)*\nSignal: *{signal}*\nPrix: {price}\nBid: {bid} / Ask: {ask}\nVolatilité: {volatility}%\n\n{reason}",
-
         "trend_usage": "Usage: /trend SYMBOLE",
         "trend_no_data": "Données non disponibles.",
         "trend_haussiere": "Haussière",
@@ -110,7 +141,8 @@ TEXTS = {
         "volatility_usage": "Usage: /volatility SYMBOLE",
         "volatility_wait": "⚙️ Calcul de la volatilité pour {symbol}...",
         "volatility_error": "❌ Impossible de calculer la volatilité pour {symbol}.",
-        "volatility_result": "📊 *{symbol}* – Volatilité (ATR 14): {atr}","correlation_usage": "Usage: /correlation SYMBOLE1 SYMBOLE2",
+        "volatility_result": "📊 *{symbol}* – Volatilité (ATR 14): {atr}",
+        "correlation_usage": "Usage: /correlation SYMBOLE1 SYMBOLE2",
         "correlation_wait": "⚙️ Calcul de la corrélation entre {sym1} et {sym2}...",
         "correlation_error": "❌ Impossible de calculer la corrélation.",
         "correlation_insufficient_data": "❌ Données insuffisantes pour calculer la corrélation.",
@@ -118,7 +150,6 @@ TEXTS = {
         "levels_usage": "Usage: /levels SYMBOLE",
         "levels_no_data": "Données non disponibles.",
         "levels_result": "*{symbol}* Niveaux:\nSupport: {support}\nRésistance: {resistance}",
-
         "settings_info": "⚙️ *Paramètres*\nTimeframe: {tf}\nRisque: {risk}\nLangue: {lang_name}\nRôle: {role}\nPremium: {prem}",
         "settimeframe_usage": "Usage: /settimeframe 1h|4h|1d",
         "settimeframe_invalid": "Timeframe invalide.",
@@ -132,7 +163,6 @@ TEXTS = {
         "setlanguage_success_en": "✅ Language set to English.",
         "usage_requests_remaining": "📊 Requêtes restantes aujourd'hui: {rem}",
         "usage_unlimited": "✅ Premium: requêtes illimitées.",
-
         "status_ok": "✅ Bot opérationnel. APIs: Twelve Data, Yahoo, RealMarket.",
         "about": "Teddy Trading Bot v1.0 – Bitsure Teddy\nDéveloppé pour trading professionnel.",
         "symbolinfo": "ℹ️ Utilisez /analyse pour les infos détaillées.",
@@ -158,9 +188,7 @@ TEXTS = {
         "gift_notification": "🎁 Vous avez reçu un accès {role} gratuit pour {days} jours ! Profitez-en !",
         "ask_usage": "Usage : /ask <votre question>\nExemple : /ask Qu'est-ce que le RSI ?",
         "ask_thinking": "🤔 Je réfléchis...",
-        "ask_error": "❌ Erreur IA : {error}", 
-
-        # --- Signal Engine (Français) ---
+        "ask_error": "❌ Erreur IA : {error}",
         "signal_insufficient_data": "Données insuffisantes",
         "signal_buy_reason": "📈 Signaux haussiers détectés",
         "signal_buy_advice": "⚠️ Entrée progressive conseillée",
@@ -170,14 +198,7 @@ TEXTS = {
         "signal_wait_oversold": "Marché survendu, attendez un rebond",
         "signal_wait_neutral": "Aucun signal clair – phase de consolidation",
         "signal_wait_advice": "⏳ Attendre une confirmation",
-        # Dans "fr"
-"challenge_start": "🔥 *DÉFI SCALPING LANCÉ* 🔥\nAnalyse de 5 trades consécutifs sur EURUSD en cours...",
-"challenge_trade": "📊 *Trade {n}/5* – {signal} à {price}\nRésultat : {result} ({pips} pips)",
-"challenge_score": "🏆 *SCORE FINAL* : {wins}/5 gagnés\n{summary}",
-"snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nScore Teddy: {score}/100\nPrix: {price}",
-"verify_not_found": "❌ Aucun signal trouvé avec l'ID `{signal_id}`.",
-"verify_result": "🔍 *Signal #{signal_id}*\nÉmis le : {timestamp}\nSymbole : {symbol}\nSignal : {signal}\nPrix : {price}\nScore : {score}/100",
-
+        "snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nScore Teddy: {score}/100\nPrix: {price}"
     },
     "en": {
         "start": "🐻 *Bitsure Teddy* – Professional Market Analysis\n\nStatus: {status}\nCommands: /help\nOffers: /upgrade",
@@ -187,7 +208,6 @@ TEXTS = {
         "status_pro": "💎 PRO",
         "status_elite": "👑 ELITE",
         "international_payment_info": "\n\n🌍 *Are you in a country where international payments are difficult?*\nNo problem. Contact the administrator for a manual arrangement: /support",
-
         "help_full": (
             "🧸 *Available commands:*\n\n"
             "/analyse SYMBOL – Full analysis\n"
@@ -220,22 +240,59 @@ TEXTS = {
             "/support – Contact admin\n"
             "/symboles – Popular symbols\n"
             "/challenge – Scalping challenge (5 trades)\n"
+            "/history – Signal history\n"
             "/snapshot – Instagram-ready image\n"
-            "/verify ID – Verify a signal\n" 
+            "/verify ID – Verify a signal\n"
             "/redeem CODE – Use a promo code\n"
             "/ask QUESTION – Ask the AI a question\n"
         ),
         "help_admin": "\n\nAdmin: /broadcast, /reload, /stats, /setrole, /gift, /revoke",
-
-        "support": "📞 Need help?\n\nContact admin: @btsr_teddy09",
-
-        "upgrade_title": "💳 *Choose your plan:*\n\n• PRO: 9.99€/month – unlimited, scalping\n• ELITE: 24.99€/month – PRO + private group + priority support\n\n⚠️ Telegram Stars prices are higher due to platform fees.",
-        "button_pro_stars": "💎 PRO – 15.99€/month (Stars)",
-        "button_elite_stars": "👑 ELITE – 39.99€/month (Stars)",
-        "button_pro_stripe": "💳 PRO – 9.99€/month (Stripe soon)",
-        "button_elite_stripe": "💳 ELITE – 24.99€/month (Stripe soon)",
-        "premium_required": "🔒 *Premium Feature*\n\nThis command is reserved for PRO and ELITE members.\nUse /upgrade to discover our offers.",
-
+        "history_empty": "🧸 No signals recorded yet. Use /analyse to get started!",
+        "history_header": "📜 *Bitsure Teddy Recent Signals*:\n",
+        "history_pending": "Pending",
+        "challenge_intro": "🧸 *Bitsure Teddy Scalping Challenge*\n\nYou will receive 5 simulated signals on *{symbol}*. For each trade, choose whether to follow the signal or skip. The result is calculated in real time.\n\nReady for the challenge?",
+        "challenge_start_btn": "🚀 Start Challenge",
+        "challenge_already_active": "⚠️ You already have an active challenge. Continue or cancel.",
+        "challenge_continue": "➡️ Continue",
+        "challenge_cancel": "❌ Cancel Challenge",
+        "challenge_trade_prompt": "🔔 *Trade {num}/{total}* – {symbol}\nCurrent price: {price}\nSignal: *{action}*\n\nWhat do you do?",
+        "challenge_follow": "✅ Follow Signal",
+        "challenge_skip": "⏭️ Skip",
+        "challenge_trade_skipped": "⏭️ Trade skipped. Moving to next...",
+        "challenge_trade_result": "Result: {result} ({status})",
+        "challenge_finished": "🏁 *Challenge Finished!*\n\n✅ Wins: {win}\n❌ Losses: {loss}\n📊 Win rate: {rate:.1f}%",
+        "challenge_cancelled": "❌ Challenge cancelled.",
+        "challenge_expired": "⌛ Session expired. Start a new challenge with /challenge.",
+        "challenge_no_scores": "No scores recorded yet.",
+        "challenge_top_header": "🏆 *Scalping Challenge Leaderboard*\n",
+        "challenge_start": "🔥 *SCALPING CHALLENGE STARTED* 🔥\nAnalyzing 5 consecutive trades on EURUSD...",
+        "challenge_trade": "📊 *Trade {n}/5* – {signal} at {price}\nResult: {result} ({pips} pips)",
+        "challenge_score": "🏆 *FINAL SCORE*: {wins}/5 won\n{summary}",
+        "ask_quota_exceeded": "🧸 AI is temporarily unavailable (rate limit reached). Please try again in a few minutes.",
+        "verify_usage": "Usage: /verify <signal ID>",
+        "verify_not_found": "❌ No signal found with ID `{signal_id}`.",
+        "verify_message": "🔍 *Signal Verification*\n\n🆔 ID: `{id}`\n📊 Symbol: {symbol}\n📈 Direction: {direction}\n💰 Entry price: {entry}\n⏱ Timeframe: {timeframe}\n📅 Date: {date}\n📌 Status: {status}",
+        "verify_result": "🔍 *Signal #{signal_id}*\nIssued on: {timestamp}\nSymbol: {symbol}\nSignal: {signal}\nPrice: {price}\nScore: {score}/100",
+        "upgrade_message": (
+            "🧸 *Bitsure Teddy – Premium Offers*\n\n"
+            "🔓 *PRO* – €9.99/mo (or 15.99 in Stars)\n"
+            "• Unlimited analyses\n"
+            "• All timeframes\n"
+            "• /scalp, /tick, /spread\n\n"
+            "👑 *ELITE* – €24.99/mo (or 39.99 in Stars)\n"
+            "• All PRO features +\n"
+            "• Private group\n"
+            "• Priority support"
+        ),
+        "upgrade_free_status": "🟢 Your current status: *FREE*",
+        "upgrade_pro_status": "🔵 Your current status: *PRO*",
+        "upgrade_elite_status": "👑 Your current status: *ELITE*",
+        "upgrade_btn_pro_stripe": "💳 PRO – Card (€9.99/mo)",
+        "upgrade_btn_pro_stars": "⭐ PRO – Stars (15.99)",
+        "upgrade_btn_elite_stripe": "👑 ELITE – Card (€24.99/mo)",
+        "upgrade_btn_elite_stars": "⭐ ELITE – Stars (39.99)",
+        "upgrade_already_elite": "✅ You are already ELITE",
+        "support_contact": "📞 Contact Support",
         "limit_reached": "❌ You have reached your daily request limit. Upgrade to premium for unlimited access.",
         "watchlist_limit": "❌ You have reached the limit of 3 symbols in free mode.\nUpgrade to Premium to add more: /upgrade",
         "watchlist_added": "✅ {symbol} added to your watchlist.",
@@ -244,7 +301,6 @@ TEXTS = {
         "watchlist_scan_empty": "Watchlist empty.",
         "watchlist_scan_result": "📊 *Watchlist scan:*\n{results}",
         "watchlist_show": "📋 *Watchlist:*\n{symbols}",
-
         "alert_usage": "Usage: /alert SYMBOL above/below PRICE",
         "alert_invalid_price": "Invalid price.",
         "alert_invalid_cond": "Condition must be 'above' or 'below'.",
@@ -255,7 +311,6 @@ TEXTS = {
         "alert_not_found": "❌ Alert not found.",
         "alerts_cleared": "✅ All your alerts have been deleted.",
         "alert_triggered": "🚨 *Alert triggered*: {symbol} reached {condition} {price}\nCurrent price: {current_price}",
-
         "symbole_invalide": "Invalid symbol.",
         "analyse_usage": "Usage: /analyse SYMBOL",
         "analyse_wait": "🔍 Analyzing {symbol}...",
@@ -264,21 +319,18 @@ TEXTS = {
         "price_usage": "Usage: /price SYMBOL",
         "price_error": "❌ Price not available for {symbol}.",
         "price_format": "*{symbol}*\n💰 Price: {price}\n📊 Bid: {bid} / Ask: {ask}",
-
         "tick_usage": "Usage: /tick SYMBOL",
         "tick_none": "❌ No recent tick.",
         "tick_current": "🕒 Last tick {symbol}: {price}",
         "spread_usage": "Usage: /spread SYMBOL",
         "spread_format": "*{symbol}* Spread: {spread}",
         "spread_unavailable": "❌ Spread unavailable.",
-
         "scalp_usage": "Usage: /scalp SYMBOL DURATION (3,5,10,20)",
         "scalp_invalid_duration": "Invalid duration. Choose 3, 5, 10 or 20 seconds.",
         "scalp_signal_buy": "BUY",
         "scalp_signal_sell": "SELL",
         "scalp_signal_wait": "WAIT",
         "scalp_result": "⚡ *Scalping {symbol} ({duration}s)*\nSignal: *{signal}*\nPrice: {price}\nBid: {bid} / Ask: {ask}\nVolatility: {volatility}%\n\n{reason}",
-
         "trend_usage": "Usage: /trend SYMBOL",
         "trend_no_data": "No data available.",
         "trend_haussiere": "Bullish",
@@ -288,16 +340,15 @@ TEXTS = {
         "volatility_usage": "Usage: /volatility SYMBOL",
         "volatility_wait": "⚙️ Calculating volatility for {symbol}...",
         "volatility_error": "❌ Could not calculate volatility for {symbol}.",
-        "volatility_result": "📊 *{symbol}* – Volatility (ATR 14): {atr}","correlation_usage": "Usage: /correlation SYMBOL1 SYMBOL2",
+        "volatility_result": "📊 *{symbol}* – Volatility (ATR 14): {atr}",
+        "correlation_usage": "Usage: /correlation SYMBOL1 SYMBOL2",
         "correlation_wait": "⚙️ Calculating correlation between {sym1} and {sym2}...",
         "correlation_error": "❌ Could not calculate correlation.",
         "correlation_insufficient_data": "❌ Insufficient data to calculate correlation.",
         "correlation_result": "📈 *30-day Correlation*\n{sym1} ↔ {sym2}: {corr}",
- 
         "levels_usage": "Usage: /levels SYMBOL",
         "levels_no_data": "No data available.",
         "levels_result": "*{symbol}* Levels:\nSupport: {support}\nResistance: {resistance}",
-
         "settings_info": "⚙️ *Settings*\nTimeframe: {tf}\nRisk: {risk}\nLanguage: {lang_name}\nRole: {role}\nPremium: {prem}",
         "settimeframe_usage": "Usage: /settimeframe 1h|4h|1d",
         "settimeframe_invalid": "Invalid timeframe.",
@@ -311,7 +362,6 @@ TEXTS = {
         "setlanguage_success_en": "✅ Language set to English.",
         "usage_requests_remaining": "📊 Requests remaining today: {rem}",
         "usage_unlimited": "✅ Premium: unlimited requests.",
-
         "status_ok": "✅ Bot operational. APIs: Twelve Data, Yahoo, RealMarket.",
         "about": "Teddy Trading Bot v1.0 – Bitsure Teddy\nDeveloped for professional trading.",
         "symbolinfo": "ℹ️ Use /analyse for detailed info.",
@@ -325,7 +375,6 @@ TEXTS = {
         "setrole_invalid_id": "❌ Invalid USER_ID.",
         "setrole_invalid_role": "❌ Invalid role. Use free, pro, or elite.",
         "setrole_success": "✅ User {target_id} role updated: *{role}*",
-
         "gift_usage": "Usage: /gift USER_ID ROLE DAYS (pro/elite)",
         "gift_success": "✅ {role} role granted to {target_id} for {days} days.",
         "revoke_usage": "Usage: /revoke USER_ID",
@@ -338,9 +387,7 @@ TEXTS = {
         "gift_notification": "🎁 You have been granted free {role} access for {days} days! Enjoy!",
         "ask_usage": "Usage: /ask <your question>\nExample: /ask What is RSI?",
         "ask_thinking": "🤔 Thinking...",
-        "ask_error": "❌ AI Error: {error}", 
-
-        # --- Signal Engine (English) ---
+        "ask_error": "❌ AI Error: {error}",
         "signal_insufficient_data": "Insufficient data",
         "signal_buy_reason": "📈 Bullish signals detected",
         "signal_buy_advice": "⚠️ Consider gradual entry",
@@ -350,13 +397,7 @@ TEXTS = {
         "signal_wait_oversold": "Market oversold, wait for bounce",
         "signal_wait_neutral": "No clear signal – consolidation phase",
         "signal_wait_advice": "⏳ Wait for confirmation",
-# Dans "en"
-"challenge_start": "🔥 *SCALPING CHALLENGE STARTED* 🔥\nAnalyzing 5 consecutive trades on EURUSD...",
-"challenge_trade": "📊 *Trade {n}/5* – {signal} at {price}\nResult: {result} ({pips} pips)",
-"challenge_score": "🏆 *FINAL SCORE*: {wins}/5 won\n{summary}",
-"snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrice: {price}",
-"verify_not_found": "❌ No signal found with ID `{signal_id}`.",
-"verify_result": "🔍 *Signal #{signal_id}*\nIssued on: {timestamp}\nSymbol: {symbol}\nSignal: {signal}\nPrice: {price}\nScore: {score}/100",
+        "snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrice: {price}"
     }
 }
 
