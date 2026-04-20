@@ -16,6 +16,49 @@ def rsi(close: pd.Series, period: int = 14) -> pd.Series:
     rsi = 100 - (100 / (1 + rs))
     return rsi
 
+def stochastic(high: pd.Series, low: pd.Series, close: pd.Series,
+               k_period: int = 14, d_period: int = 3, smooth: int = 3) -> Tuple[pd.Series, pd.Series]:
+    """
+    Stochastic Oscillator %K and %D.
+    Retourne (%K, %D)
+    """
+    lowest_low = low.rolling(window=k_period).min()
+    highest_high = high.rolling(window=k_period).max()
+    stoch_k = 100 * ((close - lowest_low) / (highest_high - lowest_low))
+    stoch_k_smooth = stoch_k.rolling(window=smooth).mean()
+    stoch_d = stoch_k_smooth.rolling(window=d_period).mean()
+    return stoch_k_smooth, stoch_d
+
+def adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    """
+    Average Directional Index.
+    Retourne (ADX, +DI, -DI)
+    """
+    tr1 = high - low
+    tr2 = (high - close.shift()).abs()
+    tr3 = (low - close.shift()).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    atr = tr.rolling(window=period).mean()
+
+    up_move = high - high.shift()
+    down_move = low.shift() - low
+    plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0)
+    minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0)
+
+    plus_di = 100 * (pd.Series(plus_dm).rolling(window=period).mean() / atr)
+    minus_di = 100 * (pd.Series(minus_dm).rolling(window=period).mean() / atr)
+
+    dx = 100 * (abs(plus_di - minus_di) / (plus_di + minus_di))
+    adx = dx.rolling(window=period).mean()
+    return adx, plus_di, minus_di
+
+def atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+    tr1 = high - low
+    tr2 = (high - close.shift()).abs()
+    tr3 = (low - close.shift()).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    return tr.rolling(window=period).mean()
+
 def macd(close: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> Tuple[pd.Series, pd.Series, pd.Series]:
     """Retourne MACD line, Signal line, Histogram"""
     ema_fast = close.ewm(span=fast, adjust=False).mean()
@@ -66,3 +109,12 @@ def detect_divergence(close: pd.Series, rsi_series: pd.Series, lookback: int = 5
         if rsi_segment.iloc[-1] < rsi_segment.iloc[rsi_max_pos]:
             return "bearish"
     return None
+
+def fibonacci_levels(high: float, low: float) -> dict:
+    """Calcule les niveaux de retracement Fibonacci."""
+    diff = high - low
+    return {
+        "0.382": round(high - diff * 0.382, 5),
+        "0.500": round(high - diff * 0.500, 5),
+        "0.618": round(high - diff * 0.618, 5)
+    }

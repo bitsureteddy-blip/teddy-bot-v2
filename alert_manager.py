@@ -1,5 +1,6 @@
 import time
 import threading
+import asyncio
 from typing import Dict, List
 from config import ALERTS_FILE
 from utils import load_json, save_json
@@ -12,6 +13,7 @@ class AlertManager:
         self.lock = threading.Lock()
         self.running = False
         self.thread = None
+        self._loop = None
 
     @classmethod
     def get_instance(cls):
@@ -20,16 +22,19 @@ class AlertManager:
         return cls._instance
 
     def start_monitoring(self, bot_app):
-        """Démarre un thread de vérification des alertes (appelé depuis bot_handlers après init)"""
         if self.running:
             return
         self.running = True
-        self.thread = threading.Thread(target=self._monitor_loop, args=(bot_app,), daemon=True)
+        self._loop = asyncio.new_event_loop()
+        self.thread = threading.Thread(target=self._run_loop, args=(bot_app,), daemon=True)
         self.thread.start()
 
-    def _monitor_loop(self, bot_app):
+    def _run_loop(self, bot_app):
+        asyncio.set_event_loop(self._loop)
+        self._loop.run_until_complete(self._monitor_loop(bot_app))
+
+    async def _monitor_loop(self, bot_app):
         from data_fetcher import DataFetcher
-        import asyncio
         fetcher = DataFetcher.get_instance()
         while self.running:
             with self.lock:
@@ -38,7 +43,7 @@ class AlertManager:
                 for alert in alerts:
                     if alert.get("triggered"):
                         continue
-                    price_data = asyncio.run(fetcher.get_realtime_price(alert["symbol"]))
+                    price_data = await fetcher.get_realtime_price(alert["symbol"])
                     if not price_data:
                         continue
                     current_price = price_data["price"]
@@ -49,10 +54,10 @@ class AlertManager:
                         condition_met = True
                     if condition_met:
                         alert["triggered"] = True
-                        asyncio.run(self._notify_user(bot_app, user_id, alert, current_price))
+                        await self._notify_user(bot_app, user_id, alert, current_price)
             with self.lock:
                 save_json(ALERTS_FILE, self.alerts)
-            time.sleep(10)
+            await asyncio.sleep(10)
 
     async def _notify_user(self, bot_app, user_id: str, alert: Dict, current_price: float):
         try:

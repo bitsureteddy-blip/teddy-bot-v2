@@ -11,7 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-CHALLENGE_FILE = "challenge_sessions.json"
+from config import CHALLENGE_SESSIONS_FILE
 
 class ChallengeManager:
     _instance = None
@@ -26,16 +26,16 @@ class ChallengeManager:
         return cls._instance
 
     def _load(self) -> Dict:
-        if os.path.exists(CHALLENGE_FILE):
+        if os.path.exists(CHALLENGE_SESSIONS_FILE):
             try:
-                with open(CHALLENGE_FILE, 'r') as f:
+                with open(CHALLENGE_SESSIONS_FILE, 'r') as f:
                     return json.load(f)
             except:
                 return {}
         return {}
 
     def _save(self):
-        with open(CHALLENGE_FILE, 'w') as f:
+        with open(CHALLENGE_SESSIONS_FILE, 'w') as f:
             json.dump(self.sessions, f, indent=2)
 
     def start_session(self, user_id: int, symbol: str = "EURUSD") -> Dict:
@@ -77,4 +77,9 @@ class ChallengeManager:
             session["current_trade"] = len(session["trades"]) + 1
             if session["current_trade"] > session["total_trades"]:
                 session["active"] = False
+            self._save()
+
+    def reset_session(self, user_id: int):
+        if str(user_id) in self.sessions:
+            del self.sessions[str(user_id)]
             self._save()

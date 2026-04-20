@@ -7,13 +7,16 @@ import pandas as pd
 from typing import Dict
 
 from indicators import (
-    rsi, macd, bollinger_bands, sma, support_resistance, detect_divergence
+    rsi, macd, bollinger_bands, sma, support_resistance, detect_divergence,
+    stochastic, adx, atr, fibonacci_levels
 )
 
 from config import (
     RSI_PERIOD, MACD_FAST, MACD_SLOW, MACD_SIGNAL,
     BB_PERIOD, BB_STD, SMA_SHORT, SMA_LONG,
-    SUPPORT_RESISTANCE_LOOKBACK, DIVERGENCE_LOOKBACK
+    SUPPORT_RESISTANCE_LOOKBACK, DIVERGENCE_LOOKBACK,
+    STOCH_K_PERIOD, STOCH_D_PERIOD, STOCH_SMOOTH,
+    ADX_PERIOD, ATR_PERIOD, ATR_MULTIPLIER_SL, RR_RATIO_TARGET
 )
 from i18n import get_text
 
@@ -28,6 +31,10 @@ class SignalEngine:
                 "reason": get_text(lang, "signal_insufficient_data"),
                 "risk_advice": "",
                 "teddy_score": 0,
+                "confidence": get_text(lang, "confidence_low"),
+                "sl": None,
+                "tp": None,
+                "rr_ratio": None,
                 "indicators": {}
             }
 
@@ -38,6 +45,14 @@ class SignalEngine:
         # === INDICATEURS ===
         rsi_series = rsi(close, RSI_PERIOD)
         rsi_val = rsi_series.iloc[-1]
+
+        stoch_k, stoch_d = stochastic(high, low, close,
+                                      STOCH_K_PERIOD, STOCH_D_PERIOD, STOCH_SMOOTH)
+        stoch_k_val = stoch_k.iloc[-1]
+        stoch_d_val = stoch_d.iloc[-1]
+
+        adx_series, plus_di, minus_di = adx(high, low, close, ADX_PERIOD)
+        adx_val = adx_series.iloc[-1]
 
         macd_line, macd_signal_line, hist = macd(
             close, MACD_FAST, MACD_SLOW, MACD_SIGNAL
@@ -58,11 +73,18 @@ class SignalEngine:
             high, low, SUPPORT_RESISTANCE_LOOKBACK
         )
 
+        atr_val = atr(high, low, close, ATR_PERIOD).iloc[-1]
+
         last_price = close.iloc[-1]
 
         divergence = detect_divergence(
             close, rsi_series, DIVERGENCE_LOOKBACK
         )
+
+        # Niveaux de Fibonacci sur le dernier swing
+        recent_high = high.iloc[-50:].max()
+        recent_low = low.iloc[-50:].min()
+        fib_levels = fibonacci_levels(recent_high, recent_low)
 
         # === TENDANCE ===
         if last_price > sma50:
@@ -76,6 +98,11 @@ class SignalEngine:
         teddy_score = SignalEngine._compute_teddy_score(
             df,
             rsi_val,
+            stoch_k_val,
+            stoch_d_val,
+            adx_val,
+            plus_di.iloc[-1],
+            minus_di.iloc[-1],
             sma20,
             sma50,
             support,
@@ -86,7 +113,15 @@ class SignalEngine:
             divergence
         )
 
-        # === SIGNAL (SEUILS ASSOUPLIS) ===
+        # === NIVEAU DE CONFIANCE ===
+        if teddy_score >= 70 or teddy_score <= 30:
+            confidence = get_text(lang, "confidence_high")
+        elif teddy_score >= 55 or teddy_score <= 45:
+            confidence = get_text(lang, "confidence_medium")
+        else:
+            confidence = get_text(lang, "confidence_low")
+
+        # === SIGNAL ===
         if teddy_score >= 55:
             signal = "ACHETER"
         elif teddy_score <= 45:
@@ -94,11 +129,34 @@ class SignalEngine:
         else:
             signal = "ATTENDRE"
 
-        # === FILTRE DE TENDANCE ASSOUPLI ===
+        # === FILTRE DE TENDANCE ===
         if trend == "HAUSSIER" and signal == "VENDRE" and teddy_score > 30:
             signal = "ATTENDRE"
         if trend == "BAISSIER" and signal == "ACHETER" and teddy_score < 70:
             signal = "ATTENDRE"
+
+        # === CALCUL SL / TP ===
+        sl = None
+        tp = None
+        rr_ratio = None
+        if signal in ("ACHETER", "VENDRE") and atr_val is not None:
+            sl_distance = atr_val * ATR_MULTIPLIER_SL
+            if signal == "ACHETER":
+                sl = last_price - sl_distance
+                # TP basé sur résistance la plus proche ou ratio R/R
+                if resistance and resistance > last_price:
+                    tp = resistance
+                else:
+                    tp = last_price + (sl_distance * RR_RATIO_TARGET)
+            else:  # VENDRE
+                sl = last_price + sl_distance
+                if support and support < last_price:
+                    tp = support
+                else:
+                    tp = last_price - (sl_distance * RR_RATIO_TARGET)
+
+            rr_ratio = abs(tp - last_price) / abs(last_price - sl) if sl != last_price else 0
+            rr_ratio = round(rr_ratio, 2)
 
         # === RAISON (BILINGUE) ===
         if signal == "ACHETER":
@@ -119,6 +177,9 @@ class SignalEngine:
         indicators = {
             "price": last_price,
             "rsi": rsi_val,
+            "stoch_k": stoch_k_val,
+            "stoch_d": stoch_d_val,
+            "adx": adx_val,
             "sma20": sma20,
             "sma50": sma50,
             "macd": macd_val,
@@ -127,7 +188,9 @@ class SignalEngine:
             "bb_lower": lower_bb.iloc[-1],
             "support": support,
             "resistance": resistance,
-            "trend": trend
+            "trend": trend,
+            "atr": atr_val,
+            "fib_levels": fib_levels
         }
 
         return {
@@ -135,6 +198,10 @@ class SignalEngine:
             "reason": reason,
             "risk_advice": risk_advice,
             "teddy_score": teddy_score,
+            "confidence": confidence,
+            "sl": sl,
+            "tp": tp,
+            "rr_ratio": rr_ratio,
             "indicators": indicators
         }
 
@@ -142,6 +209,11 @@ class SignalEngine:
     def _compute_teddy_score(
         df,
         rsi_val,
+        stoch_k,
+        stoch_d,
+        adx_val,
+        plus_di,
+        minus_di,
         sma20,
         sma50,
         support,
@@ -153,46 +225,63 @@ class SignalEngine:
     ):
         score = 50
 
-        # RSI – seuils assouplis
+        # RSI
         if rsi_val < 40:
-            score += 12
+            score += 10
         elif rsi_val > 60:
-            score -= 12
+            score -= 10
+
+        # Stochastic
+        if stoch_k < 20 and stoch_d < 20:
+            score += 8
+        elif stoch_k > 80 and stoch_d > 80:
+            score -= 8
+        if stoch_k > stoch_d:
+            score += 4
+        else:
+            score -= 4
+
+        # ADX
+        if adx_val > 25:
+            if plus_di > minus_di:
+                score += 10
+            else:
+                score -= 10
 
         # Tendance
         if price > sma50:
-            score += 10
+            score += 8
         else:
-            score -= 10
+            score -= 8
 
         if sma20 > sma50:
-            score += 10
+            score += 8
         else:
-            score -= 10
+            score -= 8
 
-        # Support / Résistance – seuils élargis
-        if support is not None and price <= support * 1.03:
-            score += 10
-        if resistance is not None and price >= resistance * 0.97:
-            score -= 10
+        # Support / Résistance
+        if support is not None and price <= support * 1.02:
+            score += 8
+        if resistance is not None and price >= resistance * 0.98:
+            score -= 8
 
         # Divergence
         if divergence == "bullish":
-            score += 15
+            score += 12
         elif divergence == "bearish":
-            score -= 15
+            score -= 12
 
-        # MACD – poids augmenté
+        # MACD
         if macd > macd_signal:
-            score += 15
+            score += 10
         else:
-            score -= 15
+            score -= 10
 
         # Volume
         if "Volume" in df.columns:
             avg_vol = df["Volume"].rolling(20).mean().iloc[-1]
             current_vol = df["Volume"].iloc[-1]
-            if pd.notna(avg_vol) and current_vol > avg_vol * 1.3:
+            if pd.notna(avg_vol) and current_vol > avg_vol * 1.2:
                 score += 5
 
         return max(0, min(100, score))

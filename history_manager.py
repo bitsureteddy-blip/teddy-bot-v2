@@ -13,7 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-HISTORY_FILE = "signals_history.json"
+from config import SIGNALS_HISTORY_FILE
 
 class HistoryManager:
     _instance = None
@@ -28,9 +28,9 @@ class HistoryManager:
         return cls._instance
 
     def _load(self) -> List[Dict]:
-        if os.path.exists(HISTORY_FILE):
+        if os.path.exists(SIGNALS_HISTORY_FILE):
             try:
-                with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
+                with open(SIGNALS_HISTORY_FILE, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except Exception as e:
                 logger.error(f"Error loading history: {e}")
@@ -38,33 +38,35 @@ class HistoryManager:
 
     def _save(self):
         try:
-            with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+            with open(SIGNALS_HISTORY_FILE, 'w', encoding='utf-8') as f:
                 json.dump(self.signals, f, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Error saving history: {e}")
 
-    def add_signal(self, symbol: str, direction: str, price: float, timeframe: str, signal_type: str = "analyse") -> str:
+    def add_signal(self, symbol: str, direction: str, price: float, timeframe: str,
+                   signal_type: str = "analyse", score: int = 0) -> str:
         """Ajoute un signal à l'historique et retourne son ID unique."""
         signal_id = hashlib.md5(f"{symbol}{direction}{price}{timeframe}{time.time()}".encode()).hexdigest()[:8]
         signal = {
             "id": signal_id,
             "symbol": symbol.upper(),
-            "direction": direction,  # "BUY" ou "SELL"
+            "direction": direction,
             "entry_price": price,
             "timeframe": timeframe,
-            "type": signal_type,  # "analyse", "scalp"
+            "type": signal_type,
+            "score": score,
             "timestamp": datetime.utcnow().isoformat(),
             "status": "pending",
             "result_price": None,
             "result_pct": None
         }
         self.signals.append(signal)
-        # Garder les 100 derniers signaux
-        self.signals = self.signals[-100:]
+        # Garder les 200 derniers signaux
+        self.signals = self.signals[-200:]
         self._save()
         return signal_id
 
-    def get_recent_signals(self, limit: int = 5) -> List[Dict]:
+    def get_recent_signals(self, limit: int = 10) -> List[Dict]:
         """Retourne les derniers signaux (du plus récent au plus ancien)."""
         return list(reversed(self.signals[-limit:]))
 
@@ -99,14 +101,13 @@ class HistoryManager:
             if signal["status"] != "pending":
                 continue
             signal_time = datetime.fromisoformat(signal["timestamp"])
-            # Délai selon le timeframe
             tf_minutes = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}
             required_minutes = tf_minutes.get(signal["timeframe"], 60)
             if now - signal_time >= timedelta(minutes=required_minutes):
                 try:
                     df = fetcher.get_historical_data(signal["symbol"], "1d", limit=1)
                     if df is not None and not df.empty:
-                        current_price = df['close'].iloc[-1]
+                        current_price = df['Close'].iloc[-1]
                         self.update_signal_result(signal["id"], current_price)
                 except Exception as e:
                     logger.error(f"Failed to update signal {signal['id']}: {e}")

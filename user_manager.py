@@ -7,7 +7,7 @@ from config import (
     FREE_DAILY_REQUESTS, ADMIN_ID, TRIAL_DAYS
 )
 from utils import load_json, save_json
-from i18n import get_text  # <-- NOUVEAU
+from i18n import get_text
 
 class UserManager:
     _instance = None
@@ -25,7 +25,6 @@ class UserManager:
         return cls._instance
 
     def _load_users(self):
-        """Recharge les utilisateurs depuis le fichier JSON."""
         self.users = load_json(USERS_FILE)
 
     def get_user(self, user_id: int) -> Dict:
@@ -58,7 +57,6 @@ class UserManager:
         save_json(USERS_FILE, self.users)
 
     def set_role_temp(self, user_id: int, role: str, days: int):
-        """Active un rôle premium temporairement."""
         user_id = str(user_id)
         if user_id not in self.users:
             self.get_user(user_id)
@@ -68,7 +66,6 @@ class UserManager:
         save_json(USERS_FILE, self.users)
 
     def check_premium_expiry(self, user_id: int) -> bool:
-        """Vérifie si le premium temporaire a expiré et le révoque si nécessaire."""
         user_id = str(user_id)
         user = self.users.get(user_id)
         if user and "premium_expiry" in user:
@@ -84,7 +81,7 @@ class UserManager:
         if self.is_admin(user_id):
             return True
         role = self.get_role(user_id)
-        return role in ("pro", "elite")
+        return role == "pro"
 
     def is_trial_valid(self, user_id: int) -> bool:
         user = self.get_user(user_id)
@@ -158,6 +155,29 @@ class UserManager:
 
     def get_all_users(self) -> list:
         return list(self.users.keys())
+
+    def get_favorites(self, user_id: int) -> list:
+        user_id = str(user_id)
+        return self.settings.get(user_id, {}).get("favorites", [])
+
+    def add_favorite(self, user_id: int, symbol: str):
+        user_id = str(user_id)
+        if user_id not in self.settings:
+            self.settings[user_id] = {}
+        favs = self.settings[user_id].get("favorites", [])
+        if symbol not in favs:
+            favs.append(symbol)
+            self.settings[user_id]["favorites"] = favs
+            save_json(SETTINGS_FILE, self.settings)
+
+    def remove_favorite(self, user_id: int, symbol: str):
+        user_id = str(user_id)
+        if user_id in self.settings:
+            favs = self.settings[user_id].get("favorites", [])
+            if symbol in favs:
+                favs.remove(symbol)
+                self.settings[user_id]["favorites"] = favs
+                save_json(SETTINGS_FILE, self.settings)
 
     def redeem_promo(self, user_id: int, code: str) -> tuple:
         promos = {

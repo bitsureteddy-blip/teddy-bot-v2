@@ -15,7 +15,9 @@ from bot_handlers import (
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
     upgrade, plan_callback, pre_checkout, successful_payment,
     support, setrole, symboles, gift, revoke, redeem,
-    app_command, challenge, snapshot, verify   # <-- Ajout des nouvelles commandes
+    app_command, challenge, snapshot, verify, historique,
+    menu_command, menu_callback, symbol_callback, clearalerts_callback, revoke_callback,
+    sentiment, compare, top, fav, learn
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -40,8 +42,8 @@ def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).post_init(post_init).build()
 
     handlers = [
-        ("start", start), ("help", help_command), ("analyse", analyse), ("price", price),
-        ("scalp", scalp), ("tick", tick), ("spread", spread),
+        ("start", start), ("help", help_command), ("menu", menu_command),
+        ("analyse", analyse), ("price", price), ("scalp", scalp), ("tick", tick), ("spread", spread),
         ("alert", alert), ("alerts", alerts), ("delalert", delalert), ("clearalerts", clearalerts),
         ("watchlist", watchlist), ("addwatch", addwatch), ("removewatch", removewatch), ("scan", scan),
         ("trend", trend), ("volatility", volatility), ("correlation", correlation), ("levels", levels),
@@ -50,11 +52,16 @@ def main():
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
         ("support", support), ("setrole", setrole), ("symboles", symboles), ("gift", gift),
         ("revoke", revoke), ("redeem", redeem), ("app", app_command),
-        ("challenge", challenge), ("snapshot", snapshot), ("verify", verify)
+        ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
+        ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn)
     ]
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))
 
+    app.add_handler(CallbackQueryHandler(menu_callback, pattern="^menu_"))
+    app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^sym"))
+    app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
+    app.add_handler(CallbackQueryHandler(revoke_callback, pattern="^revoke_"))
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
     app.add_handler(PreCheckoutQueryHandler(pre_checkout))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))

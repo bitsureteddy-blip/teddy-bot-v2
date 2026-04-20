@@ -32,7 +32,7 @@ class DataFetcher:
         self.subscribed_symbols = set()
         self.ws_authenticated = False
 
-        self.tick_history = {}  # symbole -> liste des derniers ticks
+        self.tick_history = {}
 
     @classmethod
     def get_instance(cls):
@@ -40,16 +40,10 @@ class DataFetcher:
             cls._instance = cls()
         return cls._instance
 
-    # =========================
-    # COMPATIBILITÉ AVEC MAIN.PY
-    # =========================
     def start_websocket(self):
         """Méthode de compatibilité appelée par main.py"""
         self.start_twelvedata_websocket()
 
-    # =========================
-    # 🚀 WEBSOCKET (PREMIUM)
-    # =========================
     def start_twelvedata_websocket(self):
         # Désactivé car le plan gratuit Twelve Data ne supporte pas le WebSocket
         logger.info("Twelve Data WebSocket désactivé (plan gratuit)")
@@ -145,9 +139,6 @@ class DataFetcher:
         if len(self.tick_history[symbol]) > 30:
             self.tick_history[symbol].pop(0)
 
-    # =========================
-    # 💰 PRIX TEMPS RÉEL
-    # =========================
     async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
 
@@ -195,9 +186,6 @@ class DataFetcher:
             logger.warning(f"Price error {symbol}: {e}")
         return None
 
-    # =========================
-    # 🔧 FORMATAGE SYMBOLE
-    # =========================
     def _format_symbol(self, symbol: str) -> str:
         s = symbol.upper()
 
@@ -221,9 +209,6 @@ class DataFetcher:
 
         return s
 
-    # =========================
-    # 📊 HISTORIQUE
-    # =========================
     async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
                                   period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
         symbol = normalize_symbol(symbol)
