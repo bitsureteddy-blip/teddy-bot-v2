@@ -90,6 +90,7 @@ TEXTS = {
         "premium_required": "🔒 *Fonctionnalité Premium*\n\nCette commande est réservée aux membres PRO.\nUtilisez /upgrade pour découvrir l'offre.",
         "payment_success": "✅ *Paiement réussi !*\nVous êtes maintenant *PRO*.\nMerci de votre confiance ! 🧸",
         "stripe_soon": "💳 Le paiement par carte bancaire sera disponible très prochainement. En attendant, vous pouvez utiliser les Telegram Stars ou contacter le support.",
+        "unavailable_option": "Option non disponible.",
 
         # ----- Limites -----
         "limit_reached": "❌ Vous avez atteint votre limite quotidienne de requêtes. Passez PRO pour un accès illimité : /upgrade",
@@ -102,6 +103,8 @@ TEXTS = {
         "watchlist_scan_empty": "Watchlist vide.",
         "watchlist_scan_result": "📊 *Scan watchlist:*\n{results}",
         "watchlist_show": "📋 *Watchlist:*\n{symbols}",
+        "addwatch_usage": "Usage: /addwatch SYMBOLE",
+        "removewatch_usage": "Usage: /removewatch SYMBOLE",
 
         # ----- Alertes -----
         "alert_usage": "Usage: /alert SYMBOLE above/below PRIX",
@@ -117,9 +120,11 @@ TEXTS = {
         "clearalerts_confirm": "⚠️ Êtes-vous sûr de vouloir supprimer TOUTES vos alertes ?",
         "confirm_yes": "✅ Oui",
         "confirm_no": "❌ Non",
+        "delalert_usage": "Usage: /delalert ID",
 
         # ----- Symboles -----
         "symbole_invalide": "Symbole invalide.",
+        "invalid_symbol": "Symbole invalide.",
         "symboles_list": (
             "📊 *SYMBOLES POPULAIRES*\n\n"
             "🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n"
@@ -128,6 +133,9 @@ TEXTS = {
             "📈 *Actions*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n"
             "💡 Exemple : /analyse BTCUSD"
         ),
+        "symbol_not_found": "Symbole non trouvé.",
+        "symbolinfo_usage": "Usage: /symbolinfo SYMBOLE",
+        "symbolinfo_format": "*{symbol}*\nPrix: {price}\nBid/Ask: {bid} / {ask}",
 
         # ----- Analyse -----
         "analyse_usage": "Usage: /analyse SYMBOLE",
@@ -144,6 +152,7 @@ TEXTS = {
         "price_usage": "Usage: /price SYMBOLE",
         "price_error": "❌ Prix non disponible pour {symbol}.",
         "price_format": "*{symbol}*\n💰 Prix: {price}\n📊 Bid: {bid} / Ask: {ask}",
+        "price_label": "Prix",
 
         # ----- Scalping -----
         "tick_usage": "Usage: /tick SYMBOLE",
@@ -166,6 +175,7 @@ TEXTS = {
             "RSI: {rsi:.1f}\n"
             "{reason}"
         ),
+        "realtime_data_error": "❌ Impossible d'obtenir les données temps réel.",
 
         # ----- Tendance / Volatilité / Corrélation / Niveaux -----
         "trend_usage": "Usage: /trend SYMBOLE",
@@ -173,6 +183,9 @@ TEXTS = {
         "trend_haussiere": "Haussière",
         "trend_baissiere": "Baissière",
         "trend_neutre": "Neutre",
+        "trend_bullish": "Haussière",
+        "trend_bearish": "Baissière",
+        "trend_neutral": "Neutre",
         "trend_result": "*{symbol}* Tendance: {tend}",
         "volatility_usage": "Usage: /volatility SYMBOLE",
         "volatility_result": "*{symbol}* Volatilité (ATR 14): {atr}",
@@ -191,27 +204,34 @@ TEXTS = {
         ),
 
         # ----- Sentiment / Compare / Top / Fav -----
-        "sentiment_result": "📊 *Fear & Greed Index Crypto*\n\nValeur actuelle: {value}\nClassification: {classification}\n\nMise à jour: {timestamp}",
-        "compare_result": "*{symbol1} vs {symbol2}*\n\n{price1} | {change1}\n{price2} | {change2}\nRSI: {rsi1} vs {rsi2}\nTendance: {trend1} vs {trend2}",
+        "sentiment_result": "📊 *Fear & Greed Index Crypto*\n\nValeur actuelle: {value}\nClassification: {classification}",
+        "sentiment_error": "Impossible de récupérer le Fear & Greed Index.",
+        "compare_usage": "Usage: /compare SYM1 SYM2",
+        "compare_result": "*{symbol1} vs {symbol2}*\nTendance: {trend1} vs {trend2}",
         "top_crypto": "🚀 *Top 5 Crypto en hausse (24h)*\n\n{list}",
         "fav_usage": "Usage: /fav add|remove|list [symbole]",
+        "fav_add_usage": "Usage: /fav add SYMBOLE",
+        "fav_remove_usage": "Usage: /fav remove SYMBOLE",
         "fav_added": "✅ {symbol} ajouté aux favoris.",
         "fav_removed": "✅ {symbol} retiré des favoris.",
         "fav_list": "⭐ *Vos favoris:*\n{symbols}",
         "fav_empty": "Aucun favori enregistré.",
+        "insufficient_data": "Données insuffisantes.",
+        "insufficient_common_data": "Pas assez de données communes.",
+        "data_unavailable": "Données indisponibles.",
 
         # ----- Learn -----
         "learn_usage": "Usage: /learn [terme]\nTermes disponibles: rsi, macd, sma, support, resistance, fibonacci, atr, adx, stochastic, spread",
-        "learn_rsi": "*RSI (Relative Strength Index)*\nIndicateur de momentum mesurant la vitesse et l'ampleur des mouvements de prix. Valeurs extrêmes >70 (surachat) et <30 (survente).",
-        "learn_macd": "*MACD*\nMoving Average Convergence Divergence. Suit la relation entre deux moyennes mobiles. Croisements utilisés pour signaux d'achat/vente.",
-        "learn_sma": "*SMA (Simple Moving Average)*\nMoyenne des prix sur une période donnée. SMA20 et SMA50 sont des références courantes de tendance court/moyen terme.",
-        "learn_support": "*Support*\nNiveau de prix où la demande est historiquement suffisante pour stopper une baisse.",
-        "learn_resistance": "*Résistance*\nNiveau de prix où l'offre est historiquement suffisante pour stopper une hausse.",
-        "learn_fibonacci": "*Fibonacci*\nNiveaux de retracement (38.2%, 50%, 61.8%) utilisés pour identifier des zones potentielles de support/résistance.",
-        "learn_atr": "*ATR (Average True Range)*\nMesure de la volatilité moyenne sur une période. Utilisé pour placer des stop-loss.",
-        "learn_adx": "*ADX (Average Directional Index)*\nMesure la force d'une tendance (valeurs >25 indiquent une tendance forte).",
-        "learn_stochastic": "*Stochastic Oscillator*\nCompare le prix de clôture à la fourchette de prix sur une période. Zones >80 surachat, <20 survente.",
-        "learn_spread": "*Spread*\nDifférence entre le prix acheteur (bid) et vendeur (ask). Un spread serré indique une bonne liquidité.",
+        "learn_rsi": "*RSI*\nIndicateur de momentum mesurant vitesse et ampleur des mouvements de prix. >70 surachat, <30 survente.",
+        "learn_macd": "*MACD*\nConvergence/divergence de moyennes mobiles. Croisements utilisés pour signaux d'achat/vente.",
+        "learn_sma": "*SMA*\nMoyenne mobile simple. SMA20 et SMA50 sont des références courantes de tendance.",
+        "learn_support": "*Support*\nNiveau de prix où la demande stoppe une baisse.",
+        "learn_resistance": "*Résistance*\nNiveau de prix où l'offre stoppe une hausse.",
+        "learn_fibonacci": "*Fibonacci*\nNiveaux de retracement (38.2%, 50%, 61.8%) utilisés pour zones de support/résistance.",
+        "learn_atr": "*ATR*\nMesure de la volatilité moyenne. Utilisé pour placer des stop-loss.",
+        "learn_adx": "*ADX*\nMesure la force d'une tendance (>25 = tendance forte).",
+        "learn_stochastic": "*Stochastic*\nCompare le prix de clôture à la fourchette de prix. >80 surachat, <20 survente.",
+        "learn_spread": "*Spread*\nDifférence entre prix acheteur (bid) et vendeur (ask).",
 
         # ----- Paramètres -----
         "settings_info": "⚙️ *Paramètres*\nTimeframe: {tf}\nRisque: {risk}\nLangue: {lang_name}\nRôle: {role}\nPremium: {prem}",
@@ -224,7 +244,7 @@ TEXTS = {
         "setlanguage_usage": "Usage: /setlanguage en|fr",
         "setlanguage_invalid": "Langue invalide. Utilisez 'en' ou 'fr'.",
         "setlanguage_success_fr": "✅ Langue définie sur Français.",
-        "setlanguage_success_en": "✅ Language set to English.",
+        "setlanguage_success_en": "✅ Langue définie sur Anglais.",
         "usage_requests_remaining": "📊 Requêtes restantes aujourd'hui: {rem}",
         "usage_unlimited": "✅ Premium: requêtes illimitées.",
 
@@ -239,34 +259,42 @@ TEXTS = {
         "broadcast_usage": "Usage: /broadcast MESSAGE",
         "broadcast_sent": "✅ Broadcast envoyé à {success}/{total} utilisateurs.",
         "reload_success": "✅ Configuration rechargée.",
-        "stats_info": "📊 *STATISTIQUES BITSURE TEDDY*\n👥 Utilisateurs totaux : {total}\n🆓 FREE : {free}\n💪 PRO : {pro}",
+        "stats_info": "📊 *STATISTIQUES*\n👥 Total: {total}\n🆓 FREE: {free}\n💪 PRO: {pro}",
         "setrole_usage": "Usage: /setrole USER_ID ROLE (free/pro)",
         "setrole_invalid_id": "❌ USER_ID invalide.",
         "setrole_invalid_role": "❌ Rôle invalide. Utilisez free ou pro.",
         "setrole_success": "✅ Rôle de l'utilisateur {target_id} mis à jour : *{role}*",
         "gift_usage": "Usage: /gift USER_ID ROLE DAYS (pro)",
         "gift_success": "✅ Rôle {role} offert à {target_id} pour {days} jours.",
+        "invalid_days": "❌ Nombre de jours invalide.",
         "revoke_usage": "Usage: /revoke USER_ID",
         "revoke_success": "✅ Rôle de l'utilisateur {target_id} révoqué (free).",
         "revoke_confirm": "⚠️ Révoquer l'accès de {target_id} ?",
+        "action_cancelled": "Action annulée.",
         "redeem_usage": "Usage: /redeem CODE",
         "redeem_success": "✅ Code promo appliqué : {message}",
         "redeem_invalid": "❌ Code promo invalide ou expiré.",
         "redeem_already_used": "❌ Vous avez déjà utilisé ce code promo.",
-        "app_message": "📱 *Bitsure Teddy Mobile*\n\nL'application pour Android et iOS est en cours de développement. Elle vous permettra d'accéder à toutes les analyses sans passer par Telegram. Restez à l'écoute ! 🧸",
-        "gift_notification": "🎁 Vous avez reçu un accès {role} gratuit pour {days} jours ! Profitez-en !",
+        "app_message": "📱 *Bitsure Teddy Mobile*\n\nL'application est en cours de développement. Restez à l'écoute ! 🧸",
+        "gift_notification": "🎁 Vous avez reçu un accès {role} gratuit pour {days} jours !",
 
         # ----- Challenge / Snapshot / Verify -----
-        "challenge_start": "🔥 *DÉFI SCALPING LANCÉ* 🔥\nAnalyse de 5 trades consécutifs sur EURUSD en cours...",
+        "challenge_start": "🔥 *DÉFI SCALPING LANCÉ* 🔥\nAnalyse de 5 trades consécutifs sur EURUSD...",
         "challenge_trade": "📊 *Trade {n}/5* – {signal} à {price}\nRésultat : {result} ({pips} pips)",
         "challenge_score": "🏆 *SCORE FINAL* : {wins}/5 gagnés\n{summary}",
+        "win": "Gagné",
+        "loss": "Perdu",
+        "pending": "En attente",
+        "net_pips": "Pips nets",
         "snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrix: {price}",
         "verify_not_found": "❌ Aucun signal trouvé avec l'ID `{signal_id}`.",
         "verify_result": "🔍 *Signal #{signal_id}*\nÉmis le : {timestamp}\nSymbole : {symbol}\nSignal : {signal}\nPrix d'entrée : {price}\nRésultat : {result}",
+        "verify_usage": "Usage: /verify SIGNAL_ID",
         "history_title": "📜 *Historique des signaux*\n",
         "history_empty": "Aucun signal enregistré.",
+        "no_recent_analysis": "Aucune analyse récente.",
 
-        # ----- Signal Engine (confiance, SL/TP) -----
+        # ----- Signal Engine -----
         "signal_insufficient_data": "Données insuffisantes",
         "signal_buy_reason": "📈 Signaux haussiers détectés",
         "signal_buy_advice": "⚠️ Entrée progressive conseillée",
@@ -279,11 +307,10 @@ TEXTS = {
         "confidence_high": "FORTE",
         "confidence_medium": "MOYENNE",
         "confidence_low": "FAIBLE",
-
-        # ----- Signaux (traductions directes) -----
         "signal_buy": "ACHETER",
         "signal_sell": "VENDRE",
         "signal_wait": "ATTENDRE",
+        "na": "N/A",
 
         # ----- Menu interactif -----
         "menu_title": "🧸 *MENU PRINCIPAL*\nSélectionnez une catégorie :",
@@ -296,6 +323,10 @@ TEXTS = {
         "menu_aide": "ℹ️ Aide",
         "back": "⬅️ Retour",
         "menu_choose_command": "Choisissez une commande :",
+        "use_command": "Utilisez la commande /{cmd} pour plus d'informations.",
+        "unknown_command": "Commande non reconnue : /{cmd}",
+        "unknown_option": "Option non reconnue.",
+        "unsupported_command": "Commande non supportée : /{command}",
 
         # ----- Sélection de symboles -----
         "select_symbol": "Sélectionnez un symbole :",
@@ -305,7 +336,7 @@ TEXTS = {
         "category_stocks": "📈 Actions",
         "category_fav": "⭐ Favoris",
         "prev_page": "⬅️",
-        "next_page": "➡️"
+        "next_page": "➡️",
     },
 
     "en": {
@@ -396,6 +427,7 @@ TEXTS = {
         "premium_required": "🔒 *Premium Feature*\n\nThis command is reserved for PRO members.\nUse /upgrade to discover the offer.",
         "payment_success": "✅ *Payment successful!*\nYou are now *PRO*.\nThank you for your trust! 🧸",
         "stripe_soon": "💳 Credit card payment will be available very soon. In the meantime, you can use Telegram Stars or contact support.",
+        "unavailable_option": "Unavailable option.",
 
         # ----- Limits -----
         "limit_reached": "❌ You have reached your daily request limit. Upgrade to PRO for unlimited access: /upgrade",
@@ -408,6 +440,8 @@ TEXTS = {
         "watchlist_scan_empty": "Watchlist empty.",
         "watchlist_scan_result": "📊 *Watchlist scan:*\n{results}",
         "watchlist_show": "📋 *Watchlist:*\n{symbols}",
+        "addwatch_usage": "Usage: /addwatch SYMBOL",
+        "removewatch_usage": "Usage: /removewatch SYMBOL",
 
         # ----- Alerts -----
         "alert_usage": "Usage: /alert SYMBOL above/below PRICE",
@@ -423,9 +457,11 @@ TEXTS = {
         "clearalerts_confirm": "⚠️ Are you sure you want to delete ALL your alerts?",
         "confirm_yes": "✅ Yes",
         "confirm_no": "❌ No",
+        "delalert_usage": "Usage: /delalert ID",
 
         # ----- Symbols -----
         "symbole_invalide": "Invalid symbol.",
+        "invalid_symbol": "Invalid symbol.",
         "symboles_list": (
             "📊 *POPULAR SYMBOLS*\n\n"
             "🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n"
@@ -434,6 +470,9 @@ TEXTS = {
             "📈 *Stocks*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n"
             "💡 Example: /analyse BTCUSD"
         ),
+        "symbol_not_found": "Symbol not found.",
+        "symbolinfo_usage": "Usage: /symbolinfo SYMBOL",
+        "symbolinfo_format": "*{symbol}*\nPrice: {price}\nBid/Ask: {bid} / {ask}",
 
         # ----- Analysis -----
         "analyse_usage": "Usage: /analyse SYMBOL",
@@ -450,6 +489,7 @@ TEXTS = {
         "price_usage": "Usage: /price SYMBOL",
         "price_error": "❌ Price not available for {symbol}.",
         "price_format": "*{symbol}*\n💰 Price: {price}\n📊 Bid: {bid} / Ask: {ask}",
+        "price_label": "Price",
 
         # ----- Scalping -----
         "tick_usage": "Usage: /tick SYMBOL",
@@ -472,6 +512,7 @@ TEXTS = {
             "RSI: {rsi:.1f}\n"
             "{reason}"
         ),
+        "realtime_data_error": "❌ Could not retrieve real-time data.",
 
         # ----- Trend / Volatility / Correlation / Levels -----
         "trend_usage": "Usage: /trend SYMBOL",
@@ -479,6 +520,9 @@ TEXTS = {
         "trend_haussiere": "Bullish",
         "trend_baissiere": "Bearish",
         "trend_neutre": "Neutral",
+        "trend_bullish": "Bullish",
+        "trend_bearish": "Bearish",
+        "trend_neutral": "Neutral",
         "trend_result": "*{symbol}* Trend: {tend}",
         "volatility_usage": "Usage: /volatility SYMBOL",
         "volatility_result": "*{symbol}* Volatility (ATR 14): {atr}",
@@ -497,27 +541,34 @@ TEXTS = {
         ),
 
         # ----- Sentiment / Compare / Top / Fav -----
-        "sentiment_result": "📊 *Crypto Fear & Greed Index*\n\nCurrent value: {value}\nClassification: {classification}\n\nLast updated: {timestamp}",
-        "compare_result": "*{symbol1} vs {symbol2}*\n\n{price1} | {change1}\n{price2} | {change2}\nRSI: {rsi1} vs {rsi2}\nTrend: {trend1} vs {trend2}",
+        "sentiment_result": "📊 *Crypto Fear & Greed Index*\n\nCurrent value: {value}\nClassification: {classification}",
+        "sentiment_error": "Could not retrieve Fear & Greed Index.",
+        "compare_usage": "Usage: /compare SYM1 SYM2",
+        "compare_result": "*{symbol1} vs {symbol2}*\nTrend: {trend1} vs {trend2}",
         "top_crypto": "🚀 *Top 5 Crypto Gainers (24h)*\n\n{list}",
         "fav_usage": "Usage: /fav add|remove|list [symbol]",
+        "fav_add_usage": "Usage: /fav add SYMBOL",
+        "fav_remove_usage": "Usage: /fav remove SYMBOL",
         "fav_added": "✅ {symbol} added to favorites.",
         "fav_removed": "✅ {symbol} removed from favorites.",
         "fav_list": "⭐ *Your favorites:*\n{symbols}",
         "fav_empty": "No favorites saved.",
+        "insufficient_data": "Insufficient data.",
+        "insufficient_common_data": "Not enough common data.",
+        "data_unavailable": "Data unavailable.",
 
         # ----- Learn -----
         "learn_usage": "Usage: /learn [term]\nAvailable terms: rsi, macd, sma, support, resistance, fibonacci, atr, adx, stochastic, spread",
-        "learn_rsi": "*RSI (Relative Strength Index)*\nMomentum indicator measuring speed and magnitude of price moves. Extreme values >70 (overbought) and <30 (oversold).",
-        "learn_macd": "*MACD*\nMoving Average Convergence Divergence. Tracks relationship between two moving averages. Crossovers used for buy/sell signals.",
-        "learn_sma": "*SMA (Simple Moving Average)*\nAverage price over a given period. SMA20 and SMA50 are common short/medium term trend references.",
-        "learn_support": "*Support*\nPrice level where demand has historically been strong enough to stop a decline.",
-        "learn_resistance": "*Resistance*\nPrice level where supply has historically been strong enough to stop a rally.",
-        "learn_fibonacci": "*Fibonacci*\nRetracement levels (38.2%, 50%, 61.8%) used to identify potential support/resistance zones.",
-        "learn_atr": "*ATR (Average True Range)*\nMeasures average volatility over a period. Used to set stop‑losses.",
-        "learn_adx": "*ADX (Average Directional Index)*\nMeasures trend strength (values >25 indicate a strong trend).",
-        "learn_stochastic": "*Stochastic Oscillator*\nCompares closing price to the price range over a period. Zones >80 overbought, <20 oversold.",
-        "learn_spread": "*Spread*\nDifference between bid and ask price. A tight spread indicates good liquidity.",
+        "learn_rsi": "*RSI*\nMomentum indicator measuring speed and magnitude of price moves. >70 overbought, <30 oversold.",
+        "learn_macd": "*MACD*\nMoving Average Convergence Divergence. Crossovers used for buy/sell signals.",
+        "learn_sma": "*SMA*\nSimple Moving Average. SMA20 and SMA50 are common trend references.",
+        "learn_support": "*Support*\nPrice level where demand stops a decline.",
+        "learn_resistance": "*Resistance*\nPrice level where supply stops a rally.",
+        "learn_fibonacci": "*Fibonacci*\nRetracement levels (38.2%, 50%, 61.8%) used for support/resistance zones.",
+        "learn_atr": "*ATR*\nAverage True Range. Measures volatility, used for stop-losses.",
+        "learn_adx": "*ADX*\nAverage Directional Index. Measures trend strength (>25 = strong trend).",
+        "learn_stochastic": "*Stochastic*\nCompares closing price to price range. >80 overbought, <20 oversold.",
+        "learn_spread": "*Spread*\nDifference between bid and ask price.",
 
         # ----- Settings -----
         "settings_info": "⚙️ *Settings*\nTimeframe: {tf}\nRisk: {risk}\nLanguage: {lang_name}\nRole: {role}\nPremium: {prem}",
@@ -529,7 +580,7 @@ TEXTS = {
         "setrisk_success": "✅ Risk profile: {risk}",
         "setlanguage_usage": "Usage: /setlanguage en|fr",
         "setlanguage_invalid": "Invalid language. Use 'en' or 'fr'.",
-        "setlanguage_success_fr": "✅ Langue définie sur Français.",
+        "setlanguage_success_fr": "✅ Language set to French.",
         "setlanguage_success_en": "✅ Language set to English.",
         "usage_requests_remaining": "📊 Requests remaining today: {rem}",
         "usage_unlimited": "✅ Premium: unlimited requests.",
@@ -545,34 +596,42 @@ TEXTS = {
         "broadcast_usage": "Usage: /broadcast MESSAGE",
         "broadcast_sent": "✅ Broadcast sent to {success}/{total} users.",
         "reload_success": "✅ Configuration reloaded.",
-        "stats_info": "📊 *BITSURE TEDDY STATISTICS*\n👥 Total users: {total}\n🆓 FREE: {free}\n💪 PRO: {pro}",
+        "stats_info": "📊 *STATISTICS*\n👥 Total: {total}\n🆓 FREE: {free}\n💪 PRO: {pro}",
         "setrole_usage": "Usage: /setrole USER_ID ROLE (free/pro)",
         "setrole_invalid_id": "❌ Invalid USER_ID.",
         "setrole_invalid_role": "❌ Invalid role. Use free or pro.",
         "setrole_success": "✅ User {target_id} role updated: *{role}*",
         "gift_usage": "Usage: /gift USER_ID ROLE DAYS (pro)",
         "gift_success": "✅ {role} role granted to {target_id} for {days} days.",
+        "invalid_days": "❌ Invalid number of days.",
         "revoke_usage": "Usage: /revoke USER_ID",
         "revoke_success": "✅ User {target_id} role revoked (free).",
         "revoke_confirm": "⚠️ Revoke access for {target_id}?",
+        "action_cancelled": "Action cancelled.",
         "redeem_usage": "Usage: /redeem CODE",
         "redeem_success": "✅ Promo code applied: {message}",
         "redeem_invalid": "❌ Invalid or expired promo code.",
         "redeem_already_used": "❌ You have already used this promo code.",
-        "app_message": "📱 *Bitsure Teddy Mobile*\n\nThe Android and iOS app is currently in development. It will allow you to access all analyses without using Telegram. Stay tuned! 🧸",
+        "app_message": "📱 *Bitsure Teddy Mobile*\n\nThe app is currently in development. Stay tuned! 🧸",
         "gift_notification": "🎁 You have been granted free {role} access for {days} days! Enjoy!",
 
         # ----- Challenge / Snapshot / Verify -----
         "challenge_start": "🔥 *SCALPING CHALLENGE STARTED* 🔥\nAnalyzing 5 consecutive trades on EURUSD...",
         "challenge_trade": "📊 *Trade {n}/5* – {signal} at {price}\nResult: {result} ({pips} pips)",
         "challenge_score": "🏆 *FINAL SCORE*: {wins}/5 won\n{summary}",
+        "win": "Win",
+        "loss": "Loss",
+        "pending": "Pending",
+        "net_pips": "Net pips",
         "snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrice: {price}",
         "verify_not_found": "❌ No signal found with ID `{signal_id}`.",
         "verify_result": "🔍 *Signal #{signal_id}*\nIssued on: {timestamp}\nSymbol: {symbol}\nSignal: {signal}\nEntry Price: {price}\nResult: {result}",
+        "verify_usage": "Usage: /verify SIGNAL_ID",
         "history_title": "📜 *Signal History*\n",
         "history_empty": "No signals recorded.",
+        "no_recent_analysis": "No recent analysis.",
 
-        # ----- Signal Engine (confidence, SL/TP) -----
+        # ----- Signal Engine -----
         "signal_insufficient_data": "Insufficient data",
         "signal_buy_reason": "📈 Bullish signals detected",
         "signal_buy_advice": "⚠️ Consider gradual entry",
@@ -585,11 +644,10 @@ TEXTS = {
         "confidence_high": "HIGH",
         "confidence_medium": "MEDIUM",
         "confidence_low": "LOW",
-
-        # ----- Signal translations -----
         "signal_buy": "BUY",
         "signal_sell": "SELL",
         "signal_wait": "WAIT",
+        "na": "N/A",
 
         # ----- Interactive Menu -----
         "menu_title": "🧸 *MAIN MENU*\nSelect a category:",
@@ -602,6 +660,10 @@ TEXTS = {
         "menu_aide": "ℹ️ Help",
         "back": "⬅️ Back",
         "menu_choose_command": "Choose a command:",
+        "use_command": "Use the command /{cmd} for more information.",
+        "unknown_command": "Unknown command: /{cmd}",
+        "unknown_option": "Unknown option.",
+        "unsupported_command": "Unsupported command: /{command}",
 
         # ----- Symbol Selection -----
         "select_symbol": "Select a symbol:",
@@ -611,16 +673,16 @@ TEXTS = {
         "category_stocks": "📈 Stocks",
         "category_fav": "⭐ Favorites",
         "prev_page": "⬅️",
-        "next_page": "➡️"
+        "next_page": "➡️",
     }
 }
 
 def get_text(lang: str, key: str, **kwargs) -> str:
     texts = TEXTS.get(lang, TEXTS["en"])
-    text = texts.get(key, key)
+    text = texts.get(key, TEXTS["en"].get(key, key))
     if kwargs:
         try:
             return text.format(**kwargs)
-        except:
+        except Exception:
             return text
     return text
