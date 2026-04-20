@@ -279,6 +279,11 @@ TEXTS = {
         "confidence_medium": "MOYENNE",
         "confidence_low": "FAIBLE",
 
+        # ----- Signaux (traductions directes) -----
+        "signal_buy": "ACHETER",
+        "signal_sell": "VENDRE",
+        "signal_wait": "ATTENDRE",
+
         # ----- Menu interactif -----
         "menu_title": "🧸 *MENU PRINCIPAL*\nSélectionnez une catégorie :",
         "menu_analyse": "📊 Analyse",
@@ -289,6 +294,7 @@ TEXTS = {
         "menu_challenge": "🧸 Challenge",
         "menu_aide": "ℹ️ Aide",
         "back": "⬅️ Retour",
+        "menu_choose_command": "Choisissez une commande :",
 
         # ----- Sélection de symboles -----
         "select_symbol": "Sélectionnez un symbole :",
@@ -578,6 +584,11 @@ TEXTS = {
         "confidence_medium": "MEDIUM",
         "confidence_low": "LOW",
 
+        # ----- Signal translations -----
+        "signal_buy": "BUY",
+        "signal_sell": "SELL",
+        "signal_wait": "WAIT",
+
         # ----- Interactive Menu -----
         "menu_title": "🧸 *MAIN MENU*\nSelect a category:",
         "menu_analyse": "📊 Analysis",
@@ -588,6 +599,7 @@ TEXTS = {
         "menu_challenge": "🧸 Challenge",
         "menu_aide": "ℹ️ Help",
         "back": "⬅️ Back",
+        "menu_choose_command": "Choose a command:",
 
         # ----- Symbol Selection -----
         "select_symbol": "Select a symbol:",

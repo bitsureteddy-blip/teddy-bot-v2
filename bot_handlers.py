@@ -52,8 +52,12 @@ def check_limit(func):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
         if not user_mgr.check_limit(user_id):
-            await update.message.reply_text(get_text(lang, "limit_reached"))
-            return
+            if update.callback_query:
+                await update.callback_query.answer(get_text(lang, "limit_reached"), show_alert=True)
+                return
+            else:
+                await update.message.reply_text(get_text(lang, "limit_reached"))
+                return
         user_mgr.increment_usage(user_id)
         return await func(update, context)
     return wrapper
@@ -63,11 +67,13 @@ def premium_required(func):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
         if not user_mgr.can_use_premium_feature(user_id):
-            await update.message.reply_text(
-                get_text(lang, "premium_required"),
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
+            text = get_text(lang, "premium_required")
+            if update.callback_query:
+                await update.callback_query.answer(text, show_alert=True)
+                return
+            else:
+                await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+                return
         return await func(update, context)
     return wrapper
 
@@ -189,37 +195,52 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         await query.edit_message_text(get_text(lang, "menu_title"), reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
         return
+    elif data.startswith("cmd_"):
+        cmd = data.replace("cmd_", "")
+        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread"]:
+            await symbol_selection(update, context, cmd, 0, "crypto")
+            return
+        elif cmd == "scalp":
+            await query.edit_message_text(get_text(lang, "scalp_usage"))
+            return
+        elif cmd == "alert":
+            await query.edit_message_text(get_text(lang, "alert_usage"))
+            return
+        elif cmd in ["alerts", "delalert", "clearalerts", "watchlist", "addwatch", "removewatch", "scan",
+                     "settings", "settimeframe", "setrisk", "setlanguage", "usage", "upgrade",
+                     "help", "about", "status", "support", "myid", "symboles", "learn",
+                     "challenge", "historique", "snapshot", "verify"]:
+            await query.edit_message_text(f"Utilisez la commande /{cmd} pour plus d'informations.")
+            return
+        else:
+            await query.edit_message_text(f"Commande non reconnue : /{cmd}")
+            return
     else:
-        # Commande simple : on renvoie le texte de la commande pour que l'utilisateur l'exécute
-        cmd = data.replace("cmd_", "/")
-        await query.edit_message_text(f"Utilisez la commande : {cmd}")
+        await query.edit_message_text("Option non reconnue.")
         return
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text(f"*{data.replace('menu_','').capitalize()}*\nChoisissez une commande :", reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+    await query.edit_message_text(f"*{data.replace('menu_','').capitalize()}*\n{get_text(lang, 'menu_choose_command')}", reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 # ---------- SÉLECTION DE SYMBOLE PAR BOUTONS ----------
 async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str, page: int = 0, category: str = "crypto"):
-    """Affiche un clavier de sélection de symbole pour une commande donnée."""
+    query = update.callback_query
     lang = get_user_lang(update)
     user_id = update.effective_user.id
 
-    # Récupérer les favoris
     favs = user_mgr.get_favorites(user_id)
-
     symbols = []
     if category == "fav":
         symbols = favs
     else:
         symbols = POPULAR_SYMBOLS.get(category, [])
 
-    # Pagination
     per_page = 6
-    total_pages = (len(symbols) + per_page - 1) // per_page
+    total_pages = (len(symbols) + per_page - 1) // per_page if symbols else 1
     page = max(0, min(page, total_pages - 1))
     start = page * per_page
     end = start + per_page
-    page_symbols = symbols[start:end]
+    page_symbols = symbols[start:end] if symbols else []
 
     keyboard = []
     for sym in page_symbols:
@@ -248,12 +269,13 @@ async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, c
     keyboard.append([InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")])
 
     text = get_text(lang, "select_symbol") + f"\n({category.upper()})"
-    await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+    await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
+    lang = get_user_lang(update)
 
     if data.startswith("symcat_"):
         parts = data.split("_")
@@ -271,19 +293,14 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parts = data.split("_")
         command = parts[1]
         symbol = parts[2]
-        # Exécuter la commande avec ce symbole
         context.args = [symbol]
+        fake_message = update.callback_query.message
+        fake_message.text = f"/{command} {symbol}"
+        update.message = fake_message
         if command == "analyse":
             await analyse(update, context, from_callback=True)
         elif command == "price":
             await price(update, context, from_callback=True)
-        elif command == "scalp":
-            # besoin de durée, on demande
-            await query.edit_message_text("Usage: /scalp SYMBOLE DURÉE (3,5,10,20)")
-        elif command == "tick":
-            await tick(update, context, from_callback=True)
-        elif command == "spread":
-            await spread(update, context, from_callback=True)
         elif command == "trend":
             await trend(update, context, from_callback=True)
         elif command == "volatility":
@@ -292,19 +309,20 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await levels(update, context, from_callback=True)
         elif command == "symbolinfo":
             await symbolinfo(update, context, from_callback=True)
-        elif command == "alert":
-            await query.edit_message_text("Usage: /alert SYMBOLE above/below PRIX")
-        elif command == "addwatch":
-            await addwatch(update, context, from_callback=True)
-        elif command == "removewatch":
-            await removewatch(update, context, from_callback=True)
+        elif command == "tick":
+            await tick(update, context, from_callback=True)
+        elif command == "spread":
+            await spread(update, context, from_callback=True)
+        else:
+            await query.edit_message_text(f"Commande non supportée : /{command}")
+    elif data == "noop":
+        pass
 
 # ---------- COMMANDES DE BASE ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
 
-    # Forcer anglais par défaut
     current_lang = user_mgr.get_setting(user_id, "lang", None)
     if current_lang is None:
         user_mgr.set_setting(user_id, "lang", "en")
@@ -366,7 +384,7 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     lang = get_user_lang(update)
     if data == "plan_pro_stars":
-        await send_invoice(query, "PRO Mensuel", 1499, "pro_monthly")  # 14.99€
+        await send_invoice(query, "PRO Mensuel", 1499, "pro_monthly")
     elif data == "plan_pro_stripe":
         await query.edit_message_text(get_text(lang, "stripe_soon"))
     else:
@@ -453,7 +471,6 @@ async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(get_text(lang, "setrole_invalid_id"))
         return
 
-    # Confirmation
     keyboard = [
         [InlineKeyboardButton(get_text(lang, "confirm_yes"), callback_data=f"revoke_confirm_{target_id}")],
         [InlineKeyboardButton(get_text(lang, "confirm_no"), callback_data="revoke_cancel")]
@@ -510,11 +527,6 @@ async def setrole(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "setrole_success", target_id=target_id, role=role.upper()),
         parse_mode=ParseMode.MARKDOWN
     )
-    try:
-        target_user = await context.bot.get_chat(target_id)
-        await notify_admin_new_premium(context, target_user, role, "Manuel (admin)")
-    except:
-        pass
 
 # ---------- WATCHLIST ----------
 @check_limit
@@ -531,7 +543,11 @@ async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE, from_call
     if not user_mgr.is_premium(user_id):
         current_wl = user_mgr.get_watchlist(user_id)
         if len(current_wl) >= 3:
-            await update.message.reply_text(get_text(lang, "watchlist_limit"))
+            text = get_text(lang, "watchlist_limit")
+            if from_callback:
+                await update.callback_query.edit_message_text(text)
+            else:
+                await update.message.reply_text(text)
             return
     user_mgr.add_to_watchlist(user_id, symbol)
     text = get_text(lang, "watchlist_added", symbol=symbol)
@@ -581,7 +597,7 @@ async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         df = await fetcher.get_historical_data(sym)
         if df is not None and not df.empty:
             res = SignalEngine.analyze(df, lang)
-            results.append(f"{sym}: {res['signal']} (Score: {res['teddy_score']})")
+            results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
         else:
             results.append(f"{sym}: données indisponibles")
     await update.message.reply_text(
@@ -595,16 +611,20 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
+        text = get_text(lang, "analyse_usage")
         if from_callback:
-            await update.callback_query.edit_message_text(get_text(lang, "analyse_usage"))
+            await update.callback_query.edit_message_text(text)
         else:
-            await update.message.reply_text(get_text(lang, "analyse_usage"))
+            await update.message.reply_text(text)
         return
     if not is_valid_symbol(symbol):
         await update.message.reply_text(get_text(lang, "symbole_invalide"))
         return
     symbol = normalize_symbol(symbol)
-    msg = await update.message.reply_text(get_text(lang, "analyse_wait", symbol=symbol))
+    if from_callback:
+        msg = await update.callback_query.edit_message_text(get_text(lang, "analyse_wait", symbol=symbol))
+    else:
+        msg = await update.message.reply_text(get_text(lang, "analyse_wait", symbol=symbol))
     df = await fetcher.get_historical_data(symbol)
     if df is None or df.empty:
         await msg.edit_text(get_text(lang, "analyse_error", symbol=symbol))
@@ -612,7 +632,6 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     result = SignalEngine.analyze(df, lang)
     ind = result['indicators']
 
-    # Graphique
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(df.index, df['Close'], color='white', linewidth=1, label='Prix')
@@ -634,7 +653,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
 
     caption = get_text(lang, "analyse_caption",
                        symbol=symbol,
-                       signal=result['signal'],
+                       signal=result['signal_text'],
                        confidence=result['confidence'],
                        price=format_number(ind['price']),
                        sl=sl_str,
@@ -650,7 +669,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
                        sma50=format_number(ind['sma50']),
                        teddy_score=result['teddy_score'])
 
-    signal_id = history_mgr.add_signal(symbol, "BUY" if result['signal']=="ACHETER" else "SELL" if result['signal']=="VENDRE" else "WAIT",
+    signal_id = history_mgr.add_signal(symbol, result['signal'],
                                        ind['price'], DEFAULT_TIMEFRAME, "analyse", result['teddy_score'])
     caption += f"\n\n🔐 ID: `{signal_id}`"
 
@@ -663,10 +682,11 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
+        text = get_text(lang, "price_usage")
         if from_callback:
-            await update.callback_query.edit_message_text(get_text(lang, "price_usage"))
+            await update.callback_query.edit_message_text(text)
         else:
-            await update.message.reply_text(get_text(lang, "price_usage"))
+            await update.message.reply_text(text)
         return
     if not is_valid_symbol(symbol):
         await update.message.reply_text(get_text(lang, "symbole_invalide"))
@@ -693,10 +713,11 @@ async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
+        text = get_text(lang, "tick_usage")
         if from_callback:
-            await update.callback_query.edit_message_text(get_text(lang, "tick_usage"))
+            await update.callback_query.edit_message_text(text)
         else:
-            await update.message.reply_text(get_text(lang, "tick_usage"))
+            await update.message.reply_text(text)
         return
     fetcher.subscribe_twelvedata(symbol)
     price_data = await fetcher.get_realtime_price(symbol)
@@ -736,16 +757,17 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = SignalEngine.analyze_scalp(ticks, price_data, int(duration))
 
     signal_map = {
-        "ACHETER": get_text(lang, "scalp_signal_buy"),
-        "VENDRE": get_text(lang, "scalp_signal_sell"),
-        "ATTENDRE": get_text(lang, "scalp_signal_wait")
+        "BUY": get_text(lang, "scalp_signal_buy"),
+        "SELL": get_text(lang, "scalp_signal_sell"),
+        "WAIT": get_text(lang, "scalp_signal_wait")
     }
+    signal_text = signal_map.get(result['signal'], result['signal'])
 
     await update.message.reply_text(
         get_text(lang, "scalp_result",
                  symbol=symbol,
                  duration=duration,
-                 signal=signal_map[result['signal']],
+                 signal=signal_text,
                  price=format_number(result['price']),
                  bid=format_number(result['bid'], 5),
                  ask=format_number(result['ask'], 5),
@@ -762,10 +784,11 @@ async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callba
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
+        text = get_text(lang, "spread_usage")
         if from_callback:
-            await update.callback_query.edit_message_text(get_text(lang, "spread_usage"))
+            await update.callback_query.edit_message_text(text)
         else:
-            await update.message.reply_text(get_text(lang, "spread_usage"))
+            await update.message.reply_text(text)
         return
     fetcher.subscribe_twelvedata(symbol)
     price_data = await fetcher.get_realtime_price(symbol)
@@ -856,10 +879,11 @@ async def trend(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
+        text = get_text(lang, "trend_usage")
         if from_callback:
-            await update.callback_query.edit_message_text(get_text(lang, "trend_usage"))
+            await update.callback_query.edit_message_text(text)
         else:
-            await update.message.reply_text(get_text(lang, "trend_usage"))
+            await update.message.reply_text(text)
         return
     df = await fetcher.get_historical_data(symbol)
     if df is None or df.empty:
@@ -885,10 +909,11 @@ async def volatility(update: Update, context: ContextTypes.DEFAULT_TYPE, from_ca
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
+        text = get_text(lang, "volatility_usage")
         if from_callback:
-            await update.callback_query.edit_message_text(get_text(lang, "volatility_usage"))
+            await update.callback_query.edit_message_text(text)
         else:
-            await update.message.reply_text(get_text(lang, "volatility_usage"))
+            await update.message.reply_text(text)
         return
     df = await fetcher.get_historical_data(symbol)
     if df is None or df.empty:
@@ -928,10 +953,11 @@ async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callba
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
+        text = get_text(lang, "levels_usage")
         if from_callback:
-            await update.callback_query.edit_message_text(get_text(lang, "levels_usage"))
+            await update.callback_query.edit_message_text(text)
         else:
-            await update.message.reply_text(get_text(lang, "levels_usage"))
+            await update.message.reply_text(text)
         return
     df = await fetcher.get_historical_data(symbol)
     if df is None or df.empty:
@@ -995,7 +1021,6 @@ async def compare(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @check_limit
 async def top(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
-    # Simuler top 5 crypto avec Twelve Data (limité)
     cryptos = ["BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "ADAUSD"]
     gains = []
     for sym in cryptos:
@@ -1133,10 +1158,11 @@ async def symbolinfo(update: Update, context: ContextTypes.DEFAULT_TYPE, from_ca
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
+        text = "Usage: /symbolinfo SYMBOLE"
         if from_callback:
-            await update.callback_query.edit_message_text("Usage: /symbolinfo SYMBOLE")
+            await update.callback_query.edit_message_text(text)
         else:
-            await update.message.reply_text("Usage: /symbolinfo SYMBOLE")
+            await update.message.reply_text(text)
         return
     price_data = await fetcher.get_realtime_price(symbol)
     if price_data:
@@ -1212,7 +1238,6 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     user_id = update.effective_user.id
 
-    # Réinitialiser session si existe déjà
     challenge_mgr.reset_session(user_id)
     session = challenge_mgr.start_session(user_id, "EURUSD")
     await update.message.reply_text(get_text(lang, "challenge_start"), parse_mode=ParseMode.MARKDOWN)
@@ -1228,7 +1253,7 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         result = SignalEngine.analyze(df, lang)
-        signal = result['signal']
+        signal_text = result['signal_text']
         price = result['indicators']['price']
 
         success = random.random() < 0.7
@@ -1242,17 +1267,16 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
             trade_result = "❌ PERDU" if lang == "fr" else "❌ LOSS"
             result_str = "loss"
 
-        # Enregistrer dans ChallengeManager
         challenge_mgr.add_trade_result(user_id, {
             "trade_number": i,
             "symbol": symbol,
-            "signal": signal,
+            "signal": result['signal'],
             "entry_price": price,
             "result": result_str,
             "pips": pips
         })
 
-        msg = get_text(lang, "challenge_trade", n=i, signal=signal, price=format_number(price),
+        msg = get_text(lang, "challenge_trade", n=i, signal=signal_text, price=format_number(price),
                        result=trade_result, pips=pips)
         await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(2)
@@ -1276,7 +1300,7 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:10]})\n"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
-# ---------- SNAPSHOT / VERIFY (utilisant HistoryManager) ----------
+# ---------- SNAPSHOT / VERIFY ----------
 @check_limit
 async def snapshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -1301,7 +1325,7 @@ async def snapshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plt.savefig(buf, format='png')
     buf.seek(0)
     plt.close()
-    caption = get_text(lang, "snapshot_caption", symbol=symbol, signal=result['signal'], score=result['teddy_score'], price=format_number(ind['price']))
+    caption = get_text(lang, "snapshot_caption", symbol=symbol, signal=result['signal_text'], score=result['teddy_score'], price=format_number(ind['price']))
     await update.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
 
 @check_limit

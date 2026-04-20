@@ -27,7 +27,8 @@ class SignalEngine:
     def analyze(df: pd.DataFrame, lang: str = "en") -> Dict:
         if df is None or df.empty or len(df) < SMA_LONG:
             return {
-                "signal": "ATTENDRE",
+                "signal": "WAIT",
+                "signal_text": get_text(lang, "signal_wait"),
                 "reason": get_text(lang, "signal_insufficient_data"),
                 "risk_advice": "",
                 "teddy_score": 0,
@@ -121,34 +122,33 @@ class SignalEngine:
         else:
             confidence = get_text(lang, "confidence_low")
 
-        # === SIGNAL ===
+        # === SIGNAL (clé interne) ===
         if teddy_score >= 55:
-            signal = "ACHETER"
+            signal_key = "BUY"
         elif teddy_score <= 45:
-            signal = "VENDRE"
+            signal_key = "SELL"
         else:
-            signal = "ATTENDRE"
+            signal_key = "WAIT"
 
         # === FILTRE DE TENDANCE ===
-        if trend == "HAUSSIER" and signal == "VENDRE" and teddy_score > 30:
-            signal = "ATTENDRE"
-        if trend == "BAISSIER" and signal == "ACHETER" and teddy_score < 70:
-            signal = "ATTENDRE"
+        if trend == "HAUSSIER" and signal_key == "SELL" and teddy_score > 30:
+            signal_key = "WAIT"
+        if trend == "BAISSIER" and signal_key == "BUY" and teddy_score < 70:
+            signal_key = "WAIT"
 
         # === CALCUL SL / TP ===
         sl = None
         tp = None
         rr_ratio = None
-        if signal in ("ACHETER", "VENDRE") and atr_val is not None:
+        if signal_key in ("BUY", "SELL") and atr_val is not None:
             sl_distance = atr_val * ATR_MULTIPLIER_SL
-            if signal == "ACHETER":
+            if signal_key == "BUY":
                 sl = last_price - sl_distance
-                # TP basé sur résistance la plus proche ou ratio R/R
                 if resistance and resistance > last_price:
                     tp = resistance
                 else:
                     tp = last_price + (sl_distance * RR_RATIO_TARGET)
-            else:  # VENDRE
+            else:  # SELL
                 sl = last_price + sl_distance
                 if support and support < last_price:
                     tp = support
@@ -159,10 +159,10 @@ class SignalEngine:
             rr_ratio = round(rr_ratio, 2)
 
         # === RAISON (BILINGUE) ===
-        if signal == "ACHETER":
+        if signal_key == "BUY":
             reason = get_text(lang, "signal_buy_reason")
             risk_advice = get_text(lang, "signal_buy_advice")
-        elif signal == "VENDRE":
+        elif signal_key == "SELL":
             reason = get_text(lang, "signal_sell_reason")
             risk_advice = get_text(lang, "signal_sell_advice")
         else:
@@ -194,7 +194,8 @@ class SignalEngine:
         }
 
         return {
-            "signal": signal,
+            "signal": signal_key,
+            "signal_text": get_text(lang, f"signal_{signal_key.lower()}"),
             "reason": reason,
             "risk_advice": risk_advice,
             "teddy_score": teddy_score,
@@ -292,7 +293,7 @@ class SignalEngine:
     @staticmethod
     def analyze_scalp(ticks: list, price_data: dict, duration: int) -> dict:
         if len(ticks) < 14:
-            return {"signal": "ATTENDRE", "reason": "Données insuffisantes"}
+            return {"signal": "WAIT", "signal_text": "WAIT", "reason": "Insufficient data"}
 
         rsi_val = SignalEngine._rsi_from_ticks(ticks, 9)
         macd_line, macd_signal = SignalEngine._macd_from_ticks(ticks)
@@ -303,40 +304,41 @@ class SignalEngine:
         spread = ask - bid
         spread_pct = (spread / price) * 100 if price > 0 else 0
 
-        signal = "ATTENDRE"
+        signal_key = "WAIT"
         reason = ""
 
         if rsi_val < 25:
-            signal = "ACHETER"
-            reason = f"RSI survendu ({rsi_val:.1f})"
+            signal_key = "BUY"
+            reason = f"RSI oversold ({rsi_val:.1f})"
         elif rsi_val > 75:
-            signal = "VENDRE"
-            reason = f"RSI suracheté ({rsi_val:.1f})"
+            signal_key = "SELL"
+            reason = f"RSI overbought ({rsi_val:.1f})"
 
         if len(ticks) >= 15:
             prev_macd, _ = SignalEngine._macd_from_ticks(ticks[:-1])
             if prev_macd < macd_signal and macd_line > macd_signal:
-                signal = "ACHETER"
-                reason = "MACD croisement haussier"
+                signal_key = "BUY"
+                reason = "MACD bullish crossover"
             elif prev_macd > macd_signal and macd_line < macd_signal:
-                signal = "VENDRE"
-                reason = "MACD croisement baissier"
+                signal_key = "SELL"
+                reason = "MACD bearish crossover"
 
         if spread_pct < 0.02:
-            if signal == "ATTENDRE":
+            if signal_key == "WAIT":
                 if bid > price * 0.9999:
-                    signal = "ACHETER"
-                    reason = "Spread compressé + pression acheteuse"
+                    signal_key = "BUY"
+                    reason = "Compressed spread + buying pressure"
                 elif ask < price * 1.0001:
-                    signal = "VENDRE"
-                    reason = "Spread compressé + pression vendeuse"
+                    signal_key = "SELL"
+                    reason = "Compressed spread + selling pressure"
 
-        if spread_pct > 0.2 and signal != "ATTENDRE":
-            signal = "ATTENDRE"
-            reason = "Volatilité trop élevée"
+        if spread_pct > 0.2 and signal_key != "WAIT":
+            signal_key = "WAIT"
+            reason = "Volatility too high"
 
         return {
-            "signal": signal,
+            "signal": signal_key,
+            "signal_text": signal_key,  # sera traduit dans le handler
             "reason": reason,
             "price": price,
             "bid": bid,
