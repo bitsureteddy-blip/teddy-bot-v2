@@ -1,7 +1,7 @@
 import json
 import time
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from config import (
     USERS_FILE, USAGE_FILE, SETTINGS_FILE, WATCHLISTS_FILE,
     FREE_DAILY_REQUESTS, ADMIN_ID, TRIAL_DAYS
@@ -33,7 +33,8 @@ class UserManager:
             self.users[user_id] = {
                 "username": "",
                 "role": "free",
-                "joined": time.time()
+                "joined": time.time(),
+                "used_promo_codes": []   # suivi des codes promo utilisés
             }
             self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "en"}
             self.watchlists[user_id] = []
@@ -90,7 +91,10 @@ class UserManager:
         return time.time() < trial_end
 
     def can_use_premium_feature(self, user_id: int) -> bool:
-        return self.is_premium(user_id)
+        # Combine trial et premium
+        if self.is_premium(user_id):
+            return True
+        return self.is_trial_valid(user_id)
 
     def check_limit(self, user_id: int) -> bool:
         if self.is_premium(user_id) or self.is_admin(user_id):
@@ -156,7 +160,7 @@ class UserManager:
     def get_all_users(self) -> list:
         return list(self.users.keys())
 
-    def get_favorites(self, user_id: int) -> list:
+    def get_favorites(self, user_id: int) -> List[str]:
         user_id = str(user_id)
         return self.settings.get(user_id, {}).get("favorites", [])
 
@@ -181,17 +185,24 @@ class UserManager:
 
     def redeem_promo(self, user_id: int, code: str) -> tuple:
         promos = {
-            "TRADERBURUNDI": {"type": "trial_extension", "days": 5},
+            "TRADERBURUNDI": {"type": "trial_extension", "days": 5, "max_uses": 1},
         }
         code = code.upper()
         lang = self.get_setting(user_id, "lang", "en")
         if code not in promos:
             return False, get_text(lang, "redeem_invalid")
-        promo = promos[code]
+        
         user_id = str(user_id)
         user = self.get_user(user_id)
+        used_codes = user.get("used_promo_codes", [])
+        if code in used_codes:
+            return False, get_text(lang, "redeem_already_used")
+        
+        promo = promos[code]
         if promo["type"] == "trial_extension":
             user["joined"] = user.get("joined", time.time()) - (promo["days"] * 24 * 3600)
+            used_codes.append(code)
+            user["used_promo_codes"] = used_codes
             self._save()
             return True, get_text(lang, "redeem_success", message=f"{promo['days']} jours")
         return False, get_text(lang, "redeem_invalid")

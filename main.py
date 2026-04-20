@@ -4,6 +4,7 @@ Teddy Trading Bot - Bitsure Teddy
 """
 
 import logging
+import os
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, PreCheckoutQueryHandler, MessageHandler, filters
 
 from config import TELEGRAM_TOKEN
@@ -29,18 +30,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-async def post_init(application):
-    await application.bot.delete_webhook(drop_pending_updates=True)
-    logger.info("Webhook cleared, ready to poll")
-    DataFetcher.get_instance().start_twelvedata_websocket()
-
 def main():
+    if not TELEGRAM_TOKEN:
+        raise ValueError("TELEGRAM_TOKEN manquant dans l'environnement")
+
     DataFetcher.get_instance()
     UserManager.get_instance()
     AlertManager.get_instance()
 
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).post_init(post_init).build()
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
+    # Commandes
     handlers = [
         ("start", start), ("help", help_command), ("menu", menu_command),
         ("analyse", analyse), ("price", price), ("scalp", scalp), ("tick", tick), ("spread", spread),
@@ -58,6 +58,7 @@ def main():
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))
 
+    # Callbacks
     app.add_handler(CallbackQueryHandler(menu_callback, pattern="^menu_"))
     app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^sym"))
     app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
@@ -67,7 +68,18 @@ def main():
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
 
     logger.info("Teddy Trading Bot started")
-    app.run_polling(drop_pending_updates=True)
+    # Utiliser webhook si configuré, sinon polling
+    webhook_url = os.environ.get("WEBHOOK_URL")
+    if webhook_url:
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=int(os.environ.get("PORT", "8443")),
+            url_path=TELEGRAM_TOKEN,
+            webhook_url=f"{webhook_url}/{TELEGRAM_TOKEN}"
+        )
+        logger.info(f"Webhook set to {webhook_url}")
+    else:
+        app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()

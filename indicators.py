@@ -1,12 +1,12 @@
 """
-Calculs manuels des indicateurs techniques (pas de librairie externe)
+Calculs manuels des indicateurs techniques.
 """
+
 import pandas as pd
 import numpy as np
 from typing import Tuple, Optional
 
 def rsi(close: pd.Series, period: int = 14) -> pd.Series:
-    """Relative Strength Index"""
     delta = close.diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
@@ -18,10 +18,6 @@ def rsi(close: pd.Series, period: int = 14) -> pd.Series:
 
 def stochastic(high: pd.Series, low: pd.Series, close: pd.Series,
                k_period: int = 14, d_period: int = 3, smooth: int = 3) -> Tuple[pd.Series, pd.Series]:
-    """
-    Stochastic Oscillator %K and %D.
-    Retourne (%K, %D)
-    """
     lowest_low = low.rolling(window=k_period).min()
     highest_high = high.rolling(window=k_period).max()
     stoch_k = 100 * ((close - lowest_low) / (highest_high - lowest_low))
@@ -30,12 +26,7 @@ def stochastic(high: pd.Series, low: pd.Series, close: pd.Series,
     return stoch_k_smooth, stoch_d
 
 def adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> Tuple[pd.Series, pd.Series, pd.Series]:
-    """
-    Average Directional Index.
-    Retourne (ADX, +DI, -DI)
-    """
     if len(high) < period + 1:
-        # Données insuffisantes, on retourne des séries de 0
         zeros = pd.Series([0.0] * len(high), index=high.index)
         return zeros, zeros, zeros
 
@@ -53,16 +44,15 @@ def adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> 
     plus_di = 100 * (pd.Series(plus_dm).rolling(window=period).mean() / atr)
     minus_di = 100 * (pd.Series(minus_dm).rolling(window=period).mean() / atr)
 
-    # Remplacer les NaN éventuels par 0
     plus_di = plus_di.fillna(0)
     minus_di = minus_di.fillna(0)
 
     dx = 100 * (abs(plus_di - minus_di) / (plus_di + minus_di))
-    # Éviter division par zéro
     dx = dx.replace([np.inf, -np.inf], 0).fillna(0)
 
     adx = dx.rolling(window=period).mean().fillna(0)
     return adx, plus_di, minus_di
+
 def atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
     tr1 = high - low
     tr2 = (high - close.shift()).abs()
@@ -71,7 +61,6 @@ def atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> 
     return tr.rolling(window=period).mean()
 
 def macd(close: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> Tuple[pd.Series, pd.Series, pd.Series]:
-    """Retourne MACD line, Signal line, Histogram"""
     ema_fast = close.ewm(span=fast, adjust=False).mean()
     ema_slow = close.ewm(span=slow, adjust=False).mean()
     macd_line = ema_fast - ema_slow
@@ -80,7 +69,6 @@ def macd(close: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> T
     return macd_line, signal_line, histogram
 
 def bollinger_bands(close: pd.Series, period: int = 20, std: float = 2.0) -> Tuple[pd.Series, pd.Series, pd.Series]:
-    """Retourne upper, middle (SMA), lower"""
     sma = close.rolling(window=period).mean()
     rolling_std = close.rolling(window=period).std()
     upper = sma + (rolling_std * std)
@@ -90,8 +78,7 @@ def bollinger_bands(close: pd.Series, period: int = 20, std: float = 2.0) -> Tup
 def sma(series: pd.Series, period: int) -> pd.Series:
     return series.rolling(window=period).mean()
 
-def support_resistance(high: pd.Series, low: pd.Series, lookback: int = 50) -> Tuple[float, float]:
-    """Retourne (support, resistance) sur les lookback dernières périodes"""
+def support_resistance(high: pd.Series, low: pd.Series, lookback: int = 50) -> Tuple[Optional[float], Optional[float]]:
     if len(high) < lookback:
         return None, None
     recent_high = high.iloc[-lookback:]
@@ -101,28 +88,27 @@ def support_resistance(high: pd.Series, low: pd.Series, lookback: int = 50) -> T
     return support, resistance
 
 def detect_divergence(close: pd.Series, rsi_series: pd.Series, lookback: int = 5) -> Optional[str]:
-    if len(close) < lookback + 1 or len(rsi_series) < lookback + 1:
+    if len(close) < lookback + 2 or len(rsi_series) < lookback + 2:
         return None
-    price_segment = close.iloc[-lookback-1:]
-    rsi_segment = rsi_series.iloc[-lookback-1:]
-
-    price_min_pos = price_segment.argmin()
-    price_max_pos = price_segment.argmax()
-    rsi_min_pos = rsi_segment.argmin()
-    rsi_max_pos = rsi_segment.argmax()
-
-    # Bullish: prix fait un plus bas récent, RSI fait un plus haut
-    if price_min_pos == len(price_segment) - 1 and rsi_min_pos != price_min_pos:
-        if rsi_segment.iloc[-1] > rsi_segment.iloc[rsi_min_pos]:
-            return "bullish"
-    # Bearish: prix fait un plus haut récent, RSI fait un plus bas
-    if price_max_pos == len(price_segment) - 1 and rsi_max_pos != price_max_pos:
-        if rsi_segment.iloc[-1] < rsi_segment.iloc[rsi_max_pos]:
-            return "bearish"
+    
+    # Recherche des plus bas récents
+    price_segment = close.iloc[-lookback-2:]
+    rsi_segment = rsi_series.iloc[-lookback-2:]
+    
+    price_min_idx = price_segment.idxmin()
+    rsi_min_idx = rsi_segment.idxmin()
+    
+    # Divergence haussière : prix fait un nouveau plus bas, RSI non
+    if price_segment.iloc[-1] <= price_segment.min() and rsi_segment.iloc[-1] > rsi_segment.min():
+        return "bullish"
+    # Divergence baissière : prix fait un nouveau plus haut, RSI non
+    if price_segment.iloc[-1] >= price_segment.max() and rsi_segment.iloc[-1] < rsi_segment.max():
+        return "bearish"
     return None
 
 def fibonacci_levels(high: float, low: float) -> dict:
-    """Calcule les niveaux de retracement Fibonacci."""
+    if high <= low:
+        return {"0.382": low, "0.500": low, "0.618": low}
     diff = high - low
     return {
         "0.382": round(high - diff * 0.382, 5),

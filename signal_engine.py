@@ -1,6 +1,6 @@
 """
-Logique métier : génération des signaux ACHETER/VENDRE/ATTENDRE
-et calcul du Teddy Score.
+Logique métier : génération des signaux BUY/SELL/WAIT
+et calcul du Teddy Score (progressif).
 """
 
 import pandas as pd
@@ -63,7 +63,6 @@ class SignalEngine:
 
         macd_val = macd_line.iloc[-1]
         macd_sig_val = macd_signal_line.iloc[-1]
-        hist_val = hist.iloc[-1]
 
         upper_bb, mid_bb, lower_bb = bollinger_bands(
             close, BB_PERIOD, BB_STD
@@ -87,18 +86,21 @@ class SignalEngine:
         # Niveaux de Fibonacci sur le dernier swing
         recent_high = high.iloc[-50:].max()
         recent_low = low.iloc[-50:].min()
-        fib_levels = fibonacci_levels(recent_high, recent_low)
-
-        # === TENDANCE ===
-        if last_price > sma50:
-            trend = "HAUSSIER"
-        elif last_price < sma50:
-            trend = "BAISSIER"
+        if recent_high > recent_low:
+            fib_levels = fibonacci_levels(recent_high, recent_low)
         else:
-            trend = "NEUTRE"
+            fib_levels = {"0.382": last_price, "0.500": last_price, "0.618": last_price}
 
-        # === TEDDY SCORE AMÉLIORÉ ===
-        teddy_score = SignalEngine._compute_teddy_score(
+        # === TENDANCE (interne en anglais) ===
+        if last_price > sma50:
+            trend = "BULLISH"
+        elif last_price < sma50:
+            trend = "BEARISH"
+        else:
+            trend = "NEUTRAL"
+
+        # === TEDDY SCORE PROGRESSIF ===
+        teddy_score = SignalEngine._compute_teddy_score_progressive(
             df,
             rsi_val,
             stoch_k_val,
@@ -133,16 +135,16 @@ class SignalEngine:
             signal_key = "WAIT"
 
         # === FILTRE DE TENDANCE ===
-        if trend == "HAUSSIER" and signal_key == "SELL" and teddy_score > 30:
+        if trend == "BULLISH" and signal_key == "SELL" and teddy_score > 30:
             signal_key = "WAIT"
-        if trend == "BAISSIER" and signal_key == "BUY" and teddy_score < 70:
+        if trend == "BEARISH" and signal_key == "BUY" and teddy_score < 70:
             signal_key = "WAIT"
 
         # === CALCUL SL / TP ===
         sl = None
         tp = None
         rr_ratio = None
-        if signal_key in ("BUY", "SELL") and atr_val is not None:
+        if signal_key in ("BUY", "SELL") and pd.notna(atr_val) and atr_val > 0:
             sl_distance = atr_val * ATR_MULTIPLIER_SL
             if signal_key == "BUY":
                 sl = last_price - sl_distance
@@ -157,8 +159,9 @@ class SignalEngine:
                 else:
                     tp = last_price - (sl_distance * RR_RATIO_TARGET)
 
-            rr_ratio = abs(tp - last_price) / abs(last_price - sl) if sl != last_price else 0
-            rr_ratio = round(rr_ratio, 2)
+            if sl != last_price:
+                rr_ratio = abs(tp - last_price) / abs(last_price - sl)
+                rr_ratio = round(rr_ratio, 2)
 
         # === RAISON (BILINGUE) ===
         if signal_key == "BUY":
@@ -209,85 +212,67 @@ class SignalEngine:
         }
 
     @staticmethod
-    def _compute_teddy_score(
-        df,
-        rsi_val,
-        stoch_k,
-        stoch_d,
-        adx_val,
-        plus_di,
-        minus_di,
-        sma20,
-        sma50,
-        support,
-        resistance,
-        price,
-        macd,
-        macd_signal,
-        divergence
-    ):
-        score = 50
+    def _compute_teddy_score_progressive(
+        df, rsi_val, stoch_k, stoch_d, adx_val, plus_di, minus_di,
+        sma20, sma50, support, resistance, price, macd, macd_signal, divergence
+    ) -> int:
+        score = 50.0
 
-        # RSI
-        if rsi_val < 40:
-            score += 10
-        elif rsi_val > 60:
-            score -= 10
+        # ----- RSI (progressif) -----
+        if rsi_val < 30:
+            score += (30 - rsi_val) * 1.2
+        elif rsi_val > 70:
+            score -= (rsi_val - 70) * 1.2
 
-        # Stochastic
+        # ----- Stochastic -----
         if stoch_k < 20 and stoch_d < 20:
-            score += 8
+            score += (20 - stoch_k) * 0.8
         elif stoch_k > 80 and stoch_d > 80:
-            score -= 8
-        if stoch_k > stoch_d:
-            score += 4
-        else:
-            score -= 4
+            score -= (stoch_k - 80) * 0.8
 
-        # ADX
-        if adx_val > 25:
+        # ----- ADX -----
+        if adx_val > 20:
             if plus_di > minus_di:
-                score += 10
+                score += min((adx_val - 20) * 0.5, 15)
             else:
-                score -= 10
+                score -= min((adx_val - 20) * 0.5, 15)
 
-        # Tendance
+        # ----- Tendance -----
         if price > sma50:
             score += 8
         else:
             score -= 8
-
         if sma20 > sma50:
-            score += 8
+            score += 6
         else:
-            score -= 8
+            score -= 6
 
-        # Support / Résistance
-        if support is not None and price <= support * 1.02:
-            score += 8
-        if resistance is not None and price >= resistance * 0.98:
-            score -= 8
-
-        # Divergence
-        if divergence == "bullish":
-            score += 12
-        elif divergence == "bearish":
-            score -= 12
-
-        # MACD
-        if macd > macd_signal:
+        # ----- Support / Résistance -----
+        if support and price <= support * 1.02:
             score += 10
-        else:
+        if resistance and price >= resistance * 0.98:
             score -= 10
 
-        # Volume
+        # ----- Divergence -----
+        if divergence == "bullish":
+            score += 15
+        elif divergence == "bearish":
+            score -= 15
+
+        # ----- MACD -----
+        if macd > macd_signal:
+            score += 8
+        else:
+            score -= 8
+
+        # ----- Volume -----
         if "Volume" in df.columns:
             avg_vol = df["Volume"].rolling(20).mean().iloc[-1]
             current_vol = df["Volume"].iloc[-1]
-            if pd.notna(avg_vol) and current_vol > avg_vol * 1.2:
-                score += 5
+            if pd.notna(avg_vol) and current_vol > avg_vol * 1.5:
+                score += 8
 
-        return max(0, min(100, score))
+        return int(max(0, min(100, score)))
 
     # =========================
     # 🚀 SCALPING AVANCÉ
@@ -340,7 +325,7 @@ class SignalEngine:
 
         return {
             "signal": signal_key,
-            "signal_text": signal_key,  # sera traduit dans le handler
+            "signal_text": signal_key,
             "reason": reason,
             "price": price,
             "bid": bid,

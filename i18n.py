@@ -252,6 +252,7 @@ TEXTS = {
         "redeem_usage": "Usage: /redeem CODE",
         "redeem_success": "✅ Code promo appliqué : {message}",
         "redeem_invalid": "❌ Code promo invalide ou expiré.",
+        "redeem_already_used": "❌ Vous avez déjà utilisé ce code promo.",
         "app_message": "📱 *Bitsure Teddy Mobile*\n\nL'application pour Android et iOS est en cours de développement. Elle vous permettra d'accéder à toutes les analyses sans passer par Telegram. Restez à l'écoute ! 🧸",
         "gift_notification": "🎁 Vous avez reçu un accès {role} gratuit pour {days} jours ! Profitez-en !",
 
@@ -557,6 +558,7 @@ TEXTS = {
         "redeem_usage": "Usage: /redeem CODE",
         "redeem_success": "✅ Promo code applied: {message}",
         "redeem_invalid": "❌ Invalid or expired promo code.",
+        "redeem_already_used": "❌ You have already used this promo code.",
         "app_message": "📱 *Bitsure Teddy Mobile*\n\nThe Android and iOS app is currently in development. It will allow you to access all analyses without using Telegram. Stay tuned! 🧸",
         "gift_notification": "🎁 You have been granted free {role} access for {days} days! Enjoy!",
 

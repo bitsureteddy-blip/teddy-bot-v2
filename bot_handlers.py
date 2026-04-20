@@ -246,7 +246,6 @@ async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, c
     for sym in page_symbols:
         keyboard.append([InlineKeyboardButton(sym, callback_data=f"symsel_{command}_{sym}")])
 
-    # Navigation catégories
     nav_row = []
     if category != "fav":
         nav_row.append(InlineKeyboardButton(get_text(lang, "category_fav"), callback_data=f"symcat_{command}_fav_0"))
@@ -256,7 +255,6 @@ async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, c
     nav_row.append(InlineKeyboardButton(get_text(lang, "category_stocks"), callback_data=f"symcat_{command}_stocks_0"))
     keyboard.append(nav_row)
 
-    # Pagination
     if total_pages > 1:
         page_row = []
         if page > 0:
@@ -384,7 +382,7 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     lang = get_user_lang(update)
     if data == "plan_pro_stars":
-        await send_invoice(query, "PRO Mensuel", 1499, "pro_monthly")
+        await send_invoice(query, "PRO Mensuel", 1499, "pro_monthly")  # 14.99€
     elif data == "plan_pro_stripe":
         await query.edit_message_text(get_text(lang, "stripe_soon"))
     else:
@@ -967,7 +965,7 @@ async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callba
     support, resistance = support_resistance(df['High'], df['Low'], 50)
     recent_high = df['High'].iloc[-50:].max()
     recent_low = df['Low'].iloc[-50:].min()
-    fib = fibonacci_levels(recent_high, recent_low)
+    fib = fibonacci_levels(recent_high, recent_low) if recent_high > recent_low else {"0.382": 0, "0.500": 0, "0.618": 0}
     text = get_text(lang, "levels_result", symbol=symbol,
                     support=format_number(support), resistance=format_number(resistance),
                     fib382=format_number(fib['0.382']), fib500=format_number(fib['0.500']), fib618=format_number(fib['0.618']))

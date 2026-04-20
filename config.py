@@ -1,13 +1,18 @@
 import os
 
-# --- Identifiants ---
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
-ADMIN_ID = 8376348929
+# --- Identifiants (strictement via environnement) ---
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+if not TELEGRAM_TOKEN:
+    raise ValueError("❌ TELEGRAM_TOKEN manquant dans l'environnement")
 
-# --- Clés API ---
-FCS_API_KEY = os.environ.get("FCS_API_KEY", "")
-REALMARKET_API_KEY = os.environ.get("REALMARKET_API_KEY", "")
-TWELVEDATA_API_KEY = os.environ.get("TWELVEDATA_API_KEY", "c7b582eed7b24bff942030a3623c6429")
+ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
+if ADMIN_ID == 0:
+    raise ValueError("❌ ADMIN_ID manquant ou invalide dans l'environnement")
+
+# --- Clés API (aucune valeur par défaut sensible) ---
+FCS_API_KEY = os.environ.get("FCS_API_KEY")
+REALMARKET_API_KEY = os.environ.get("REALMARKET_API_KEY")
+TWELVEDATA_API_KEY = os.environ.get("TWELVEDATA_API_KEY")
 
 # --- Limites utilisateur ---
 FREE_DAILY_REQUESTS = 5
@@ -48,10 +53,8 @@ USAGE_FILE = f"{DATA_DIR}/usage.json"
 SIGNALS_HISTORY_FILE = f"{DATA_DIR}/signals_history.json"
 CHALLENGE_SESSIONS_FILE = f"{DATA_DIR}/challenge_sessions.json"
 
-# --- WebSocket RealMarket ---
+# --- WebSocket RealMarket (optionnel) ---
 WS_URL = "wss://api.realmarketapi.com/v1/ws"
 
 # --- Rôles Premium (simplifié) ---
-PREMIUM_ROLES = {
-    "PRO": "pro"
-}
+PREMIUM_ROLES = ["pro"]

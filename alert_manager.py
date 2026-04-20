@@ -37,27 +37,31 @@ class AlertManager:
         from data_fetcher import DataFetcher
         fetcher = DataFetcher.get_instance()
         while self.running:
-            with self.lock:
-                alerts_copy = {uid: list(alerts) for uid, alerts in self.alerts.items()}
-            for user_id, alerts in alerts_copy.items():
-                for alert in alerts:
-                    if alert.get("triggered"):
-                        continue
-                    price_data = await fetcher.get_realtime_price(alert["symbol"])
-                    if not price_data:
-                        continue
-                    current_price = price_data["price"]
-                    condition_met = False
-                    if alert["condition"] == "above" and current_price >= alert["price"]:
-                        condition_met = True
-                    elif alert["condition"] == "below" and current_price <= alert["price"]:
-                        condition_met = True
-                    if condition_met:
-                        alert["triggered"] = True
-                        await self._notify_user(bot_app, user_id, alert, current_price)
-            with self.lock:
-                save_json(ALERTS_FILE, self.alerts)
-            await asyncio.sleep(10)
+            try:
+                with self.lock:
+                    alerts_copy = {uid: list(alerts) for uid, alerts in self.alerts.items()}
+                for user_id, alerts in alerts_copy.items():
+                    for alert in alerts:
+                        if alert.get("triggered"):
+                            continue
+                        price_data = await fetcher.get_realtime_price(alert["symbol"])
+                        if not price_data:
+                            continue
+                        current_price = price_data["price"]
+                        condition_met = False
+                        if alert["condition"] == "above" and current_price >= alert["price"]:
+                            condition_met = True
+                        elif alert["condition"] == "below" and current_price <= alert["price"]:
+                            condition_met = True
+                        if condition_met:
+                            alert["triggered"] = True
+                            await self._notify_user(bot_app, user_id, alert, current_price)
+                with self.lock:
+                    save_json(ALERTS_FILE, self.alerts)
+                await asyncio.sleep(10)
+            except Exception as e:
+                print(f"Alert monitoring error: {e}")
+                await asyncio.sleep(30)
 
     async def _notify_user(self, bot_app, user_id: str, alert: Dict, current_price: float):
         try:
