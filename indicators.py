@@ -34,6 +34,11 @@ def adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> 
     Average Directional Index.
     Retourne (ADX, +DI, -DI)
     """
+    if len(high) < period + 1:
+        # Données insuffisantes, on retourne des séries de 0
+        zeros = pd.Series([0.0] * len(high), index=high.index)
+        return zeros, zeros, zeros
+
     tr1 = high - low
     tr2 = (high - close.shift()).abs()
     tr3 = (low - close.shift()).abs()
@@ -48,10 +53,16 @@ def adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> 
     plus_di = 100 * (pd.Series(plus_dm).rolling(window=period).mean() / atr)
     minus_di = 100 * (pd.Series(minus_dm).rolling(window=period).mean() / atr)
 
-    dx = 100 * (abs(plus_di - minus_di) / (plus_di + minus_di))
-    adx = dx.rolling(window=period).mean()
-    return adx, plus_di, minus_di
+    # Remplacer les NaN éventuels par 0
+    plus_di = plus_di.fillna(0)
+    minus_di = minus_di.fillna(0)
 
+    dx = 100 * (abs(plus_di - minus_di) / (plus_di + minus_di))
+    # Éviter division par zéro
+    dx = dx.replace([np.inf, -np.inf], 0).fillna(0)
+
+    adx = dx.rolling(window=period).mean().fillna(0)
+    return adx, plus_di, minus_di
 def atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
     tr1 = high - low
     tr2 = (high - close.shift()).abs()

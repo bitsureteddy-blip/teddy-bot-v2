@@ -53,7 +53,9 @@ class SignalEngine:
         stoch_d_val = stoch_d.iloc[-1]
 
         adx_series, plus_di, minus_di = adx(high, low, close, ADX_PERIOD)
-        adx_val = adx_series.iloc[-1]
+adx_val = adx_series.iloc[-1]
+if pd.isna(adx_val):
+    adx_val = 0.0]
 
         macd_line, macd_signal_line, hist = macd(
             close, MACD_FAST, MACD_SLOW, MACD_SIGNAL

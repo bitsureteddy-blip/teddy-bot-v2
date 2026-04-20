@@ -664,7 +664,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
                        rsi=ind['rsi'],
                        stoch_k=ind.get('stoch_k', 0),
                        stoch_d=ind.get('stoch_d', 0),
-                       adx=ind.get('adx', 0),
+                       adx=ind.get('adx') if pd.notna(ind.get('adx')) else 0.0,
                        sma20=format_number(ind['sma20']),
                        sma50=format_number(ind['sma50']),
                        teddy_score=result['teddy_score'])
