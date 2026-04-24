@@ -60,6 +60,7 @@ def main():
 
     # Callbacks
     app.add_handler(CallbackQueryHandler(menu_callback, pattern="^menu_"))
+    app.add_handler(CallbackQueryHandler(menu_callback, pattern="^exec_"))
     app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^sym"))
     app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
     app.add_handler(CallbackQueryHandler(revoke_callback, pattern="^revoke_"))
