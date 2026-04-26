@@ -58,12 +58,14 @@ def main():
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))
 
-   # Callbacks
-app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_)"))
-app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^(symcat_|sympage_|symsel_|noop)"))
-app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
-app.add_handler(CallbackQueryHandler(revoke_callback, pattern="^revoke_"))
-app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
+    # Callbacks (CORRIGÉS)
+    app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_)"))
+    app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^(symcat_|sympage_|symsel_|noop)"))
+    app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
+    app.add_handler(CallbackQueryHandler(revoke_callback, pattern="^revoke_"))
+    app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
+    app.add_handler(PreCheckoutQueryHandler(pre_checkout))
+    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
 
     logger.info("Teddy Trading Bot started")
     # Utiliser webhook si configuré, sinon polling
