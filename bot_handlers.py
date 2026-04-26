@@ -234,70 +234,151 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_edit(get_text(lang, "menu_title"), keyboard)
 
     # --- Exécution réelle des commandes ---
-    elif data.startswith("cmd_"):
-        cmd = data.replace("cmd_", "")
+   elif data.startswith("cmd_"):
+    cmd = data.replace("cmd_", "")
+    message = query.message
+    chat_id = update.effective_chat.id
 
-        # Commandes qui demandent un symbole → sélection de symbole
-        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread"]:
-            await symbol_selection(update, context, cmd)
+    # Commandes qui demandent un symbole → sélection de symbole
+    if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread"]:
+        await symbol_selection(update, context, cmd)
 
-        # Commandes avec exécution directe
-        elif cmd == "scalp":
-            # scalp a besoin de plus d'arguments, on rappelle l'usage
-            await query.edit_message_text(get_text(lang, "scalp_usage"))
-        elif cmd == "alert":
-            await query.edit_message_text(get_text(lang, "alert_usage"))
-        elif cmd == "alerts":
-            await alerts(update, context)
-        elif cmd == "delalert":
-            await query.edit_message_text(get_text(lang, "delalert_usage"))
-        elif cmd == "clearalerts":
-            await clearalerts(update, context)
-        elif cmd == "watchlist":
-            await watchlist(update, context)
-        elif cmd == "addwatch":
-            await query.edit_message_text(get_text(lang, "addwatch_usage"))
-        elif cmd == "removewatch":
-            await query.edit_message_text(get_text(lang, "removewatch_usage"))
-        elif cmd == "scan":
-            await scan(update, context)
-        elif cmd == "settings":
-            await settings(update, context)
-        elif cmd == "settimeframe":
-            await query.edit_message_text(get_text(lang, "settimeframe_usage"))
-        elif cmd == "setrisk":
-            await query.edit_message_text(get_text(lang, "setrisk_usage"))
-        elif cmd == "setlanguage":
-            await query.edit_message_text(get_text(lang, "setlanguage_usage"))
-        elif cmd == "usage":
-            await usage(update, context)
-        elif cmd == "upgrade":
-            await upgrade(update, context)
-        elif cmd == "help":
-            await help_command(update, context)
-        elif cmd == "about":
-            await about(update, context)
-        elif cmd == "status":
-            await status(update, context)
-        elif cmd == "support":
-            await support(update, context)
-        elif cmd == "myid":
-            await myid(update, context)
-        elif cmd == "symboles":
-            await symboles(update, context)
-        elif cmd == "learn":
-            await query.edit_message_text(get_text(lang, "learn_usage"))
-        elif cmd == "challenge":
-            await challenge(update, context)
-        elif cmd == "historique":
-            await historique(update, context)
-        elif cmd == "snapshot":
-            await snapshot(update, context)
-        elif cmd == "verify":
-            await query.edit_message_text(get_text(lang, "verify_usage"))
+    # Commandes exécutées directement
+    elif cmd == "alerts":
+        alerts_list = alert_mgr.get_alerts(user_id)
+        if not alerts_list:
+            await message.reply_text(get_text(lang, "alerts_empty"))
         else:
-            await query.edit_message_text(get_text(lang, "unknown_command"))
+            text = get_text(lang, "alerts_list_title")
+            for a in alerts_list:
+                status = "✅" if a.get("triggered") else "⏳"
+                text += f"{status} #{a['id']} {a['symbol']} {a['condition']} {a['price']}\n"
+            await message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
+    elif cmd == "clearalerts":
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "confirm_yes"), callback_data="clearalerts_confirm")],
+            [InlineKeyboardButton(get_text(lang, "confirm_no"), callback_data="clearalerts_cancel")]
+        ]
+        await message.reply_text(get_text(lang, "clearalerts_confirm"), reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif cmd == "watchlist":
+        wl = user_mgr.get_watchlist(user_id)
+        if not wl:
+            await message.reply_text(get_text(lang, "watchlist_empty"))
+        else:
+            await message.reply_text(
+                get_text(lang, "watchlist_show", symbols="\n".join(wl)),
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+    elif cmd == "scan":
+        wl = user_mgr.get_watchlist(user_id)
+        if not wl:
+            await message.reply_text(get_text(lang, "watchlist_scan_empty"))
+        else:
+            results = []
+            for sym in wl:
+                df = await fetcher.get_historical_data(sym)
+                if df is not None and not df.empty:
+                    res = SignalEngine.analyze(df, lang)
+                    results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
+                else:
+                    results.append(f"{sym}: {get_text(lang, 'data_unavailable')}")
+            await message.reply_text(
+                get_text(lang, "watchlist_scan_result", results="\n".join(results)),
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+    elif cmd == "settings":
+        uid = user_id
+        lang2 = user_mgr.get_setting(uid, "lang", "en")
+        tf = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
+        risk = user_mgr.get_setting(uid, "risk", "medium")
+        role = user_mgr.get_role(uid)
+        prem = "✅" if role == "pro" else "❌"
+        await message.reply_text(
+            get_text(lang2, "settings_info", tf=tf, risk=risk, lang_name=lang2.upper(), role=role.upper(), prem=prem),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    elif cmd == "usage":
+        rem = user_mgr.get_remaining_requests(user_id)
+        if rem == -1:
+            await message.reply_text(get_text(lang, "usage_unlimited"))
+        else:
+            await message.reply_text(get_text(lang, "usage_requests_remaining", rem=rem))
+
+    elif cmd == "help":
+        text = get_text(lang, "help_full")
+        if user_id == ADMIN_ID:
+            text += get_text(lang, "help_admin")
+        await message.reply_text(text)
+
+    elif cmd == "about":
+        await message.reply_text(get_text(lang, "about"))
+
+    elif cmd == "status":
+        await message.reply_text(get_text(lang, "status_ok"))
+
+    elif cmd == "support":
+        await message.reply_text(get_text(lang, "support"))
+
+    elif cmd == "myid":
+        await message.reply_text(get_text(lang, "myid", user_id=user_id), parse_mode=ParseMode.MARKDOWN)
+
+    elif cmd == "symboles":
+        await message.reply_text(get_text(lang, "symboles_list"), parse_mode=ParseMode.MARKDOWN)
+
+    elif cmd == "challenge":
+        await challenge(update, context)
+        return
+
+    elif cmd == "historique":
+        signals = history_mgr.get_recent_signals(10)
+        if not signals:
+            await message.reply_text(get_text(lang, "history_empty"))
+        else:
+            text = get_text(lang, "history_title")
+            for s in signals:
+                status = "✅" if s['status'] == 'win' else "❌" if s['status'] == 'loss' else "⏳"
+                text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:10]})\n"
+            await message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+    elif cmd == "snapshot":
+        signals = history_mgr.get_recent_signals(1)
+        if not signals:
+            await message.reply_text(get_text(lang, "no_recent_analysis"))
+        else:
+            await snapshot(update, context)
+        return
+
+    elif cmd == "upgrade":
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
+            [InlineKeyboardButton(get_text(lang, "button_pro_stripe"), callback_data="plan_pro_stripe")],
+        ]
+        await message.reply_text(
+            get_text(lang, "upgrade_title"),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    # Pour les commandes qui nécessitent plus d'arguments, on affiche l'usage
+    else:
+        usage_map = {
+            "scalp": "scalp_usage",
+            "alert": "alert_usage",
+            "delalert": "delalert_usage",
+            "addwatch": "addwatch_usage",
+            "removewatch": "removewatch_usage",
+            "settimeframe": "settimeframe_usage",
+            "setrisk": "setrisk_usage",
+            "setlanguage": "setlanguage_usage",
+            "learn": "learn_usage",
+            "verify": "verify_usage",
+        }
+        await message.reply_text(get_text(lang, usage_map.get(cmd, "unknown_command")))
 # ---------- SÉLECTION DE SYMBOLE PAR BOUTONS ----------
 async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str, page: int = 0, category: str = "crypto"):
     query = update.callback_query
