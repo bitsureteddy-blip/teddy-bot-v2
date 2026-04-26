@@ -123,11 +123,12 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(get_text(lang, "menu_title"), reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
-async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
     lang = get_user_lang(update)
+    user_id = update.effective_user.id
 
     def safe_edit(text, keyboard):
         try:
@@ -143,6 +144,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.MARKDOWN
             )
 
+    # --- Sous-menus ---
     if data == "menu_analyse":
         keyboard = [
             [InlineKeyboardButton("/analyse", callback_data="cmd_analyse")],
@@ -154,7 +156,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*Analyse*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-        return
 
     elif data == "menu_scalping":
         keyboard = [
@@ -164,7 +165,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*Scalping*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-        return
 
     elif data == "menu_alertes":
         keyboard = [
@@ -175,7 +175,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*Alertes*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-        return
 
     elif data == "menu_watchlist":
         keyboard = [
@@ -186,7 +185,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*Watchlist*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-        return
 
     elif data == "menu_parametres":
         keyboard = [
@@ -199,7 +197,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*Paramètres*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-        return
 
     elif data == "menu_challenge":
         keyboard = [
@@ -210,7 +207,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*Challenge*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-        return
 
     elif data == "menu_aide":
         keyboard = [
@@ -224,7 +220,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*Aide*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-        return
 
     elif data == "menu_back":
         keyboard = [
@@ -237,28 +232,71 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "menu_aide"), callback_data="menu_aide")],
         ]
         await safe_edit(get_text(lang, "menu_title"), keyboard)
-        return
 
+    # --- Exécution réelle des commandes ---
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
+
+        # Commandes qui demandent un symbole → sélection de symbole
         if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread"]:
             await symbol_selection(update, context, cmd)
-            return
+
+        # Commandes avec exécution directe
         elif cmd == "scalp":
+            # scalp a besoin de plus d'arguments, on rappelle l'usage
             await query.edit_message_text(get_text(lang, "scalp_usage"))
-            return
         elif cmd == "alert":
             await query.edit_message_text(get_text(lang, "alert_usage"))
-            return
-        elif cmd in ["alerts", "delalert", "clearalerts", "watchlist", "addwatch", "removewatch", "scan",
-                     "settings", "settimeframe", "setrisk", "setlanguage", "usage", "upgrade",
-                     "help", "about", "status", "support", "myid", "symboles", "learn",
-                     "challenge", "historique", "snapshot", "verify"]:
-            await query.edit_message_text(get_text(lang, "use_command").format(cmd=cmd))
-            return
+        elif cmd == "alerts":
+            await alerts(update, context)
+        elif cmd == "delalert":
+            await query.edit_message_text(get_text(lang, "delalert_usage"))
+        elif cmd == "clearalerts":
+            await clearalerts(update, context)
+        elif cmd == "watchlist":
+            await watchlist(update, context)
+        elif cmd == "addwatch":
+            await query.edit_message_text(get_text(lang, "addwatch_usage"))
+        elif cmd == "removewatch":
+            await query.edit_message_text(get_text(lang, "removewatch_usage"))
+        elif cmd == "scan":
+            await scan(update, context)
+        elif cmd == "settings":
+            await settings(update, context)
+        elif cmd == "settimeframe":
+            await query.edit_message_text(get_text(lang, "settimeframe_usage"))
+        elif cmd == "setrisk":
+            await query.edit_message_text(get_text(lang, "setrisk_usage"))
+        elif cmd == "setlanguage":
+            await query.edit_message_text(get_text(lang, "setlanguage_usage"))
+        elif cmd == "usage":
+            await usage(update, context)
+        elif cmd == "upgrade":
+            await upgrade(update, context)
+        elif cmd == "help":
+            await help_command(update, context)
+        elif cmd == "about":
+            await about(update, context)
+        elif cmd == "status":
+            await status(update, context)
+        elif cmd == "support":
+            await support(update, context)
+        elif cmd == "myid":
+            await myid(update, context)
+        elif cmd == "symboles":
+            await symboles(update, context)
+        elif cmd == "learn":
+            await query.edit_message_text(get_text(lang, "learn_usage"))
+        elif cmd == "challenge":
+            await challenge(update, context)
+        elif cmd == "historique":
+            await historique(update, context)
+        elif cmd == "snapshot":
+            await snapshot(update, context)
+        elif cmd == "verify":
+            await query.edit_message_text(get_text(lang, "verify_usage"))
         else:
-            await query.edit_message_text(get_text(lang, "unknown_command").format(cmd=cmd))
-            return
+            await query.edit_message_text(get_text(lang, "unknown_command"))
 
 # ---------- SÉLECTION DE SYMBOLE PAR BOUTONS ----------
 async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str, page: int = 0, category: str = "crypto"):
