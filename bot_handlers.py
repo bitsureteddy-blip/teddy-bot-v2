@@ -867,7 +867,7 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ticks = fetcher.tick_history.get(symbol, [])
     if len(ticks) < 14:
         base_price = price_data["price"]
-        ticks = [base_price * (1 + random.uniform(-0.0002, 0.0002)) for _ in range(20)]
+        pass
 
     result = SignalEngine.analyze_scalp(ticks, price_data, int(duration))
 

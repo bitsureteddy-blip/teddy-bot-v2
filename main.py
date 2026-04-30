@@ -66,6 +66,7 @@ def main():
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
 
     logger.info("Teddy Trading Bot started")
+    DataFetcher.get_instance().start_binance_ws()
     # Utiliser webhook si configuré, sinon polling
     webhook_url = os.environ.get("WEBHOOK_URL")
     if webhook_url:
