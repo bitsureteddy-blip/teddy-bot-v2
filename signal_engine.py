@@ -162,6 +162,14 @@ class SignalEngine:
             if sl != last_price:
                 rr_ratio = abs(tp - last_price) / abs(last_price - sl)
                 rr_ratio = round(rr_ratio, 2)
+         # === BONUS/MALUS R/R DANS LE TEDDY SCORE ===
+        if rr_ratio is not None:
+            if rr_ratio >= 2.0:
+                teddy_score += 8
+            elif rr_ratio >= 1.5:
+                teddy_score += 4
+            elif rr_ratio < 1.0:
+                teddy_score -= 10
 
         # === RAISON (BILINGUE) ===
         if signal_key == "BUY":
