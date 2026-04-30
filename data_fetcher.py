@@ -21,18 +21,17 @@ logger = logging.getLogger(__name__)
 
 class DataFetcher:
     _instance = None
-
-    def __init__(self):
+def __init__(self):
         self.price_cache = {}
         self.history_cache = {}
-
         self.ws_twelvedata = None
         self.ws_thread = None
         self.ws_running = False
         self.subscribed_symbols = set()
         self.ws_authenticated = False
-
         self.tick_history = {}
+        self.ws = None              # <-- AJOUTE ICI
+        self.ws_thread = None       # <-- ET ICI
 
     @classmethod
     def get_instance(cls):
@@ -301,3 +300,33 @@ class DataFetcher:
         except Exception as e:
             logger.warning(f"FCS fallback error: {e}")
         return None
+    def on_message(self, ws, message):
+        """Reçoit un tick de Binance et le stocke."""
+        import json
+        data = json.loads(message)
+        price = float(data['p'])
+        symbol = "BTCUSD"
+        self.add_tick(symbol, price)
+
+    def on_error(self, ws, error):
+        logger.error(f"WebSocket error: {error}")
+
+    def on_close(self, ws, close_status_code, close_msg):
+        logger.info("Binance WebSocket closed")
+
+    def on_open(self, ws):
+        logger.info("✅ Binance WebSocket connecté")
+
+        def start_binance_ws(self):
+        """Lance le flux Binance dans un thread séparé."""
+        ws_url = "wss://stream.binance.com:9443/ws/btcusdt@trade"
+        self.ws = websocket.WebSocketApp(
+            ws_url,
+            on_message=self.on_message,
+            on_error=self.on_error,
+            on_close=self.on_close,
+            on_open=self.on_open
+        )
+        self.ws_thread = threading.Thread(target=self.ws.run_forever)
+        self.ws_thread.daemon = True
+        self.ws_thread.start()
