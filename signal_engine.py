@@ -126,12 +126,22 @@ class SignalEngine:
         else:
             confidence = get_text(lang, "confidence_low")
 
-        # === SIGNAL (clé interne) ===
+                # === SIGNAL (clé interne) ===
         if teddy_score >= 55:
             signal_key = "BUY"
         elif teddy_score <= 45:
             signal_key = "SELL"
         else:
+            signal_key = "WAIT"
+
+        # === FILTRES DE SURACHAT/SURVENTE ===
+        if signal_key == "BUY" and rsi_val > 70:
+            signal_key = "WAIT"
+        if signal_key == "SELL" and rsi_val < 30:
+            signal_key = "WAIT"
+        if signal_key == "BUY" and stoch_k_val > 80:
+            signal_key = "WAIT"
+        if signal_key == "SELL" and stoch_k_val < 20:
             signal_key = "WAIT"
 
         # === FILTRE DE TENDANCE ===
