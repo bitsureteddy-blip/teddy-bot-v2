@@ -10,14 +10,12 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 from config import TELEGRAM_TOKEN
 from bot_handlers import (
     start, help_command, analyse, price, scalp, tick, spread,
-    alert, alerts, delalert, clearalerts, addwatch,
-    removewatch, watchlist, scan, trend, volatility, correlation, levels,
+    alert, alerts, delalert, clearalerts, trend, volatility, correlation, levels,
     settings, settimeframe, setrisk, setlanguage, usage,
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
     upgrade, plan_callback, pre_checkout, successful_payment,
-    support, setrole, symboles, gift, revoke, redeem,
-    app_command, challenge, snapshot, verify, historique,
-    menu_command, menu_callback, symbol_callback, clearalerts_callback, revoke_callback,
+    support, challenge, snapshot, verify, historique,
+    menu_command, menu_callback, symbol_callback, clearalerts_callback,
     sentiment, compare, top, fav, learn
 )
 from data_fetcher import DataFetcher
@@ -46,13 +44,11 @@ def main():
         ("start", start), ("help", help_command), ("menu", menu_command),
         ("analyse", analyse), ("price", price), ("scalp", scalp), ("tick", tick), ("spread", spread),
         ("alert", alert), ("alerts", alerts), ("delalert", delalert), ("clearalerts", clearalerts),
-        ("watchlist", watchlist), ("addwatch", addwatch), ("removewatch", removewatch), ("scan", scan),
         ("trend", trend), ("volatility", volatility), ("correlation", correlation), ("levels", levels),
         ("settings", settings), ("settimeframe", settimeframe), ("setrisk", setrisk), ("setlanguage", setlanguage),
         ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
-        ("support", support), ("setrole", setrole), ("symboles", symboles), ("gift", gift),
-        ("revoke", revoke), ("redeem", redeem), ("app", app_command),
+        ("support", support),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
         ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn)
     ]
@@ -63,7 +59,6 @@ def main():
     app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_)"))
     app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^(symcat_|sympage_|symsel_|noop)"))
     app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
-    app.add_handler(CallbackQueryHandler(revoke_callback, pattern="^revoke_"))
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
 
     logger.info("Teddy Trading Bot started")
