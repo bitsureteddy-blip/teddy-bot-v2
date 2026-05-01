@@ -655,21 +655,21 @@ async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback
 
 @check_limit
 @premium_required
-async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
     lang = get_user_lang(update)
     if len(context.args) < 2:
-        await update.message.reply_text(get_text(lang, "scalp_usage"))
+        await respond(update, get_text(lang, "scalp_usage"))
         return
     symbol = context.args[0].upper()
     duration = context.args[1]
     if duration not in ("3", "5", "10", "20"):
-        await update.message.reply_text(get_text(lang, "scalp_invalid_duration"))
+        await respond(update, get_text(lang, "scalp_invalid_duration"))
         return
 
     fetcher.subscribe_twelvedata(symbol)
     price_data = await fetcher.get_realtime_price(symbol)
     if not price_data:
-        await update.message.reply_text(get_text(lang, "realtime_data_error"))
+        await respond(update, get_text(lang, "realtime_data_error"))
         return
 
     ticks = fetcher.tick_history.get(symbol, [])
@@ -686,7 +686,8 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     signal_text = signal_map.get(result['signal'], result['signal'])
 
-    await update.message.reply_text(
+    await respond(
+        update,
         get_text(lang, "scalp_result",
                  symbol=symbol,
                  duration=duration,
