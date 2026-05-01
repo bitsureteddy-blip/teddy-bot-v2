@@ -531,6 +531,26 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=reply_markup
     )
+async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    lang = get_user_lang(update)
+    if data == "plan_pro_stars":
+        await send_invoice(query, "PRO Mensuel", 1499, "pro_monthly")
+    elif data == "plan_pro_stripe":
+        await query.edit_message_text(get_text(lang, "stripe_soon"))
+    elif data == "plan_binance":
+        await query.edit_message_text(
+            "₿ Payez en USDC sur Binance Junior.\n\n"
+            "1. Ouvrez Binance Junior\n"
+            "2. Envoyez 19,99$ en USDC à :\n"
+            "`VOTRE_ADRESSE_USDC`\n\n"
+            "Contactez @btsr_teddy09 après le paiement.",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    else:
+        await query.edit_message_text("Option non disponible.")
 
 # ... (tout le reste du fichier inchangé jusqu'à la fin)
 
