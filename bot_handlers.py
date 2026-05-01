@@ -57,7 +57,7 @@ async def respond(update: Update, text: str, **kwargs):
         await update.message.reply_text(text, **kwargs)
 
 def check_limit(func):
-    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
         if not user_mgr.check_limit(user_id):
@@ -68,11 +68,11 @@ def check_limit(func):
                 await update.message.reply_text(get_text(lang, "limit_reached"))
                 return
         user_mgr.increment_usage(user_id)
-        return await func(update, context)
+        return await func(update, context, *args, **kwargs)
     return wrapper
 
 def premium_required(func):
-    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
         if not user_mgr.can_use_premium_feature(user_id):
@@ -83,7 +83,7 @@ def premium_required(func):
             else:
                 await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
                 return
-        return await func(update, context)
+        return await func(update, context, *args, **kwargs)
     return wrapper
 
 async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, role: str, method: str):
