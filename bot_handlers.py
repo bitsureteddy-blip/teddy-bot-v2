@@ -31,13 +31,14 @@ alert_mgr = AlertManager.get_instance()
 history_mgr = HistoryManager.get_instance()
 challenge_mgr = ChallengeManager.get_instance()
 
-# Symboles populaires pour les menus
-POPULAR_SYMBOLS = {
-    "crypto": ["BTCUSD", "ETHUSD", "XRPUSD", "SOLUSD", "ADAUSD", "BNBUSD"],
-    "forex": ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF"],
-    "commodities": ["XAUUSD", "XAGUSD", "USOIL", "UKOIL"],
-    "stocks": ["AAPL", "TSLA", "MSFT", "GOOGL", "AMZN", "NVDA"]
-}
+# 15 symboles PRO
+SYMBOLS_15 = [
+    "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
+    "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
+    "XAUUSD", "USOIL", "XAGUSD",
+    "AAPL", "TSLA", "NVDA",
+    "SPX500", "NAS100"
+]
 
 def generate_signal_id():
     raw = f"{time.time()}-{random.random()}"
@@ -117,8 +118,7 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
         [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
         [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
-        [InlineKeyboardButton(get_text(lang, "menu_challenge"), callback_data="menu_challenge")],
-        [InlineKeyboardButton(get_text(lang, "menu_aide"), callback_data="menu_aide")],
+        [InlineKeyboardButton(get_text(lang, "menu_upgrade"), callback_data="menu_upgrade")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(get_text(lang, "menu_title"), reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
@@ -147,79 +147,63 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Sous-menus ---
     if data == "menu_analyse":
         keyboard = [
-            [InlineKeyboardButton("/analyse", callback_data="cmd_analyse")],
-            [InlineKeyboardButton("/price", callback_data="cmd_price")],
-            [InlineKeyboardButton("/trend", callback_data="cmd_trend")],
-            [InlineKeyboardButton("/volatility", callback_data="cmd_volatility")],
-            [InlineKeyboardButton("/levels", callback_data="cmd_levels")],
-            [InlineKeyboardButton("/symbolinfo", callback_data="cmd_symbolinfo")],
+            [InlineKeyboardButton(get_text(lang, "btn_analyse"), callback_data="cmd_analyse")],
+            [InlineKeyboardButton(get_text(lang, "btn_price"), callback_data="cmd_price")],
+            [InlineKeyboardButton(get_text(lang, "btn_trend"), callback_data="cmd_trend")],
+            [InlineKeyboardButton(get_text(lang, "btn_volatility"), callback_data="cmd_volatility")],
+            [InlineKeyboardButton(get_text(lang, "btn_levels"), callback_data="cmd_levels")],
+            [InlineKeyboardButton(get_text(lang, "btn_symbolinfo"), callback_data="cmd_symbolinfo")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
-        await safe_edit(f"*Analyse*\n{get_text(lang, 'menu_choose_command')}", keyboard)
+        await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
     elif data == "menu_scalping":
         keyboard = [
-            [InlineKeyboardButton("/scalp", callback_data="cmd_scalp")],
-            [InlineKeyboardButton("/tick", callback_data="cmd_tick")],
-            [InlineKeyboardButton("/spread", callback_data="cmd_spread")],
+            [InlineKeyboardButton(get_text(lang, "btn_scalp"), callback_data="cmd_scalp")],
+            [InlineKeyboardButton(get_text(lang, "btn_tick"), callback_data="cmd_tick")],
+            [InlineKeyboardButton(get_text(lang, "btn_spread"), callback_data="cmd_spread")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
-        await safe_edit(f"*Scalping*\n{get_text(lang, 'menu_choose_command')}", keyboard)
+        await safe_edit(f"*{get_text(lang, 'menu_scalping')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
     elif data == "menu_alertes":
         keyboard = [
-            [InlineKeyboardButton("/alert", callback_data="cmd_alert")],
-            [InlineKeyboardButton("/alerts", callback_data="cmd_alerts")],
-            [InlineKeyboardButton("/delalert", callback_data="cmd_delalert")],
-            [InlineKeyboardButton("/clearalerts", callback_data="cmd_clearalerts")],
+            [InlineKeyboardButton(get_text(lang, "btn_alert"), callback_data="cmd_alert")],
+            [InlineKeyboardButton(get_text(lang, "btn_alerts"), callback_data="cmd_alerts")],
+            [InlineKeyboardButton(get_text(lang, "btn_delalert"), callback_data="cmd_delalert")],
+            [InlineKeyboardButton(get_text(lang, "btn_clearalerts"), callback_data="cmd_clearalerts")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
-        await safe_edit(f"*Alertes*\n{get_text(lang, 'menu_choose_command')}", keyboard)
+        await safe_edit(f"*{get_text(lang, 'menu_alertes')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
     elif data == "menu_watchlist":
         keyboard = [
-            [InlineKeyboardButton("/watchlist", callback_data="cmd_watchlist")],
-            [InlineKeyboardButton("/addwatch", callback_data="cmd_addwatch")],
-            [InlineKeyboardButton("/removewatch", callback_data="cmd_removewatch")],
-            [InlineKeyboardButton("/scan", callback_data="cmd_scan")],
+            [InlineKeyboardButton(get_text(lang, "btn_watchlist"), callback_data="cmd_watchlist")],
+            [InlineKeyboardButton(get_text(lang, "btn_addwatch"), callback_data="cmd_addwatch")],
+            [InlineKeyboardButton(get_text(lang, "btn_removewatch"), callback_data="cmd_removewatch")],
+            [InlineKeyboardButton(get_text(lang, "btn_scan"), callback_data="cmd_scan")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
-        await safe_edit(f"*Watchlist*\n{get_text(lang, 'menu_choose_command')}", keyboard)
+        await safe_edit(f"*{get_text(lang, 'menu_watchlist')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
     elif data == "menu_parametres":
         keyboard = [
-            [InlineKeyboardButton("/settings", callback_data="cmd_settings")],
-            [InlineKeyboardButton("/settimeframe", callback_data="cmd_settimeframe")],
-            [InlineKeyboardButton("/setrisk", callback_data="cmd_setrisk")],
-            [InlineKeyboardButton("/setlanguage", callback_data="cmd_setlanguage")],
-            [InlineKeyboardButton("/usage", callback_data="cmd_usage")],
-            [InlineKeyboardButton("/upgrade", callback_data="cmd_upgrade")],
+            [InlineKeyboardButton(get_text(lang, "btn_settings"), callback_data="cmd_settings")],
+            [InlineKeyboardButton(get_text(lang, "btn_settimeframe"), callback_data="cmd_settimeframe")],
+            [InlineKeyboardButton(get_text(lang, "btn_setlanguage"), callback_data="cmd_setlanguage")],
+            [InlineKeyboardButton(get_text(lang, "btn_usage"), callback_data="cmd_usage")],
+            [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
-        await safe_edit(f"*Paramètres*\n{get_text(lang, 'menu_choose_command')}", keyboard)
+        await safe_edit(f"*{get_text(lang, 'menu_parametres')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
-    elif data == "menu_challenge":
+    elif data == "menu_upgrade":
         keyboard = [
-            [InlineKeyboardButton("/challenge", callback_data="cmd_challenge")],
-            [InlineKeyboardButton("/historique", callback_data="cmd_historique")],
-            [InlineKeyboardButton("/snapshot", callback_data="cmd_snapshot")],
-            [InlineKeyboardButton("/verify", callback_data="cmd_verify")],
+            [InlineKeyboardButton("⭐ PRO 19,99€/mois (Telegram Stars)", callback_data="plan_pro_stars")],
+            [InlineKeyboardButton("₿ Payer en USDC (Binance Junior)", callback_data="plan_binance")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
-        await safe_edit(f"*Challenge*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-
-    elif data == "menu_aide":
-        keyboard = [
-            [InlineKeyboardButton("/help", callback_data="cmd_help")],
-            [InlineKeyboardButton("/about", callback_data="cmd_about")],
-            [InlineKeyboardButton("/status", callback_data="cmd_status")],
-            [InlineKeyboardButton("/support", callback_data="cmd_support")],
-            [InlineKeyboardButton("/myid", callback_data="cmd_myid")],
-            [InlineKeyboardButton("/symboles", callback_data="cmd_symboles")],
-            [InlineKeyboardButton("/learn", callback_data="cmd_learn")],
-            [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
-        ]
-        await safe_edit(f"*Aide*\n{get_text(lang, 'menu_choose_command')}", keyboard)
+        await safe_edit(f"*{get_text(lang, 'menu_upgrade')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
     elif data == "menu_back":
         keyboard = [
@@ -228,21 +212,18 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
             [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
             [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
-            [InlineKeyboardButton(get_text(lang, "menu_challenge"), callback_data="menu_challenge")],
-            [InlineKeyboardButton(get_text(lang, "menu_aide"), callback_data="menu_aide")],
+            [InlineKeyboardButton(get_text(lang, "menu_upgrade"), callback_data="menu_upgrade")],
         ]
         await safe_edit(get_text(lang, "menu_title"), keyboard)
 
-    # --- Exécution réelle des commandes (CORRIGÉE) ---
+    # --- Exécution réelle des commandes ---
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
         message = query.message
 
-        # Commandes qui demandent un symbole → sélection de symbole
         if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread", "scalp"]:
             await symbol_selection(update, context, cmd)
 
-        # Commandes exécutées directement (sans utiliser update.message)
         elif cmd == "alerts":
             alerts_list = alert_mgr.get_alerts(user_id)
             if not alerts_list:
@@ -308,49 +289,12 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await message.reply_text(get_text(lang, "usage_requests_remaining", rem=rem))
 
-        elif cmd == "help":
-            await message.reply_text(get_text(lang, "help_redirect"))
-
-        elif cmd == "about":
-            await message.reply_text(get_text(lang, "about"))
-
-        elif cmd == "status":
-            await message.reply_text(get_text(lang, "status_ok"))
-
         elif cmd == "support":
             await message.reply_text(get_text(lang, "support"))
-
-        elif cmd == "myid":
-            await message.reply_text(get_text(lang, "myid", user_id=user_id), parse_mode=ParseMode.MARKDOWN)
-
-        elif cmd == "symboles":
-            await message.reply_text(get_text(lang, "symboles_list"), parse_mode=ParseMode.MARKDOWN)
-
-        elif cmd == "challenge":
-            await challenge(update, context)
-
-        elif cmd == "historique":
-            signals = history_mgr.get_recent_signals(10)
-            if not signals:
-                await message.reply_text(get_text(lang, "history_empty"))
-            else:
-                text = get_text(lang, "history_title")
-                for s in signals:
-                    status = "✅" if s['status'] == 'win' else "❌" if s['status'] == 'loss' else "⏳"
-                    text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:10]})\n"
-                await message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-
-        elif cmd == "snapshot":
-            signals = history_mgr.get_recent_signals(1)
-            if not signals:
-                await message.reply_text(get_text(lang, "no_recent_analysis"))
-            else:
-                await snapshot(update, context)
 
         elif cmd == "upgrade":
             keyboard = [
                 [InlineKeyboardButton("⭐ PRO 19,99€/mois (Telegram Stars)", callback_data="plan_pro_stars")],
-                [InlineKeyboardButton("💎 ULTIMATE 24,99€/mois (Telegram Stars)", callback_data="plan_pro_stripe")],
                 [InlineKeyboardButton("₿ Payer en USDC (Binance Junior)", callback_data="plan_binance")],
             ]
             await message.reply_text(
@@ -367,54 +311,40 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "addwatch": "addwatch_usage",
                 "removewatch": "removewatch_usage",
                 "settimeframe": "settimeframe_usage",
-                "setrisk": "setrisk_usage",
                 "setlanguage": "setlanguage_usage",
-                "learn": "learn_usage",
-                "verify": "verify_usage",
             }
             await message.reply_text(get_text(lang, usage_map.get(cmd, "unknown_command")))
-# ---------- SÉLECTION DE SYMBOLE PAR BOUTONS ----------
-async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str, page: int = 0, category: str = "crypto"):
+
+# ---------- SÉLECTION DE SYMBOLE ----------
+async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, command: str, page: int = 0):
     query = update.callback_query
     await query.answer()
     lang = get_user_lang(update)
-    user_id = update.effective_user.id
 
-    favs = user_mgr.get_favorites(user_id)
-    symbols = favs if category == "fav" else POPULAR_SYMBOLS.get(category, [])
-
-    per_page = 6
-    total_pages = (len(symbols) + per_page - 1) // per_page if symbols else 1
+    symbols = SYMBOLS_15
+    per_page = 8
+    total_pages = (len(symbols) + per_page - 1) // per_page
     page = max(0, min(page, total_pages - 1))
     start = page * per_page
     end = start + per_page
-    page_symbols = symbols[start:end] if symbols else []
+    page_symbols = symbols[start:end]
 
     keyboard = []
     for sym in page_symbols:
         keyboard.append([InlineKeyboardButton(sym, callback_data=f"symsel_{command}_{sym}")])
 
-    nav_row = []
-    if category != "fav":
-        nav_row.append(InlineKeyboardButton(get_text(lang, "category_fav"), callback_data=f"symcat_{command}_fav_0"))
-    nav_row.append(InlineKeyboardButton(get_text(lang, "category_crypto"), callback_data=f"symcat_{command}_crypto_0"))
-    nav_row.append(InlineKeyboardButton(get_text(lang, "category_forex"), callback_data=f"symcat_{command}_forex_0"))
-    nav_row.append(InlineKeyboardButton(get_text(lang, "category_commodities"), callback_data=f"symcat_{command}_commodities_0"))
-    nav_row.append(InlineKeyboardButton(get_text(lang, "category_stocks"), callback_data=f"symcat_{command}_stocks_0"))
-    keyboard.append(nav_row)
-
     if total_pages > 1:
         page_row = []
         if page > 0:
-            page_row.append(InlineKeyboardButton(get_text(lang, "prev_page"), callback_data=f"sympage_{command}_{category}_{page-1}"))
+            page_row.append(InlineKeyboardButton("◀️", callback_data=f"sympage_{command}_{page-1}"))
         page_row.append(InlineKeyboardButton(f"{page+1}/{total_pages}", callback_data="noop"))
         if page < total_pages - 1:
-            page_row.append(InlineKeyboardButton(get_text(lang, "next_page"), callback_data=f"sympage_{command}_{category}_{page+1}"))
+            page_row.append(InlineKeyboardButton("▶️", callback_data=f"sympage_{command}_{page+1}"))
         keyboard.append(page_row)
 
     keyboard.append([InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")])
 
-    text = get_text(lang, "select_symbol") + f"\n({category.upper()})"
+    text = get_text(lang, "select_symbol")
     try:
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     except:
@@ -426,11 +356,11 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     lang = get_user_lang(update)
 
-    if data.startswith("symcat_") or data.startswith("sympage_"):
+    if data.startswith("sympage_"):
         parts = data.split("_")
-        if len(parts) >= 4:
-            _, command, category, page = parts[0], parts[1], parts[2], parts[3]
-            await symbol_selection(update, context, command, int(page), category)
+        if len(parts) >= 3:
+            _, command, page = parts[0], parts[1], parts[2]
+            await symbol_selection(update, context, command, int(page))
         return
 
     elif data.startswith("symsel_"):
@@ -458,14 +388,12 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif command == "scalp":
                 context.args = [symbol, "5"]
                 await scalp(update, context)
-            else:
-                await query.edit_message_text(get_text(lang, "unsupported_command").format(command=command))
         return
 
     elif data == "noop":
         return
 
-# ---------- COMMANDES DE BASE ----------
+# ---------- START ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
@@ -517,7 +445,6 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
         [InlineKeyboardButton("⭐ PRO 19,99€/mois (Telegram Stars)", callback_data="plan_pro_stars")],
-        [InlineKeyboardButton("💎 ULTIMATE 24,99€/mois (Telegram Stars)", callback_data="plan_pro_stripe")],
         [InlineKeyboardButton("₿ Payer en USDC (Binance Junior)", callback_data="plan_binance")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -531,6 +458,7 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=reply_markup
     )
+
 async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -538,8 +466,6 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if data == "plan_pro_stars":
         await send_invoice(query, "PRO Mensuel", 1499, "pro_monthly")
-    elif data == "plan_pro_stripe":
-        await query.edit_message_text(get_text(lang, "stripe_soon"))
     elif data == "plan_binance":
         await query.edit_message_text(
             "₿ Payez en USDC sur Binance Junior.\n\n"
@@ -551,6 +477,7 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         await query.edit_message_text("Option non disponible.")
+
 async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.pre_checkout_query.answer(ok=True)
 
@@ -568,6 +495,7 @@ async def send_invoice(query, title: str, price_eur: int, payload: str):
         need_phone_number=False,
         is_flexible=False
     )
+
 async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = update.effective_user
@@ -581,175 +509,6 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
         parse_mode=ParseMode.MARKDOWN
     )
     await notify_admin_new_premium(context, user, role, "Telegram Stars")
-# ... (tout le reste du fichier inchangé jusqu'à la fin)
-
-# ---------- ADMIN ----------
-async def gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text(get_text(lang, "broadcast_admin_only"))
-        return
-    if len(context.args) < 3:
-        await update.message.reply_text(get_text(lang, "gift_usage"))
-        return
-    try:
-        target_id = int(context.args[0])
-    except ValueError:
-        await update.message.reply_text(get_text(lang, "setrole_invalid_id"))
-        return
-    role = context.args[1].lower()
-    if role not in ("pro",):
-        await update.message.reply_text(get_text(lang, "setrole_invalid_role"))
-        return
-    try:
-        days = int(context.args[2])
-    except ValueError:
-        await update.message.reply_text("❌ Nombre de jours invalide.")
-        return
-
-    user_mgr.set_role_temp(target_id, role, days)
-    await update.message.reply_text(
-        get_text(lang, "gift_success", target_id=target_id, role=role.upper(), days=days)
-    )
-    try:
-        target_lang = user_mgr.get_setting(target_id, "lang", "en")
-        gift_message = get_text(target_lang, "gift_notification", role=role.upper(), days=days)
-        await context.bot.send_message(chat_id=target_id, text=gift_message)
-    except:
-        pass
-
-async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text(get_text(lang, "broadcast_admin_only"))
-        return
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "revoke_usage"))
-        return
-    try:
-        target_id = int(context.args[0])
-    except ValueError:
-        await update.message.reply_text(get_text(lang, "setrole_invalid_id"))
-        return
-
-    keyboard = [
-        [InlineKeyboardButton(get_text(lang, "confirm_yes"), callback_data=f"revoke_confirm_{target_id}")],
-        [InlineKeyboardButton(get_text(lang, "confirm_no"), callback_data="revoke_cancel")]
-    ]
-    await update.message.reply_text(
-        get_text(lang, "revoke_confirm", target_id=target_id),
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-async def revoke_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    lang = get_user_lang(update)
-    if data.startswith("revoke_confirm_"):
-        target_id = int(data.split("_")[2])
-        user_mgr.set_role(target_id, "free")
-        await query.edit_message_text(get_text(lang, "revoke_success", target_id=target_id))
-    else:
-        await query.edit_message_text("Action annulée.")
-
-async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if not context.args:
-        await update.message.reply_text(get_text(lang, "redeem_usage"))
-        return
-    code = context.args[0].upper()
-    user_id = update.effective_user.id
-    success, message = user_mgr.redeem_promo(user_id, code)
-    if success:
-        await update.message.reply_text(get_text(lang, "redeem_success", message=message))
-    else:
-        await update.message.reply_text(get_text(lang, "redeem_invalid"))
-
-async def setrole(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text(get_text(lang, "broadcast_admin_only"))
-        return
-    if len(context.args) < 2:
-        await update.message.reply_text(get_text(lang, "setrole_usage"))
-        return
-    try:
-        target_id = int(context.args[0])
-    except ValueError:
-        await update.message.reply_text(get_text(lang, "setrole_invalid_id"))
-        return
-    role = context.args[1].lower()
-    if role not in ("free", "pro"):
-        await update.message.reply_text(get_text(lang, "setrole_invalid_role"))
-        return
-    user_mgr.set_role(target_id, role)
-    await update.message.reply_text(
-        get_text(lang, "setrole_success", target_id=target_id, role=role.upper()),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-# ---------- WATCHLIST ----------
-@check_limit
-async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
-    lang = get_user_lang(update)
-    symbol = context.args[0].upper() if context.args else None
-    if not symbol:
-        await respond(update, get_text(lang, "addwatch_usage"), parse_mode=ParseMode.MARKDOWN)
-        return
-    user_id = update.effective_user.id
-    if not user_mgr.is_premium(user_id):
-        current_wl = user_mgr.get_watchlist(user_id)
-        if len(current_wl) >= 3:
-            text = get_text(lang, "watchlist_limit")
-            await respond(update, text, parse_mode=ParseMode.MARKDOWN)
-            return
-    user_mgr.add_to_watchlist(user_id, symbol)
-    text = get_text(lang, "watchlist_added", symbol=symbol)
-    await respond(update, text, parse_mode=ParseMode.MARKDOWN)
-
-@check_limit
-async def removewatch(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
-    lang = get_user_lang(update)
-    symbol = context.args[0].upper() if context.args else None
-    if not symbol:
-        await respond(update, get_text(lang, "removewatch_usage"), parse_mode=ParseMode.MARKDOWN)
-        return
-    user_mgr.remove_from_watchlist(update.effective_user.id, symbol)
-    text = get_text(lang, "watchlist_removed", symbol=symbol)
-    await respond(update, text, parse_mode=ParseMode.MARKDOWN)
-
-@check_limit
-async def watchlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    wl = user_mgr.get_watchlist(update.effective_user.id)
-    if not wl:
-        await update.message.reply_text(get_text(lang, "watchlist_empty"))
-        return
-    await update.message.reply_text(
-        get_text(lang, "watchlist_show", symbols="\n".join(wl)),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-@check_limit
-async def scan(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    wl = user_mgr.get_watchlist(update.effective_user.id)
-    if not wl:
-        await update.message.reply_text(get_text(lang, "watchlist_scan_empty"))
-        return
-    results = []
-    for sym in wl:
-        df = await fetcher.get_historical_data(sym)
-        if df is not None and not df.empty:
-            res = SignalEngine.analyze(df, lang)
-            results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
-        else:
-            results.append(f"{sym}: {get_text(lang, 'data_unavailable')}")
-    await update.message.reply_text(
-        get_text(lang, "watchlist_scan_result", results="\n".join(results)),
-        parse_mode=ParseMode.MARKDOWN
-    )
 
 # ---------- ANALYSE ----------
 @check_limit
@@ -817,7 +576,10 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     caption += f"\n\n🔐 ID: `{signal_id}`"
 
     await msg.delete()
-    await update.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
+    if from_callback and update.callback_query:
+        await update.callback_query.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
+    else:
+        await update.message.reply_photo(photo=buf, caption=caption, parse_mode=ParseMode.MARKDOWN)
 
 # ---------- PRIX ----------
 @check_limit
