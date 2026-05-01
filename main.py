@@ -14,8 +14,7 @@ from bot_handlers import (
     settings, settimeframe, setrisk, setlanguage, usage,
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
     upgrade, plan_callback, pre_checkout, successful_payment,
-    support, setrole, symboles, gift, revoke, redeem,
-    app_command, challenge, snapshot, verify, historique,
+    support, challenge, snapshot, verify, historique,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, revoke_callback,
     sentiment, compare, top, fav, learn
 )
@@ -49,8 +48,7 @@ def main():
         ("settings", settings), ("settimeframe", settimeframe), ("setrisk", setrisk), ("setlanguage", setlanguage),
         ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
-        ("support", support), ("setrole", setrole), ("symboles", symboles), ("gift", gift),
-        ("revoke", revoke), ("redeem", redeem), ("app", app_command),
+        ("support", support),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
         ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn)
     ]
