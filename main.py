@@ -39,6 +39,7 @@ def main():
     AlertManager.get_instance()
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    AlertManager.get_instance().start_monitoring(app)
 
     # Commandes
     handlers = [
