@@ -35,9 +35,9 @@ challenge_mgr = ChallengeManager.get_instance()
 SYMBOLS_15 = [
     "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
     "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
-    "XAUUSD", "USOIL", "XAGUSD",
+    "XAUUSD", "WTI", "XAGUSD",
     "AAPL", "TSLA", "NVDA",
-    "SPX500", "NAS100"
+    "SPX", "NDX"
 ]
 
 def generate_signal_id():
@@ -192,6 +192,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_settimeframe"), callback_data="cmd_settimeframe")],
             [InlineKeyboardButton(get_text(lang, "btn_setlanguage"), callback_data="cmd_setlanguage")],
             [InlineKeyboardButton(get_text(lang, "btn_usage"), callback_data="cmd_usage")],
+            [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique")],
             [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
@@ -199,8 +200,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "menu_upgrade":
         keyboard = [
-            [InlineKeyboardButton("⭐ PRO 19,99€/mois (Telegram Stars)", callback_data="plan_pro_stars")],
-            [InlineKeyboardButton("₿ Payer en USDC (Binance Junior)", callback_data="plan_binance")],
+            [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_upgrade')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -219,9 +219,27 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Exécution réelle des commandes ---
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
+        if cmd.startswith("scalpdur_"):
+            _,symbol,dur=cmd.split("_")
+            context.args=[symbol,dur]
+            await scalp(update, context); return
+        if cmd.startswith("alertcond_"):
+            _,symbol,cond=cmd.split("_")
+            context.user_data["pending_alert_symbol"]=symbol
+            context.user_data["pending_alert_cond"]=cond
+            await message.reply_text(get_text(lang,"alert_enter_price")); return
+        if cmd.startswith("settimeframe_"):
+            context.args=[cmd.split("_",1)[1]]
+            await settimeframe(update, context); return
+        if cmd.startswith("setlanguage_"):
+            context.args=[cmd.split("_",1)[1]]
+            await setlanguage(update, context); return
+        if cmd.startswith("delalert_"):
+            context.args=[cmd.split("_",1)[1]]
+            await delalert(update, context); return
         message = query.message
 
-        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread", "scalp"]:
+        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread", "scalp", "alert", "addwatch", "removewatch"]:
             await symbol_selection(update, context, cmd)
 
         elif cmd == "alerts":
@@ -270,6 +288,22 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode=ParseMode.MARKDOWN
                 )
 
+        elif cmd == "settimeframe":
+            kb=[[InlineKeyboardButton("1h",callback_data="cmd_settimeframe_1h"),InlineKeyboardButton("4h",callback_data="cmd_settimeframe_4h"),InlineKeyboardButton("1d",callback_data="cmd_settimeframe_1d")]]
+            await message.reply_text(get_text(lang, "settimeframe_choose"), reply_markup=InlineKeyboardMarkup(kb))
+
+        elif cmd == "setlanguage":
+            kb=[[InlineKeyboardButton("FR",callback_data="cmd_setlanguage_fr"),InlineKeyboardButton("EN",callback_data="cmd_setlanguage_en")]]
+            await message.reply_text(get_text(lang, "setlanguage_choose"), reply_markup=InlineKeyboardMarkup(kb))
+
+        elif cmd == "delalert":
+            alerts_list = alert_mgr.get_alerts(user_id)
+            if not alerts_list:
+                await message.reply_text(get_text(lang, "alerts_empty"))
+            else:
+                kb=[[InlineKeyboardButton(f"#{a['id']} {a['symbol']} {a['condition']} {a['price']}", callback_data=f"cmd_delalert_{a['id']}")] for a in alerts_list]
+                await message.reply_text(get_text(lang, "delalert_pick"), reply_markup=InlineKeyboardMarkup(kb))
+
         elif cmd == "settings":
             uid = user_id
             lang2 = user_mgr.get_setting(uid, "lang", "en")
@@ -281,6 +315,9 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 get_text(lang2, "settings_info", tf=tf, risk=risk, lang_name=lang2.upper(), role=role.upper(), prem=prem),
                 parse_mode=ParseMode.MARKDOWN
             )
+
+        elif cmd == "historique":
+            await historique(update, context)
 
         elif cmd == "usage":
             rem = user_mgr.get_remaining_requests(user_id)
@@ -294,8 +331,8 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         elif cmd == "upgrade":
             keyboard = [
-                [InlineKeyboardButton("⭐ PRO 19,99€/mois (Telegram Stars)", callback_data="plan_pro_stars")],
-                [InlineKeyboardButton("₿ Payer en USDC (Binance Junior)", callback_data="plan_binance")],
+                [InlineKeyboardButton(get_text(lang, "btn_upgrade_stars"), callback_data="plan_pro_stars")],
+                [InlineKeyboardButton(get_text(lang, "btn_upgrade_binance"), callback_data="plan_binance")],
             ]
             await message.reply_text(
                 get_text(lang, "upgrade_title"),
@@ -386,14 +423,24 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif command == "spread":
                 await spread(update, context, from_callback=True)
             elif command == "scalp":
-                context.args = [symbol, "5"]
-                await scalp(update, context)
+                kb=[[InlineKeyboardButton("3s",callback_data=f"cmd_scalpdur_{symbol}_3"),InlineKeyboardButton("5s",callback_data=f"cmd_scalpdur_{symbol}_5")],[InlineKeyboardButton("10s",callback_data=f"cmd_scalpdur_{symbol}_10"),InlineKeyboardButton("20s",callback_data=f"cmd_scalpdur_{symbol}_20")]]
+                await query.message.reply_text(get_text(lang,"scalp_choose_duration"), reply_markup=InlineKeyboardMarkup(kb))
+            elif command == "alert":
+                kb=[[InlineKeyboardButton(get_text(lang,"cond_above"),callback_data=f"cmd_alertcond_{symbol}_above"),InlineKeyboardButton(get_text(lang,"cond_below"),callback_data=f"cmd_alertcond_{symbol}_below")]]
+                await query.message.reply_text(get_text(lang,"alert_choose_condition"), reply_markup=InlineKeyboardMarkup(kb))
+            elif command == "addwatch":
+                context.args=[symbol]
+                await addwatch(update, context)
+            elif command == "removewatch":
+                context.args=[symbol]
+                await removewatch(update, context)
         return
 
     elif data == "noop":
         return
 
 # ---------- START ----------
+@check_limit
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
@@ -428,55 +475,39 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     full_text = welcome + disclaimer + payment_info
     await update.message.reply_text(full_text, parse_mode=ParseMode.MARKDOWN)
 
+@check_limit
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
-    await update.message.reply_text(
-        "Utilisez /menu pour accéder au menu interactif.",
-        parse_mode=ParseMode.MARKDOWN
-    )
+    trial_msg = ""
+    if user_mgr.get_role(update.effective_user.id) == "free" and user_mgr.is_trial_valid(update.effective_user.id):
+        trial_days = user_mgr.is_trial_valid(update.effective_user.id)
+        trial_msg = "\n" + get_text(lang, "trial_days_left", days=trial_days)
+    await update.message.reply_text(get_text(lang, "help_redirect") + trial_msg, parse_mode=ParseMode.MARKDOWN)
 
+@check_limit
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📞 Besoin d'aide ? Contactez-moi directement : @btsr_teddy09"
-    )
+    await update.message.reply_text(get_text(get_user_lang(update), "support"))
 
 # ---------- UPGRADE ----------
+@check_limit
 async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
-        [InlineKeyboardButton("⭐ PRO 19,99€/mois (Telegram Stars)", callback_data="plan_pro_stars")],
-        [InlineKeyboardButton("₿ Payer en USDC (Binance Junior)", callback_data="plan_binance")],
+        [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "💳 *Bitsure Teddy PRO*\n\n"
-        "• Analyses illimitées\n"
-        "• Scalping temps réel\n"
-        "• Watchlist étendue\n"
-        "• Support prioritaire\n\n"
-        "*Choisissez votre mode de paiement :*",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=reply_markup
-    )
+    await update.message.reply_text(get_text(lang, "upgrade_title"), parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
 
+@check_limit
 async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
     lang = get_user_lang(update)
     if data == "plan_pro_stars":
-        await send_invoice(query, "PRO Mensuel", 1499, "pro_monthly")
-    elif data == "plan_binance":
-        await query.edit_message_text(
-            "₿ Payez en USDC sur Binance Junior.\n\n"
-            "1. Ouvrez Binance Junior\n"
-            "2. Envoyez 19,99$ en USDC à :\n"
-            "`VOTRE_ADRESSE_USDC`\n\n"
-            "Contactez @btsr_teddy09 après le paiement.",
-            parse_mode=ParseMode.MARKDOWN
-        )
+        await send_invoice(query, "PRO 19,99€/mois", 1999, "pro_monthly")
     else:
-        await query.edit_message_text("Option non disponible.")
+        await query.edit_message_text(get_text(lang, "unavailable_option"))
 
 async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.pre_checkout_query.answer(ok=True)
@@ -496,6 +527,7 @@ async def send_invoice(query, title: str, price_eur: int, payload: str):
         is_flexible=False
     )
 
+@check_limit
 async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user = update.effective_user
@@ -637,7 +669,7 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fetcher.subscribe_twelvedata(symbol)
     price_data = await fetcher.get_realtime_price(symbol)
     if not price_data:
-        await update.message.reply_text("❌ Impossible d'obtenir les données temps réel.")
+        await update.message.reply_text(get_text(lang, "realtime_data_error"))
         return
 
     ticks = fetcher.tick_history.get(symbol, [])
@@ -688,6 +720,7 @@ async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callba
 
 # ---------- ALERTES ----------
 @check_limit
+@check_limit
 async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if len(context.args) < 3:
@@ -709,6 +742,7 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 @check_limit
+@check_limit
 async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     alerts_list = alert_mgr.get_alerts(update.effective_user.id)
@@ -722,10 +756,11 @@ async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 @check_limit
+@check_limit
 async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if not context.args:
-        await update.message.reply_text("Usage: /delalert ID")
+        await update.message.reply_text(get_text(lang, "delalert_usage"))
         return
     try:
         alert_id = int(context.args[0])
@@ -737,6 +772,7 @@ async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(lang, "alert_not_found"))
 
+@check_limit
 @check_limit
 async def clearalerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -755,7 +791,7 @@ async def clearalerts_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         alert_mgr.clear_alerts(update.effective_user.id)
         await query.edit_message_text(get_text(lang, "alerts_cleared"))
     else:
-        await query.edit_message_text("Action annulée.")
+        await query.edit_message_text(get_text(lang, "action_cancelled"))
 
 # ---------- TENDANCE / VOLATILITÉ / CORRÉLATION / NIVEAUX ----------
 @check_limit
@@ -975,6 +1011,7 @@ async def setrisk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr.set_setting(update.effective_user.id, "risk", risk)
     await update.message.reply_text(get_text(lang, "setrisk_success", risk=risk))
 
+@check_limit
 async def setlanguage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if not context.args:
@@ -1031,6 +1068,7 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(get_text(lang, "myid", user_id=update.effective_user.id), parse_mode=ParseMode.MARKDOWN)
 
 # ---------- BROADCAST / RELOAD / STATS ----------
+@check_limit
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if update.effective_user.id != ADMIN_ID:
@@ -1054,6 +1092,7 @@ async def app_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "app_message"), parse_mode=ParseMode.MARKDOWN)
 
+@check_limit
 async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if update.effective_user.id != ADMIN_ID:
@@ -1066,9 +1105,10 @@ async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     challenge_mgr = ChallengeManager.get_instance()
     await update.message.reply_text(get_text(lang, "reload_success"))
 
+@check_limit
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("⛔ Admin only.")
+        await update.message.reply_text(get_text(user_mgr.get_setting(update.effective_user.id, "lang", "en"), "broadcast_admin_only"))
         return
     lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
     user_mgr._load_users()
