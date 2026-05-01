@@ -551,7 +551,36 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         await query.edit_message_text("Option non disponible.")
+async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.pre_checkout_query.answer(ok=True)
 
+async def send_invoice(query, title: str, price_eur: int, payload: str):
+    prices = [LabeledPrice(label=title, amount=price_eur)]
+    await query.message.reply_invoice(
+        title="Bitsure Teddy PRO",
+        description=title,
+        payload=payload,
+        provider_token="",
+        currency="XTR",
+        prices=prices,
+        need_name=False,
+        need_email=False,
+        need_phone_number=False,
+        is_flexible=False
+    )
+async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user = update.effective_user
+    payment = update.message.successful_payment
+    payload = payment.invoice_payload
+    role = "pro"
+    user_mgr.set_role(user_id, role)
+    lang = user_mgr.get_setting(user_id, "lang", "en")
+    await update.message.reply_text(
+        get_text(lang, "payment_success", role=role.upper()),
+        parse_mode=ParseMode.MARKDOWN
+    )
+    await notify_admin_new_premium(context, user, role, "Telegram Stars")
 # ... (tout le reste du fichier inchangé jusqu'à la fin)
 
 # ---------- ADMIN ----------
