@@ -63,7 +63,6 @@ def main():
 
     logger.info("Teddy Trading Bot started")
     DataFetcher.get_instance().start_binance_ws()
-    DataFetcher.get_instance().start_twelvedata_websocket()
     # Utiliser webhook si configuré, sinon polling
     webhook_url = os.environ.get("WEBHOOK_URL")
     if webhook_url:
