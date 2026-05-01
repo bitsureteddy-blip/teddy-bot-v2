@@ -5,7 +5,7 @@ Teddy Trading Bot - Bitsure Teddy
 
 import logging
 import os
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, PreCheckoutQueryHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 
 from config import TELEGRAM_TOKEN
 from bot_handlers import (

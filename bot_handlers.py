@@ -35,9 +35,9 @@ challenge_mgr = ChallengeManager.get_instance()
 SYMBOLS_15 = [
     "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
     "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
-    "XAUUSD", "USOIL", "XAGUSD",
+    "XAUUSD", "WTI", "XAGUSD",
     "AAPL", "TSLA", "NVDA",
-    "SPX500", "NAS100"
+    "SPX", "NDX"
 ]
 
 def generate_signal_id():
@@ -219,9 +219,27 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Exécution réelle des commandes ---
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
+        if cmd.startswith("scalpdur_"):
+            _,symbol,dur=cmd.split("_")
+            context.args=[symbol,dur]
+            await scalp(update, context); return
+        if cmd.startswith("alertcond_"):
+            _,symbol,cond=cmd.split("_")
+            context.user_data["pending_alert_symbol"]=symbol
+            context.user_data["pending_alert_cond"]=cond
+            await message.reply_text(get_text(lang,"alert_enter_price")); return
+        if cmd.startswith("settimeframe_"):
+            context.args=[cmd.split("_",1)[1]]
+            await settimeframe(update, context); return
+        if cmd.startswith("setlanguage_"):
+            context.args=[cmd.split("_",1)[1]]
+            await setlanguage(update, context); return
+        if cmd.startswith("delalert_"):
+            context.args=[cmd.split("_",1)[1]]
+            await delalert(update, context); return
         message = query.message
 
-        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread", "scalp"]:
+        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread", "scalp", "alert", "addwatch", "removewatch"]:
             await symbol_selection(update, context, cmd)
 
         elif cmd == "alerts":
@@ -270,6 +288,22 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode=ParseMode.MARKDOWN
                 )
 
+        elif cmd == "settimeframe":
+            kb=[[InlineKeyboardButton("1h",callback_data="cmd_settimeframe_1h"),InlineKeyboardButton("4h",callback_data="cmd_settimeframe_4h"),InlineKeyboardButton("1d",callback_data="cmd_settimeframe_1d")]]
+            await message.reply_text(get_text(lang, "settimeframe_choose"), reply_markup=InlineKeyboardMarkup(kb))
+
+        elif cmd == "setlanguage":
+            kb=[[InlineKeyboardButton("FR",callback_data="cmd_setlanguage_fr"),InlineKeyboardButton("EN",callback_data="cmd_setlanguage_en")]]
+            await message.reply_text(get_text(lang, "setlanguage_choose"), reply_markup=InlineKeyboardMarkup(kb))
+
+        elif cmd == "delalert":
+            alerts_list = alert_mgr.get_alerts(user_id)
+            if not alerts_list:
+                await message.reply_text(get_text(lang, "alerts_empty"))
+            else:
+                kb=[[InlineKeyboardButton(f"#{a['id']} {a['symbol']} {a['condition']} {a['price']}", callback_data=f"cmd_delalert_{a['id']}")] for a in alerts_list]
+                await message.reply_text(get_text(lang, "delalert_pick"), reply_markup=InlineKeyboardMarkup(kb))
+
         elif cmd == "settings":
             uid = user_id
             lang2 = user_mgr.get_setting(uid, "lang", "en")
@@ -297,8 +331,8 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         elif cmd == "upgrade":
             keyboard = [
-                [InlineKeyboardButton("⭐ PRO 19,99€/mois (Telegram Stars)", callback_data="plan_pro_stars")],
-                [InlineKeyboardButton("₿ Payer en USDC (Binance Junior)", callback_data="plan_binance")],
+                [InlineKeyboardButton(get_text(lang, "btn_upgrade_stars"), callback_data="plan_pro_stars")],
+                [InlineKeyboardButton(get_text(lang, "btn_upgrade_binance"), callback_data="plan_binance")],
             ]
             await message.reply_text(
                 get_text(lang, "upgrade_title"),
@@ -389,8 +423,17 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif command == "spread":
                 await spread(update, context, from_callback=True)
             elif command == "scalp":
-                context.args = [symbol, "5"]
-                await scalp(update, context)
+                kb=[[InlineKeyboardButton("3s",callback_data=f"cmd_scalpdur_{symbol}_3"),InlineKeyboardButton("5s",callback_data=f"cmd_scalpdur_{symbol}_5")],[InlineKeyboardButton("10s",callback_data=f"cmd_scalpdur_{symbol}_10"),InlineKeyboardButton("20s",callback_data=f"cmd_scalpdur_{symbol}_20")]]
+                await query.message.reply_text(get_text(lang,"scalp_choose_duration"), reply_markup=InlineKeyboardMarkup(kb))
+            elif command == "alert":
+                kb=[[InlineKeyboardButton(get_text(lang,"cond_above"),callback_data=f"cmd_alertcond_{symbol}_above"),InlineKeyboardButton(get_text(lang,"cond_below"),callback_data=f"cmd_alertcond_{symbol}_below")]]
+                await query.message.reply_text(get_text(lang,"alert_choose_condition"), reply_markup=InlineKeyboardMarkup(kb))
+            elif command == "addwatch":
+                context.args=[symbol]
+                await addwatch(update, context)
+            elif command == "removewatch":
+                context.args=[symbol]
+                await removewatch(update, context)
         return
 
     elif data == "noop":
