@@ -15,7 +15,7 @@ from bot_handlers import (
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
-    menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest,
+    menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
     sentiment, compare, top, fav, learn
 )
 from data_fetcher import DataFetcher
@@ -61,6 +61,7 @@ def main():
     app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^(symcat_|sympage_|symsel_|noop)"))
     app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
+    app.add_handler(CallbackQueryHandler(terms_callback, pattern="^terms_"))
 
     logger.info("Teddy Trading Bot started")
     DataFetcher.get_instance().start_websocket()

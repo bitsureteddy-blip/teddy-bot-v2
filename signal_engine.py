@@ -97,7 +97,6 @@ class SignalEngine:
             abs(sma20_val - sma50_val) >= 0.25 * atr_val,
             (atr_val / last_price) <= atr_price_max_val,
         ]
-        ]
         if symbol.upper() == "BTCUSD":
             buy_cond.append(volume_ok)
             sell_cond.append(volume_ok)

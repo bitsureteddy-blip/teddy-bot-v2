@@ -209,6 +209,13 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
+        if func.__name__ != "start" and not user_mgr.has_accepted_terms(user_id):
+            if update.callback_query:
+                await update.callback_query.answer(get_text(lang, "terms_must_accept"), show_alert=True)
+                return
+            else:
+                await update.message.reply_text(get_text(lang, "terms_must_accept"))
+                return
         if not user_mgr.check_limit(user_id):
             if update.callback_query:
                 await update.callback_query.answer(get_text(lang, "limit_reached"), show_alert=True)
@@ -224,6 +231,13 @@ def premium_required(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
+        if not user_mgr.has_accepted_terms(user_id):
+            if update.callback_query:
+                await update.callback_query.answer(get_text(lang, "terms_must_accept"), show_alert=True)
+                return
+            else:
+                await update.message.reply_text(get_text(lang, "terms_must_accept"))
+                return
         if not user_mgr.can_use_premium_feature(user_id):
             text = get_text(lang, "premium_required")
             if update.callback_query:
@@ -593,21 +607,29 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
-
-    current_lang = user_mgr.get_setting(user_id, "lang", None)
-    if current_lang is None:
-        user_mgr.set_setting(user_id, "lang", "en")
-        lang = "en"
-    else:
-        lang = current_lang
-
+    lang = user_mgr.get_setting(user_id, "lang", "en")
     was_new = str(user_id) not in user_mgr.users
     user_mgr.get_user(user_id)
-    role = user_mgr.get_role(user_id)
 
     if was_new:
         await notify_admin_new_user(update, context)
 
+    # Vérifier si l'utilisateur a déjà accepté les conditions
+    if not user_mgr.has_accepted_terms(user_id):
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "terms_button"), callback_data="terms_show")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        welcome = get_text(lang, "start", status=get_text(lang, "status_free_trial"))
+        await update.message.reply_text(
+            welcome + "\n\n" + get_text(lang, "terms_must_accept"),
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+
+    # Utilisateur existant qui a déjà accepté → comportement normal
+    role = user_mgr.get_role(user_id)
     if role == "free" and user_mgr.is_trial_valid(user_id):
         status = get_text(lang, "status_free_trial")
     elif role == "free":
@@ -623,6 +645,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     full_text = welcome + disclaimer + payment_info
     await update.message.reply_text(full_text, parse_mode=ParseMode.MARKDOWN)
+
+async def terms_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+
+    if data == "terms_show":
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "terms_accept"), callback_data="terms_accept")],
+            [InlineKeyboardButton(get_text(lang, "terms_refuse"), callback_data="terms_refuse")],
+        ]
+        await query.edit_message_text(
+            get_text(lang, "terms_text"),
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    elif data == "terms_accept":
+        user_mgr.accept_terms(user_id)
+        await query.edit_message_text(
+            get_text(lang, "terms_accepted"),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    elif data == "terms_refuse":
+        await query.edit_message_text(
+            get_text(lang, "terms_refused_msg"),
+            parse_mode=ParseMode.MARKDOWN
+        )
 
 @check_limit
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

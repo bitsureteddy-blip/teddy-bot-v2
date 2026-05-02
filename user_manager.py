@@ -96,6 +96,15 @@ class UserManager:
             return True
         return self.is_trial_valid(user_id)
 
+    def has_accepted_terms(self, user_id: int) -> bool:
+        user = self.get_user(user_id)
+        return user.get("terms_accepted", False)
+
+    def accept_terms(self, user_id: int):
+        user = self.get_user(user_id)
+        user["terms_accepted"] = True
+        self._save()
+
     def check_limit(self, user_id: int) -> bool:
         if self.is_premium(user_id) or self.is_admin(user_id):
             return True

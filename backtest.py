@@ -147,6 +147,4 @@ async def run_backtest():
         logger.info(f"Résultats sauvegardés : backtest_{symbol}_{TIMEFRAME}.csv")
 
 if __name__ == "__main__":
-if __name__ == "__main__":
-    asyncio.run(run_backtest())
     asyncio.run(run_backtest())
