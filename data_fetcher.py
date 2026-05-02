@@ -92,7 +92,7 @@ class DataFetcher:
                 spread = max(p["price"] * 0.0005, 0.0001)
                 p["bid"] = p["price"] - spread / 2
                 p["ask"] = p["price"] + spread / 2
-            return self.price_cache[symbol]
+            return p
         price = await self._fetch_price(symbol)
         if price:
             self.price_cache[symbol] = price
