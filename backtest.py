@@ -29,7 +29,9 @@ async def run_backtest():
     for symbol in SYMBOLS:
         logger.info(f"=== BACKTEST {symbol} ===")
         if symbol == "BTCUSD":
-            tf = "2h"
+            tf = "4h"
+        elif symbol == "XAUUSD":
+            tf = "1h"
         else:
             tf = TIMEFRAME
         df = await fetcher.get_historical_data(symbol, timeframe=tf, period=HISTORY_PERIOD)
