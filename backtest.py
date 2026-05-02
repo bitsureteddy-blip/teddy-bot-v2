@@ -38,7 +38,7 @@ async def run_backtest():
 
         for i in range(MIN_BARS, len(df), STEP):
             window = df.iloc[:i]
-            result = engine.analyze(window)
+            result = engine.analyze(window, symbol=symbol)
 
             if result["signal"] not in ("BUY", "SELL"):
                 continue

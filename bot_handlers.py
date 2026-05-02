@@ -81,7 +81,7 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         for i in range(BACKTEST_MIN_BARS, len(df), BACKTEST_STEP):
             window = df.iloc[:i]
-            result = engine.analyze(window)
+            result = engine.analyze(window, symbol=symbol)
 
             if result["signal"] not in ("BUY", "SELL"):
                 continue
@@ -91,7 +91,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             tp = float(result["tp1"])
             if sl is None or tp is None or sl == entry_price:
                 continue
-
             is_buy = result["signal"] == "BUY"
             outcome = None
             exit_price = None
@@ -427,7 +426,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 for sym in wl:
                     df = await fetcher.get_historical_data(sym)
                     if df is not None and not df.empty:
-                        res = SignalEngine.analyze(df, lang)
+                        res = SignalEngine.analyze(df, lang, symbol=sym)
                         results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
                     else:
                         results.append(f"{sym}: {get_text(lang, 'data_unavailable')}")
@@ -747,7 +746,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     if df is None or df.empty:
         await msg.edit_text(get_text(lang, "analyse_error", symbol=symbol))
         return
-    result = SignalEngine.analyze(df, lang)
+    result = SignalEngine.analyze(df, lang, symbol=symbol)
     ind = result['indicators']
 
     plt.style.use('dark_background')
@@ -1140,8 +1139,8 @@ async def compare(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if df1 is None or df2 is None or len(df1) < 2 or len(df2) < 2:
         await update.message.reply_text(get_text(lang, "insufficient_data"))
         return
-    res1 = SignalEngine.analyze(df1, lang)
-    res2 = SignalEngine.analyze(df2, lang)
+    res1 = SignalEngine.analyze(df1, lang, symbol=sym1)
+    res2 = SignalEngine.analyze(df2, lang, symbol=sym2)
     trend1 = get_text(lang, f"trend_{res1['indicators']['trend'].lower()}")
     trend2 = get_text(lang, f"trend_{res2['indicators']['trend'].lower()}")
     text = get_text(lang, "compare_result", symbol1=sym1, symbol2=sym2, trend1=trend1, trend2=trend2)
@@ -1385,7 +1384,7 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(get_text(lang, "data_unavailable"))
             return
 
-        result = SignalEngine.analyze(df, lang)
+        result = SignalEngine.analyze(df, lang, symbol=symbol)
         signal_text = result['signal_text']
         price = result['indicators']['price']
 
@@ -1450,7 +1449,7 @@ async def snapshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if df is None:
         await update.message.reply_text(get_text(lang, "data_unavailable"))
         return
-    result = SignalEngine.analyze(df, lang)
+    result = SignalEngine.analyze(df, lang, symbol=symbol)
     ind = result['indicators']
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(10, 6))
