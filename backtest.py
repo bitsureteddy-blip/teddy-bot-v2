@@ -28,7 +28,11 @@ async def run_backtest():
 
     for symbol in SYMBOLS:
         logger.info(f"=== BACKTEST {symbol} ===")
-        df = await fetcher.get_historical_data(symbol, timeframe=TIMEFRAME, period=HISTORY_PERIOD)
+        if symbol == "BTCUSD":
+            tf = "2h"
+        else:
+            tf = TIMEFRAME
+        df = await fetcher.get_historical_data(symbol, timeframe=tf, period=HISTORY_PERIOD)
         if df is None or df.empty:
             logger.warning(f"Pas de données pour {symbol}")
             continue
@@ -144,4 +148,5 @@ async def run_backtest():
 
 if __name__ == "__main__":
 if __name__ == "__main__":
+    asyncio.run(run_backtest())
     asyncio.run(run_backtest())
