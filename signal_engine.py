@@ -2,13 +2,33 @@ import pandas as pd
 from typing import Dict
 
 from indicators import rsi, macd, sma, atr, adx, bollinger_bands, rsi_from_ticks, macd_from_ticks
-from config import ATR_MULTIPLIER_SL, RR_RATIO_TARGET
+from config import (
+    ATR_MULTIPLIER_SL, RR_RATIO_TARGET,
+    ADX_THRESHOLDS, ATR_PRICE_MAX,
+    RSI_BUY_LOW, RSI_BUY_HIGH, RSI_SELL_LOW, RSI_SELL_HIGH
+)
 from i18n import get_text
 
 
 class SignalEngine:
     @staticmethod
-    def analyze(df: pd.DataFrame, lang: str = "en") -> Dict:
+    def _asset_type(symbol: str) -> str:
+        symbol = symbol.upper()
+        forex = {"EURUSD", "GBPUSD", "USDJPY", "AUDUSD"}
+        metals = {"XAUUSD", "XAGUSD"}
+        crypto = {"BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "ADAUSD"}
+
+        if symbol in forex:
+            return "forex"
+        if symbol in metals:
+            return "metal"
+        if symbol in crypto:
+            return "crypto"
+        return "stock"
+
+    @staticmethod
+    def analyze(df: pd.DataFrame, lang: str = "en", symbol: str = "") -> Dict:
+        asset = SignalEngine._asset_type(symbol) if symbol else "forex"
         # Normaliser les colonnes (minuscules -> Majuscules)
         rename = {}
         for c in df.columns:
@@ -41,19 +61,19 @@ class SignalEngine:
 
         buy_cond = [
             last_price > sma20_val > sma50_val,
-            55 <= rsi_val <= 68,
+            RSI_BUY_LOW[asset] <= rsi_val <= RSI_BUY_HIGH[asset],
             macd_val > macd_sig_val and hist_val > 0,
-            adx_val >= 25,
+            adx_val >= ADX_THRESHOLDS[asset],
             abs(sma20_val - sma50_val) >= 0.25 * atr_val,
-            (atr_val / last_price) <= 0.04,
+            (atr_val / last_price) <= ATR_PRICE_MAX[asset],
         ]
         sell_cond = [
             last_price < sma20_val < sma50_val,
-            32 <= rsi_val <= 45,
+            RSI_SELL_LOW[asset] <= rsi_val <= RSI_SELL_HIGH[asset],
             macd_val < macd_sig_val and hist_val < 0,
-            adx_val >= 25,
+            adx_val >= ADX_THRESHOLDS[asset],
             abs(sma20_val - sma50_val) >= 0.25 * atr_val,
-            (atr_val / last_price) <= 0.04,
+            (atr_val / last_price) <= ATR_PRICE_MAX[asset],
         ]
 
         buy_count, sell_count = sum(buy_cond), sum(sell_cond)
