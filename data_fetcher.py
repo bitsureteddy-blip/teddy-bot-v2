@@ -43,10 +43,10 @@ class DataFetcher:
             return
 
         def on_open(ws):
-            ws.send(json.dumps({"action": "auth", "params": {"apikey": TWELVEDATA_API_KEY}}))
+            ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(sorted(self.subscribed_symbols))}}))
 
         self.ws = websocket.WebSocketApp(
-            "wss://ws.twelvedata.com/v1/quotes/price",
+            f"wss://ws.twelvedata.com/v1/quotes/price?apikey={TWELVEDATA_API_KEY}",
             on_open=on_open,
             on_message=lambda ws, msg: self._on_twelve_message(msg),
             on_error=lambda ws, err: logger.error(f"Twelve WS error: {err}"),
@@ -58,15 +58,8 @@ class DataFetcher:
     def _on_twelve_message(self, message):
         try:
             data = json.loads(message)
-            event = data.get("event")
-
-            if event == "subscribe-status" and data.get("status") == "ok" and self.ws and self.ws.sock and self.ws.sock.connected:
-                self.ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(sorted(self.subscribed_symbols))}}))
+            if data.get("event") != "price":
                 return
-
-            if event != "price":
-                return
-
             symbol = normalize_symbol(data.get("symbol", ""))
             price = float(data.get("price", 0))
             bid = float(data.get("bid", price - max(price * 0.0005, 0.0001)))

@@ -151,6 +151,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     lang = get_user_lang(update)
     user_id = update.effective_user.id
+    message = query.message
 
     def safe_edit(text, keyboard):
         try:
@@ -260,8 +261,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cmd.startswith("delalert_"):
             context.args=[cmd.split("_",1)[1]]
             await delalert(update, context); return
-        message = query.message
-
         if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread", "scalp", "alert", "addwatch", "removewatch"]:
             await symbol_selection(update, context, cmd)
 
@@ -340,6 +339,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         elif cmd == "historique":
+            await query.message.reply_text(get_text(lang, "history_title"))
             await historique(update, context)
 
         elif cmd == "usage":
@@ -1297,15 +1297,18 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @check_limit
 async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
+    target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
+    if target_message is None:
+        return
     signals = history_mgr.get_recent_signals(10)
     if not signals:
-        await update.message.reply_text(get_text(lang, "history_empty"))
+        await target_message.reply_text(get_text(lang, "history_empty"))
         return
     text = get_text(lang, "history_title")
     for s in signals:
         status = "✅" if s['status'] == 'win' else "❌" if s['status'] == 'loss' else "⏳"
         text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:10]})\n"
-    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+    await target_message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 # ---------- SNAPSHOT / VERIFY ----------
 @check_limit
