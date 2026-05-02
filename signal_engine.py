@@ -9,6 +9,14 @@ from i18n import get_text
 class SignalEngine:
     @staticmethod
     def analyze(df: pd.DataFrame, lang: str = "en") -> Dict:
+        # Normaliser les colonnes (minuscules -> Majuscules)
+        rename = {}
+        for c in df.columns:
+            if c.lower() in ["open", "high", "low", "close", "volume"]:
+                rename[c] = c.capitalize()
+        if rename:
+            df = df.rename(columns=rename)
+
         required = {"Open", "High", "Low", "Close"}
         if df is None or df.empty or not required.issubset(set(df.columns)) or len(df) < 60:
             return {
