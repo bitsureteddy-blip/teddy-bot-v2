@@ -207,5 +207,20 @@ class UserManager:
             return True, get_text(lang, "redeem_success", message=f"{promo['days']} jours")
         return False, get_text(lang, "redeem_invalid")
 
+
+    def add_pending_binance(self, user_id: int, ident: str):
+        user = self.get_user(user_id)
+        user["pending_binance_payment"] = {"id": ident, "created_at": time.time()}
+        self._save()
+
+    def confirm_binance_payment(self, user_id: int) -> bool:
+        user = self.get_user(user_id)
+        if not user.get("pending_binance_payment"):
+            return False
+        user["role"] = "pro"
+        user.pop("pending_binance_payment", None)
+        self._save()
+        return True
+
     def _save(self):
         save_json(USERS_FILE, self.users)
