@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Dict
 
-from indicators import rsi, macd, sma, atr, adx, rsi_from_ticks, macd_from_ticks
+from indicators import rsi, macd, sma, atr, adx, bollinger_bands, rsi_from_ticks, macd_from_ticks
 from config import ATR_MULTIPLIER_SL, RR_RATIO_TARGET
 from i18n import get_text
 
@@ -9,6 +9,14 @@ from i18n import get_text
 class SignalEngine:
     @staticmethod
     def analyze(df: pd.DataFrame, lang: str = "en") -> Dict:
+        # Normaliser les colonnes (minuscules -> Majuscules)
+        rename = {}
+        for c in df.columns:
+            if c.lower() in ["open", "high", "low", "close", "volume"]:
+                rename[c] = c.capitalize()
+        if rename:
+            df = df.rename(columns=rename)
+
         required = {"Open", "High", "Low", "Close"}
         if df is None or df.empty or not required.issubset(set(df.columns)) or len(df) < 60:
             return {
@@ -28,6 +36,8 @@ class SignalEngine:
         adx_series, _, _ = adx(high, low, close, 14)
         adx_val = float(adx_series.iloc[-1]) if pd.notna(adx_series.iloc[-1]) else 0.0
         atr_val = float(atr(high, low, close, 14).iloc[-1])
+        upper_bb, _, lower_bb = bollinger_bands(close, 20, 2.0)
+        trend = "BULLISH" if last_price > sma20_val > sma50_val else "BEARISH" if last_price < sma20_val < sma50_val else "NEUTRAL"
 
         buy_cond = [
             last_price > sma20_val > sma50_val,
@@ -86,7 +96,8 @@ class SignalEngine:
             "indicators": {
                 "price": last_price, "rsi": rsi_val, "adx": adx_val,
                 "sma20": sma20_val, "sma50": sma50_val,
-                "macd": macd_val, "macd_signal": macd_sig_val, "atr": atr_val
+                "macd": macd_val, "macd_signal": macd_sig_val, "atr": atr_val,
+                "bb_upper": upper_bb, "bb_lower": lower_bb, "trend": trend
             },
         }
 
@@ -107,14 +118,20 @@ class SignalEngine:
         spread_pct = round((spread / price) * 100, 4) if price else 0.0
 
         signal = "WAIT"
-        reason = get_text(lang, "scalp_signal_wait")
-        if spread_pct <= 0.08:
-            if rsi_val <= 38 and macd_v > macd_sig_v and hist_v > 0:
+        reason = get_text(lang, "scalp_wait_reason")
+        if spread_pct <= 0.15:
+            if rsi_val <= 42 and macd_v > macd_sig_v and hist_v > 0:
                 signal = "BUY"
                 reason = get_text(lang, "signal_buy_reason")
-            elif rsi_val >= 62 and macd_v < macd_sig_v and hist_v < 0:
+            elif rsi_val >= 58 and macd_v < macd_sig_v and hist_v < 0:
                 signal = "SELL"
                 reason = get_text(lang, "signal_sell_reason")
+            elif rsi_val < 35:
+                signal = "BUY"
+                reason = get_text(lang, "scalp_fallback_buy")
+            elif rsi_val > 65:
+                signal = "SELL"
+                reason = get_text(lang, "scalp_fallback_sell")
 
         return {
             "symbol": symbol,
