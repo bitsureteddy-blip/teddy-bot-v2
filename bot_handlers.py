@@ -13,7 +13,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Labeled
 from telegram.ext import ContextTypes, CallbackContext
 from telegram.constants import ParseMode
 
-from config import ADMIN_ID, DEFAULT_TIMEFRAME
+from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD
 from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
 from user_manager import UserManager
@@ -41,6 +41,11 @@ SYMBOLS_15 = [
     "SPX", "NDX"
 ]
 
+BACKTEST_SYMBOLS = ["BTCUSD", "ETHUSD", "EURUSD", "XAUUSD", "AAPL"]
+BACKTEST_TIMEFRAME = "1h"
+BACKTEST_MIN_BARS = 60
+BACKTEST_STEP = 24
+
 def generate_signal_id():
     raw = f"{time.time()}-{random.random()}"
     return hashlib.md5(raw.encode()).hexdigest()[:6].upper()
@@ -57,6 +62,127 @@ async def respond(update: Update, text: str, **kwargs):
             await update.callback_query.message.reply_text(text, **kwargs)
     else:
         await update.message.reply_text(text, **kwargs)
+
+async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+
+    await update.message.reply_text("🚀 Lancement du backtest (peut prendre quelques instants)...")
+    engine = SignalEngine()
+
+    for symbol in BACKTEST_SYMBOLS:
+        logger.info(f"=== BACKTEST {symbol} ===")
+        df = await fetcher.get_historical_data(symbol, timeframe=BACKTEST_TIMEFRAME, period=HISTORY_PERIOD)
+        if df is None or df.empty:
+            await update.message.reply_text(f"⚠️ Pas de données pour {symbol}")
+            continue
+
+        trades = []
+
+        for i in range(BACKTEST_MIN_BARS, len(df), BACKTEST_STEP):
+            window = df.iloc[:i]
+            result = engine.analyze(window, symbol=symbol)
+
+            if result["signal"] not in ("BUY", "SELL"):
+                continue
+
+            entry_price = float(df["Close"].iloc[i])
+            sl = float(result["sl"])
+            tp = float(result["tp1"])
+            if sl is None or tp is None or sl == entry_price:
+                continue
+
+            is_buy = result["signal"] == "BUY"
+            outcome = None
+            exit_price = None
+            exit_idx = i
+
+            for j in range(i + 1, len(df)):
+                low_j = float(df["Low"].iloc[j])
+                high_j = float(df["High"].iloc[j])
+
+                if is_buy:
+                    if low_j <= sl:
+                        outcome = "LOSS"
+                        exit_price = sl
+                        exit_idx = j
+                        break
+                    if high_j >= tp:
+                        outcome = "WIN"
+                        exit_price = tp
+                        exit_idx = j
+                        break
+                else:
+                    if high_j >= sl:
+                        outcome = "LOSS"
+                        exit_price = sl
+                        exit_idx = j
+                        break
+                    if low_j <= tp:
+                        outcome = "WIN"
+                        exit_price = tp
+                        exit_idx = j
+                        break
+
+            if outcome is None:
+                exit_price = float(df["Close"].iloc[-1])
+                exit_idx = len(df) - 1
+                if is_buy:
+                    outcome = "WIN" if exit_price > entry_price else "LOSS"
+                else:
+                    outcome = "WIN" if exit_price < entry_price else "LOSS"
+
+            pnl_pct = ((exit_price - entry_price) / entry_price * 100)
+            if not is_buy:
+                pnl_pct = -pnl_pct
+
+            trades.append({
+                "date": str(df.index[i]),
+                "symbol": symbol,
+                "signal": result["signal"],
+                "score": result["teddy_score"],
+                "entry": round(entry_price, 5),
+                "exit": round(exit_price, 5),
+                "sl": round(sl, 5),
+                "tp": round(tp, 5),
+                "outcome": outcome,
+                "pnl_pct": round(pnl_pct, 4),
+                "bars_held": exit_idx - i,
+            })
+
+        if not trades:
+            await update.message.reply_text(f"ℹ️ {symbol}: Aucun trade.")
+            continue
+
+        trades_df = pd.DataFrame(trades)
+        total = len(trades_df)
+        wins = (trades_df["outcome"] == "WIN").sum()
+        losses = total - wins
+        win_rate = wins / total * 100
+        avg_pnl = trades_df["pnl_pct"].mean()
+        total_pnl = trades_df["pnl_pct"].sum()
+        best = trades_df["pnl_pct"].max()
+        worst = trades_df["pnl_pct"].min()
+        avg_bars = trades_df["bars_held"].mean()
+
+        cumul = trades_df["pnl_pct"].cumsum()
+        max_drawdown = (cumul.cummax() - cumul).max()
+
+        result_text = f"""
+📊 {symbol} – Résultats du backtest
+━━━━━━━━━━━━━━━━━━━━━━━━
+🔢 Trades        : {total}
+✅ Gagnants      : {wins} ({win_rate:.1f}%)
+❌ Perdants      : {losses}
+📈 Gain moyen    : {avg_pnl:.4f}%
+💰 Gain total    : {total_pnl:.2f}%
+🏆 Meilleur      : {best:.4f}%
+📉 Pire          : {worst:.4f}%
+📊 Max drawdown  : {max_drawdown:.2f}%
+⏳ Durée moyenne : {avg_bars:.0f} bougies
+━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        await update.message.reply_text(result_text)
 
 async def handle_pending_alert_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if not update.message or not update.message.text:
@@ -301,7 +427,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 for sym in wl:
                     df = await fetcher.get_historical_data(sym)
                     if df is not None and not df.empty:
-                        res = SignalEngine.analyze(df, lang)
+                        res = SignalEngine.analyze(df, lang, symbol=sym)
                         results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
                     else:
                         results.append(f"{sym}: {get_text(lang, 'data_unavailable')}")
@@ -621,7 +747,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     if df is None or df.empty:
         await msg.edit_text(get_text(lang, "analyse_error", symbol=symbol))
         return
-    result = SignalEngine.analyze(df, lang)
+    result = SignalEngine.analyze(df, lang, symbol=symbol)
     ind = result['indicators']
 
     plt.style.use('dark_background')
@@ -1014,8 +1140,8 @@ async def compare(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if df1 is None or df2 is None or len(df1) < 2 or len(df2) < 2:
         await update.message.reply_text(get_text(lang, "insufficient_data"))
         return
-    res1 = SignalEngine.analyze(df1, lang)
-    res2 = SignalEngine.analyze(df2, lang)
+    res1 = SignalEngine.analyze(df1, lang, symbol=sym1)
+    res2 = SignalEngine.analyze(df2, lang, symbol=sym2)
     trend1 = get_text(lang, f"trend_{res1['indicators']['trend'].lower()}")
     trend2 = get_text(lang, f"trend_{res2['indicators']['trend'].lower()}")
     text = get_text(lang, "compare_result", symbol1=sym1, symbol2=sym2, trend1=trend1, trend2=trend2)
@@ -1259,7 +1385,7 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(get_text(lang, "data_unavailable"))
             return
 
-        result = SignalEngine.analyze(df, lang)
+        result = SignalEngine.analyze(df, lang, symbol=symbol)
         signal_text = result['signal_text']
         price = result['indicators']['price']
 
@@ -1324,7 +1450,7 @@ async def snapshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if df is None:
         await update.message.reply_text(get_text(lang, "data_unavailable"))
         return
-    result = SignalEngine.analyze(df, lang)
+    result = SignalEngine.analyze(df, lang, symbol=symbol)
     ind = result['indicators']
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(10, 6))
