@@ -127,3 +127,14 @@ def fibonacci_levels(high: float, low: float) -> dict:
         "0.500": round(high - diff * 0.500, 5),
         "0.618": round(high - diff * 0.618, 5)
     }
+
+def _to_series(values) -> pd.Series:
+    if isinstance(values, pd.Series):
+        return values.astype(float)
+    return pd.Series(list(values), dtype=float)
+
+def rsi_from_ticks(ticks, period: int = 14) -> pd.Series:
+    return rsi(_to_series(ticks), period)
+
+def macd_from_ticks(ticks, fast: int = 12, slow: int = 26, signal: int = 9):
+    return macd(_to_series(ticks), fast, slow, signal)
