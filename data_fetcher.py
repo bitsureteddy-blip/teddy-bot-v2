@@ -43,7 +43,8 @@ class DataFetcher:
             return
 
         def on_open(ws):
-            ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(sorted(self.subscribed_symbols))}}))
+            formatted_symbols = [self._format_symbol(s) for s in sorted(self.subscribed_symbols)]
+            ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(formatted_symbols)}}))
 
         self.ws = websocket.WebSocketApp(
             f"wss://ws.twelvedata.com/v1/quotes/price?apikey={TWELVEDATA_API_KEY}",
@@ -62,8 +63,15 @@ class DataFetcher:
                 return
             symbol = normalize_symbol(data.get("symbol", ""))
             price = float(data.get("price", 0))
-            bid = float(data.get("bid", price - max(price * 0.0005, 0.0001)))
-            ask = float(data.get("ask", price + max(price * 0.0005, 0.0001)))
+            raw_bid = data.get("bid")
+            raw_ask = data.get("ask")
+            if raw_bid is not None and raw_ask is not None:
+                bid = float(raw_bid)
+                ask = float(raw_ask)
+            else:
+                spread = max(price * 0.0005, 0.0001)
+                bid = price - spread / 2
+                ask = price + spread / 2
             self.price_cache[symbol] = {"price": price, "bid": bid, "ask": ask, "timestamp": time.time()}
             self.add_tick(symbol, price)
         except Exception as e:
@@ -73,7 +81,7 @@ class DataFetcher:
         symbol = normalize_symbol(symbol)
         self.subscribed_symbols.add(symbol)
         if self.ws and self.ws.sock and self.ws.sock.connected:
-            self.ws.send(json.dumps({"action": "subscribe", "params": {"symbols": symbol}}))
+            self.ws.send(json.dumps({"action": "subscribe", "params": {"symbols": self._format_symbol(symbol)}}))
 
     def add_tick(self, symbol: str, price: float):
         symbol = normalize_symbol(symbol)

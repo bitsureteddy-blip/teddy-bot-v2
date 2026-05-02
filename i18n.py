@@ -8,26 +8,16 @@ TEXTS = {
             "📊 Analyses techniques avancées (crypto, forex, actions, matières premières)\n"
             "⚡ Signaux scalping en temps réel\n"
             "🚨 Alertes de prix personnalisées\n"
-            "🧸 Challenge scalping & historique vérifiable\n\n"
             "*Statut actuel :* {status}\n\n"
             "🔹 /menu – Menu principal\n"
-            "🔹 /help – Liste des commandes\n"
             "🔹 /upgrade – Passer à PRO\n\n"
             "Bons trades ! 🧸"
         ),
-        "start_disclaimer": (
-            "\n\n⚠️ *Version Beta – Merci de votre soutien !*\n"
-            "Ce bot est en cours d'amélioration. L'anglais peut contenir des erreurs et les données des actions "
-            "ne sont pas encore toutes disponibles. Ces points seront corrigés progressivement grâce à vos retours "
-            "et aux futurs financements. Merci de faire partie de l'aventure Bitsure Teddy ! 🧸"
-        ),
+        "start_disclaimer": "",
         "status_free_trial": "🆓 Essai gratuit (3 jours)",
         "status_free_ended": "🆓 Gratuit (essai terminé)",
         "status_pro": "💎 PRO",
-        "international_payment_info": (
-            "\n\n🌍 *Vous êtes dans un pays où les paiements internationaux sont difficiles ?*\n"
-            "Pas de problème. Contactez l'administrateur pour un arrangement manuel : /support"
-        ),
+        "international_payment_info": "",
 
         # ----- Aide -----
         "help_full": (
@@ -402,25 +392,16 @@ TEXTS = {
             "📊 Advanced technical analysis (crypto, forex, stocks, commodities)\n"
             "⚡ Real‑time scalping signals\n"
             "🚨 Custom price alerts\n"
-            "🧸 Scalping challenge & verifiable history\n\n"
             "*Current status:* {status}\n\n"
             "🔹 /menu – Main menu\n"
-            "🔹 /help – Command list\n"
             "🔹 /upgrade – Upgrade to PRO\n\n"
             "Happy trading! 🧸"
         ),
-        "start_disclaimer": (
-            "\n\n⚠️ *Beta Version – Thank you for your support!*\n"
-            "This bot is a work in progress. English may contain errors and stock data is not fully available yet. "
-            "These issues will be fixed over time as we secure more funding. Thank you for being part of the Bitsure Teddy journey! 🧸"
-        ),
+        "start_disclaimer": "",
         "status_free_trial": "🆓 Free trial (3 days)",
         "status_free_ended": "🆓 Free (trial ended)",
         "status_pro": "💎 PRO",
-        "international_payment_info": (
-            "\n\n🌍 *Are you in a country where international payments are difficult?*\n"
-            "No problem. Contact the administrator for a manual arrangement: /support"
-        ),
+        "international_payment_info": "",
 
         # ----- Help -----
         "help_full": (
