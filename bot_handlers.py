@@ -22,6 +22,7 @@ from history_manager import HistoryManager
 from challenge_manager import ChallengeManager
 from utils import format_number, is_valid_symbol, normalize_symbol
 from i18n import get_text
+from payments import generate_binance_payment
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,27 @@ async def respond(update: Update, text: str, **kwargs):
             await update.callback_query.message.reply_text(text, **kwargs)
     else:
         await update.message.reply_text(text, **kwargs)
+
+async def handle_pending_alert_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    if not update.message or not update.message.text:
+        return False
+    pending_symbol = context.user_data.get("pending_alert_symbol")
+    pending_cond = context.user_data.get("pending_alert_cond")
+    if not pending_symbol or not pending_cond:
+        return False
+    lang = get_user_lang(update)
+    try:
+        price = float(update.message.text.strip())
+        if price <= 0:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_text(get_text(lang, "alert_price_invalid_retry"))
+        return True
+    alert_id = alert_mgr.add_alert(update.effective_user.id, pending_symbol, pending_cond, price)
+    await update.message.reply_text(get_text(lang, "alert_created", id=alert_id, symbol=pending_symbol, cond=pending_cond, price=price))
+    context.user_data.pop("pending_alert_symbol", None)
+    context.user_data.pop("pending_alert_cond", None)
+    return True
 
 def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
@@ -129,6 +151,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     lang = get_user_lang(update)
     user_id = update.effective_user.id
+    message = query.message
 
     def safe_edit(text, keyboard):
         try:
@@ -201,6 +224,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "menu_upgrade":
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
+            [InlineKeyboardButton(get_text(lang, "button_binance_usdc"), callback_data="plan_binance")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_upgrade')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -227,7 +251,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             _,symbol,cond=cmd.split("_")
             context.user_data["pending_alert_symbol"]=symbol
             context.user_data["pending_alert_cond"]=cond
-            await message.reply_text(get_text(lang,"alert_enter_price")); return
+            await query.message.reply_text(get_text(lang,"alert_enter_price")); return
         if cmd.startswith("settimeframe_"):
             context.args=[cmd.split("_",1)[1]]
             await settimeframe(update, context); return
@@ -237,8 +261,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cmd.startswith("delalert_"):
             context.args=[cmd.split("_",1)[1]]
             await delalert(update, context); return
-        message = query.message
-
         if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread", "scalp", "alert", "addwatch", "removewatch"]:
             await symbol_selection(update, context, cmd)
 
@@ -317,6 +339,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         elif cmd == "historique":
+            await query.message.reply_text(get_text(lang, "history_title"))
             await historique(update, context)
 
         elif cmd == "usage":
@@ -494,6 +517,7 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
         [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
+            [InlineKeyboardButton(get_text(lang, "button_binance_usdc"), callback_data="plan_binance")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(get_text(lang, "upgrade_title"), parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
@@ -506,6 +530,8 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if data == "plan_pro_stars":
         await send_invoice(query, "PRO 19,99€/mois", 1999, "pro_monthly")
+    elif data == "plan_binance":
+        await plan_binance_callback(update, context)
     else:
         await query.edit_message_text(get_text(lang, "unavailable_option"))
 
@@ -542,9 +568,41 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     await notify_admin_new_premium(context, user, role, "Telegram Stars")
 
+
+@check_limit
+async def plan_binance_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+    ident, text = generate_binance_payment(user_id, lang)
+    user_mgr.add_pending_binance(user_id, ident)
+    if update.callback_query:
+        await update.callback_query.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+    else:
+        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+@check_limit
+async def pay_binance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await plan_binance_callback(update, context)
+
+@check_limit
+async def confirm_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "confirm_payment_usage"))
+        return
+    uid = int(context.args[0])
+    if user_mgr.confirm_binance_payment(uid):
+        await update.message.reply_text(get_text(lang, "confirm_payment_ok", user_id=uid))
+    else:
+        await update.message.reply_text(get_text(lang, "confirm_payment_missing", user_id=uid))
+
 # ---------- ANALYSE ----------
 @check_limit
 async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
@@ -571,7 +629,10 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     ax.plot(df.index, df['Close'], color='white', linewidth=1, label='Prix')
     ax.plot(df.index, pd.Series(ind['sma20'], index=df.index) if ind['sma20'] else None, color='orange', linestyle='--', label='SMA20')
     ax.plot(df.index, pd.Series(ind['sma50'], index=df.index) if ind['sma50'] else None, color='cyan', linestyle='--', label='SMA50')
-    ax.fill_between(df.index, ind['bb_lower'], ind['bb_upper'], alpha=0.1, color='gray')
+    bb_lower = ind.get('bb_lower')
+    bb_upper = ind.get('bb_upper')
+    if bb_lower is not None and bb_upper is not None:
+        ax.fill_between(df.index, bb_lower, bb_upper, alpha=0.1, color='gray')
     ax.set_title(f"{symbol} – Teddy Score: {result['teddy_score']}/100", color='white')
     ax.legend()
     plt.xticks(rotation=45)
@@ -585,8 +646,10 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     tp_str = format_number(result['tp']) if result['tp'] else "N/A"
     rr_str = f"{result['rr_ratio']:.2f}" if result['rr_ratio'] else "N/A"
 
+    signal_emoji = {"BUY": "🟢", "SELL": "🔴", "WAIT": "⚪"}.get(result["signal"], "⚪")
     caption = get_text(lang, "analyse_caption",
                        symbol=symbol,
+                       signal_emoji=signal_emoji,
                        signal=result['signal_text'],
                        confidence=result['confidence'],
                        price=format_number(ind['price']),
@@ -616,6 +679,8 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
 # ---------- PRIX ----------
 @check_limit
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
@@ -640,6 +705,8 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
 @check_limit
 @premium_required
 async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
@@ -656,6 +723,8 @@ async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback
 @check_limit
 @premium_required
 async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     if len(context.args) < 2:
         await respond(update, get_text(lang, "scalp_usage"))
@@ -672,12 +741,12 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
         await respond(update, get_text(lang, "realtime_data_error"))
         return
 
-    ticks = fetcher.tick_history.get(symbol, [])
+    ticks = fetcher.get_ticks(symbol)
     if len(ticks) < 14:
         base_price = price_data["price"]
         pass
 
-    result = SignalEngine.analyze_scalp(ticks, price_data, int(duration))
+    result = SignalEngine.analyze_scalp(symbol, ticks, price_data, int(duration), lang)
 
     signal_map = {
         "BUY": get_text(lang, "scalp_signal_buy"),
@@ -686,11 +755,13 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
     }
     signal_text = signal_map.get(result['signal'], result['signal'])
 
+    signal_emoji = {"BUY": "🟢", "SELL": "🔴", "WAIT": "⚪"}.get(result["signal"], "⚪")
     await respond(
         update,
         get_text(lang, "scalp_result",
                  symbol=symbol,
                  duration=duration,
+                 signal_emoji=signal_emoji,
                  signal=signal_text,
                  price=format_number(result['price']),
                  bid=format_number(result['bid'], 5),
@@ -705,6 +776,8 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
 @check_limit
 @premium_required
 async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
@@ -714,7 +787,7 @@ async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callba
     price_data = await fetcher.get_realtime_price(symbol)
     if price_data:
         spread_val = price_data['ask'] - price_data['bid']
-        text = get_text(lang, "spread_format", symbol=symbol, spread=format_number(spread_val, 5))
+        text = get_text(lang, "spread_format", symbol=symbol, bid=format_number(price_data['bid'], 5), ask=format_number(price_data['ask'], 5), spread=format_number(spread_val, 5))
         await respond(update, text, parse_mode=ParseMode.MARKDOWN)
     else:
         await respond(update, get_text(lang, "spread_unavailable"))
@@ -723,6 +796,8 @@ async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callba
 @check_limit
 @check_limit
 async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     if len(context.args) < 3:
         await update.message.reply_text(get_text(lang, "alert_usage"))
@@ -774,6 +849,34 @@ async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(get_text(lang, "alert_not_found"))
 
 @check_limit
+async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    symbol = context.args[0].upper() if context.args else None
+    if not symbol:
+        await respond(update, get_text(lang, "addwatch_usage"))
+        return
+    watchlist = user_mgr.get_watchlist(update.effective_user.id)
+    if symbol in watchlist:
+        await respond(update, get_text(lang, "watchlist_already", symbol=symbol))
+        return
+    user_mgr.add_to_watchlist(update.effective_user.id, symbol)
+    await respond(update, get_text(lang, "watchlist_added_styled", symbol=symbol))
+
+@check_limit
+async def removewatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    symbol = context.args[0].upper() if context.args else None
+    if not symbol:
+        await respond(update, get_text(lang, "removewatch_usage"))
+        return
+    watchlist = user_mgr.get_watchlist(update.effective_user.id)
+    if symbol not in watchlist:
+        await respond(update, get_text(lang, "watchlist_missing", symbol=symbol))
+        return
+    user_mgr.remove_from_watchlist(update.effective_user.id, symbol)
+    await respond(update, get_text(lang, "watchlist_removed_styled", symbol=symbol))
+
+@check_limit
 @check_limit
 async def clearalerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -797,6 +900,8 @@ async def clearalerts_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 # ---------- TENDANCE / VOLATILITÉ / CORRÉLATION / NIVEAUX ----------
 @check_limit
 async def trend(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
@@ -820,6 +925,8 @@ async def trend(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
 
 @check_limit
 async def volatility(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
@@ -857,6 +964,8 @@ async def correlation(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @check_limit
 async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
@@ -988,16 +1097,18 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @check_limit
 async def settimeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     if not context.args:
-        await update.message.reply_text(get_text(lang, "settimeframe_usage"))
+        await respond(update, get_text(lang, "settimeframe_usage"))
         return
     tf = context.args[0]
     if tf not in ("1h", "4h", "1d"):
-        await update.message.reply_text(get_text(lang, "settimeframe_invalid"))
+        await respond(update, get_text(lang, "settimeframe_invalid"))
         return
     user_mgr.set_setting(update.effective_user.id, "timeframe", tf)
-    await update.message.reply_text(get_text(lang, "settimeframe_success", tf=tf))
+    await respond(update, get_text(lang, "settimeframe_success", tf=tf))
 
 @check_limit
 async def setrisk(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1014,17 +1125,19 @@ async def setrisk(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @check_limit
 async def setlanguage(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     if not context.args:
-        await update.message.reply_text(get_text(lang, "setlanguage_usage"))
+        await respond(update, get_text(lang, "setlanguage_usage"))
         return
     new_lang = context.args[0].lower()
     if new_lang not in ("en", "fr"):
-        await update.message.reply_text(get_text(lang, "setlanguage_invalid"))
+        await respond(update, get_text(lang, "setlanguage_invalid"))
         return
     user_id = update.effective_user.id
     user_mgr.set_setting(user_id, "lang", new_lang)
-    await update.message.reply_text(get_text(new_lang, f"setlanguage_success_{new_lang}"))
+    await respond(update, get_text(new_lang, f"setlanguage_success_{new_lang}"))
 
 @check_limit
 async def usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1047,6 +1160,8 @@ async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @check_limit
 async def symbolinfo(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    if await handle_pending_alert_input(update, context):
+        return
     lang = get_user_lang(update)
     symbol = context.args[0].upper() if context.args else None
     if not symbol:
@@ -1182,15 +1297,18 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @check_limit
 async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
+    target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
+    if target_message is None:
+        return
     signals = history_mgr.get_recent_signals(10)
     if not signals:
-        await update.message.reply_text(get_text(lang, "history_empty"))
+        await target_message.reply_text(get_text(lang, "history_empty"))
         return
     text = get_text(lang, "history_title")
     for s in signals:
         status = "✅" if s['status'] == 'win' else "❌" if s['status'] == 'loss' else "⏳"
         text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:10]})\n"
-    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+    await target_message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 # ---------- SNAPSHOT / VERIFY ----------
 @check_limit
