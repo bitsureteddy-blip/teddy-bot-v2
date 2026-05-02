@@ -59,11 +59,14 @@ class DataFetcher:
         try:
             data = json.loads(message)
             event = data.get("event")
+
             if event == "subscribe-status" and data.get("status") == "ok" and self.ws and self.ws.sock and self.ws.sock.connected:
                 self.ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(sorted(self.subscribed_symbols))}}))
                 return
+
             if event != "price":
                 return
+
             symbol = normalize_symbol(data.get("symbol", ""))
             price = float(data.get("price", 0))
             bid = float(data.get("bid", price - max(price * 0.0005, 0.0001)))
@@ -96,7 +99,7 @@ class DataFetcher:
                 spread = max(p["price"] * 0.0005, 0.0001)
                 p["bid"] = p["price"] - spread / 2
                 p["ask"] = p["price"] + spread / 2
-            return self.price_cache[symbol]
+            return p
         price = await self._fetch_price(symbol)
         if price:
             self.price_cache[symbol] = price
