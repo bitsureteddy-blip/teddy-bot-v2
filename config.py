@@ -24,7 +24,7 @@ HISTORY_CACHE_TTL = 300     # secondes (5 minutes)
 
 # --- Analyse technique ---
 DEFAULT_TIMEFRAME = "1d"
-HISTORY_PERIOD = "2mo"
+HISTORY_PERIOD = "1y"
 RSI_PERIOD = 14
 STOCH_K_PERIOD = 14
 STOCH_D_PERIOD = 3
@@ -67,7 +67,7 @@ XAU_RSI_BUY_MAX = 35
 XAU_RSI_SELL_MIN = 65
 XAU_ATR_MAX_RATIO = 0.03
 XAU_TIMEFRAME = "1h"
-
+ main
 # --- Fichiers de données ---
 DATA_DIR = "data"
 USERS_FILE = f"{DATA_DIR}/users.json"
