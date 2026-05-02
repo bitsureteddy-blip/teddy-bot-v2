@@ -8,26 +8,16 @@ TEXTS = {
             "📊 Analyses techniques avancées (crypto, forex, actions, matières premières)\n"
             "⚡ Signaux scalping en temps réel\n"
             "🚨 Alertes de prix personnalisées\n"
-            "🧸 Challenge scalping & historique vérifiable\n\n"
             "*Statut actuel :* {status}\n\n"
             "🔹 /menu – Menu principal\n"
-            "🔹 /help – Liste des commandes\n"
             "🔹 /upgrade – Passer à PRO\n\n"
             "Bons trades ! 🧸"
         ),
-        "start_disclaimer": (
-            "\n\n⚠️ *Version Beta – Merci de votre soutien !*\n"
-            "Ce bot est en cours d'amélioration. L'anglais peut contenir des erreurs et les données des actions "
-            "ne sont pas encore toutes disponibles. Ces points seront corrigés progressivement grâce à vos retours "
-            "et aux futurs financements. Merci de faire partie de l'aventure Bitsure Teddy ! 🧸"
-        ),
+        "start_disclaimer": "",
         "status_free_trial": "🆓 Essai gratuit (3 jours)",
         "status_free_ended": "🆓 Gratuit (essai terminé)",
         "status_pro": "💎 PRO",
-        "international_payment_info": (
-            "\n\n🌍 *Vous êtes dans un pays où les paiements internationaux sont difficiles ?*\n"
-            "Pas de problème. Contactez l'administrateur pour un arrangement manuel : /support"
-        ),
+        "international_payment_info": "",
 
         # ----- Aide -----
         "help_full": (
@@ -86,6 +76,11 @@ TEXTS = {
             "*Choisissez votre mode de paiement :*"
         ),
         "button_pro_stars": "⭐ PRO 19,99€/mois (Telegram Stars)",
+        "button_binance_usdc": "🟡 Binance USDC",
+        "binance_payment_info": "🟡 *Paiement Binance (USDC BEP20)*\n\nMontant: *{amount}*\nAdresse: `{address}`\nMémo/ID: `{memo}`\n\nEnvoyez le montant exact puis contactez le support avec votre ID.",
+        "confirm_payment_usage": "Usage: /confirm_payment <user_id>",
+        "confirm_payment_ok": "✅ Paiement confirmé pour l'utilisateur {user_id}.",
+        "confirm_payment_missing": "❌ Aucun paiement Binance en attente pour {user_id}.",
         "premium_required": "🔒 *Fonctionnalité Premium*\n\nCette commande est réservée aux membres PRO.\nUtilisez /upgrade pour découvrir l'offre.",
         "payment_success": "✅ *Paiement réussi !*\nVous êtes maintenant *PRO*.\nMerci de votre confiance ! 🧸",
         "stripe_soon": "💳 Le paiement par carte bancaire sera disponible très prochainement. En attendant, vous pouvez utiliser les Telegram Stars ou contacter le support.",
@@ -141,24 +136,31 @@ TEXTS = {
         "analyse_wait": "🔍 Analyse de {symbol} en cours...",
         "analyse_error": "❌ Impossible de récupérer les données pour {symbol}.",
         "analyse_caption": (
-            "*{symbol}* – *{signal}*  [CONFIANCE: {confidence}]\n"
-            "💰 Prix: {price} | SL: {sl} | TP: {tp} | Ratio R/R: {rr_ratio}\n"
-            "{reason}\n{risk_advice}\n\n"
-            "📊 RSI: {rsi:.2f} | Stoch: {stoch_k:.1f}/{stoch_d:.1f} | ADX: {adx:.1f}\n"
-            "📈 SMA20: {sma20} | SMA50: {sma50}\n"
-            "🧸 Teddy Score: {teddy_score}/100"
+            "📊 *ANALYSE {symbol}*\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "🎯 Signal    : {signal_emoji} {signal}\n"
+            "📈 Score     : {teddy_score}/100 ({confidence})\n"
+            "💵 Prix      : {price}\n"
+            "🛑 SL        : {sl}\n"
+            "🎯 TP        : {tp} (RR: {rr_ratio})\n"
+            "📊 RSI       : {rsi:.1f}\n"
+            "📉 SMA20/50  : {sma20} / {sma50}\n"
+            "📏 ADX       : {adx:.1f}\n"
+            "💡 Raison    : {reason}\n"
+            "⚠️ Conseil   : {risk_advice}\n"
+            "━━━━━━━━━━━━━━━━━━━"
         ),
         "price_usage": "Usage: /price SYMBOLE",
         "price_error": "❌ Prix non disponible pour {symbol}.",
-        "price_format": "*{symbol}*\n💰 Prix: {price}\n📊 Bid: {bid} / Ask: {ask}",
+        "price_format": "💵 *{symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Prix : {price}\n📉 Bid  : {bid}\n📈 Ask  : {ask}",
         "price_label": "Prix",
 
         # ----- Scalping -----
         "tick_usage": "Usage: /tick SYMBOLE",
         "tick_none": "❌ Aucun tick récent.",
-        "tick_current": "🕒 Dernier tick {symbol}: {price}",
+        "tick_current": "🕒 *TICK {symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Prix : {price}",
         "spread_usage": "Usage: /spread SYMBOLE",
-        "spread_format": "*{symbol}* Spread: {spread}",
+        "spread_format": "📏 *SPREAD {symbol}*\n━━━━━━━━━━━━━━━━━━━\n📉 Bid    : {bid}\n📈 Ask    : {ask}\n📊 Spread : {spread}",
         "spread_unavailable": "❌ Spread non disponible.",
         "scalp_usage": "Usage: /scalp SYMBOLE DURÉE (3,5,10,20)",
         "scalp_invalid_duration": "Durée invalide. Choisissez 3, 5, 10 ou 20 secondes.",
@@ -166,13 +168,15 @@ TEXTS = {
         "scalp_signal_sell": "VENDRE",
         "scalp_signal_wait": "ATTENDRE",
         "scalp_result": (
-            "⚡ *Scalping {symbol} ({duration}s)*\n"
-            "Signal: *{signal}*\n"
-            "Prix: {price}\n"
-            "Bid: {bid} / Ask: {ask}\n"
-            "Spread: {spread} ({spread_pct}%)\n"
-            "RSI: {rsi:.1f}\n"
-            "{reason}"
+            "⚡ *SCALPING {symbol} · {duration}s*\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "📊 Signal : {signal_emoji} {signal}\n"
+            "💰 Prix    : {price}\n"
+            "📉 Bid/Ask : {bid} / {ask}\n"
+            "📏 Spread  : {spread} ({spread_pct}%)\n"
+            "📈 RSI     : {rsi:.1f}\n"
+            "📋 Raison  : {reason}\n"
+            "━━━━━━━━━━━━━━━━━━━"
         ),
         "realtime_data_error": "❌ Impossible d'obtenir les données temps réel.",
 
@@ -193,13 +197,13 @@ TEXTS = {
         "levels_usage": "Usage: /levels SYMBOLE",
         "levels_no_data": "Données non disponibles.",
         "levels_result": (
-            "*{symbol}* Niveaux:\n"
-            "Support: {support}\n"
-            "Résistance: {resistance}\n"
-            "Fibonacci (dernier swing):\n"
-            "• 0.382: {fib382}\n"
-            "• 0.500: {fib500}\n"
-            "• 0.618: {fib618}"
+            "📏 *NIVEAUX {symbol}*\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "🟢 Support    : {support}\n"
+            "🔴 Résistance : {resistance}\n"
+            "📐 Fib 38.2%  : {fib382}\n"
+            "📐 Fib 50.0%  : {fib500}\n"
+            "📐 Fib 61.8%  : {fib618}"
         ),
 
         # ----- Sentiment / Compare / Top / Fav -----
@@ -357,6 +361,14 @@ TEXTS = {
         "cond_below": "En-dessous",
         "alert_choose_condition": "Choisissez une condition :",
         "alert_enter_price": "Entrez le prix cible après la condition.",
+        "alert_price_invalid_retry": "Prix invalide, réessayez.",
+        "watchlist_already": "ℹ️ {symbol} est déjà dans ta watchlist.",
+        "watchlist_missing": "ℹ️ {symbol} n'est pas dans ta watchlist.",
+        "watchlist_added_styled": "✅ {symbol} ajouté à ta watchlist",
+        "watchlist_removed_styled": "🗑️ {symbol} retiré de ta watchlist",
+        "scalp_wait_reason": "Tous les indicateurs sont neutres, aucun edge détecté.",
+        "scalp_fallback_buy": "RSI survendu fort détecté (fallback).",
+        "scalp_fallback_sell": "RSI suracheté fort détecté (fallback).",
         "use_command": "Utilisez la commande /{cmd} pour plus d'informations.",
         "unknown_command": "Commande non reconnue : /{cmd}",
         "unknown_option": "Option non reconnue.",
@@ -380,25 +392,16 @@ TEXTS = {
             "📊 Advanced technical analysis (crypto, forex, stocks, commodities)\n"
             "⚡ Real‑time scalping signals\n"
             "🚨 Custom price alerts\n"
-            "🧸 Scalping challenge & verifiable history\n\n"
             "*Current status:* {status}\n\n"
             "🔹 /menu – Main menu\n"
-            "🔹 /help – Command list\n"
             "🔹 /upgrade – Upgrade to PRO\n\n"
             "Happy trading! 🧸"
         ),
-        "start_disclaimer": (
-            "\n\n⚠️ *Beta Version – Thank you for your support!*\n"
-            "This bot is a work in progress. English may contain errors and stock data is not fully available yet. "
-            "These issues will be fixed over time as we secure more funding. Thank you for being part of the Bitsure Teddy journey! 🧸"
-        ),
+        "start_disclaimer": "",
         "status_free_trial": "🆓 Free trial (3 days)",
         "status_free_ended": "🆓 Free (trial ended)",
         "status_pro": "💎 PRO",
-        "international_payment_info": (
-            "\n\n🌍 *Are you in a country where international payments are difficult?*\n"
-            "No problem. Contact the administrator for a manual arrangement: /support"
-        ),
+        "international_payment_info": "",
 
         # ----- Help -----
         "help_full": (
@@ -457,6 +460,11 @@ TEXTS = {
             "*Choose your payment method:*"
         ),
         "button_pro_stars": "⭐ PRO €19.99/month (Telegram Stars)",
+        "button_binance_usdc": "🟡 Binance USDC",
+        "binance_payment_info": "🟡 *Binance Payment (USDC BEP20)*\n\nAmount: *{amount}*\nAddress: `{address}`\nMemo/ID: `{memo}`\n\nSend the exact amount then contact support with your ID.",
+        "confirm_payment_usage": "Usage: /confirm_payment <user_id>",
+        "confirm_payment_ok": "✅ Payment confirmed for user {user_id}.",
+        "confirm_payment_missing": "❌ No pending Binance payment for {user_id}.",
         "premium_required": "🔒 *Premium Feature*\n\nThis command is reserved for PRO members.\nUse /upgrade to discover the offer.",
         "payment_success": "✅ *Payment successful!*\nYou are now *PRO*.\nThank you for your trust! 🧸",
         "stripe_soon": "💳 Credit card payment will be available very soon. In the meantime, you can use Telegram Stars or contact support.",
@@ -512,16 +520,23 @@ TEXTS = {
         "analyse_wait": "🔍 Analyzing {symbol}...",
         "analyse_error": "❌ Could not retrieve data for {symbol}.",
         "analyse_caption": (
-            "*{symbol}* – *{signal}*  [CONFIDENCE: {confidence}]\n"
-            "💰 Price: {price} | SL: {sl} | TP: {tp} | R/R Ratio: {rr_ratio}\n"
-            "{reason}\n{risk_advice}\n\n"
-            "📊 RSI: {rsi:.2f} | Stoch: {stoch_k:.1f}/{stoch_d:.1f} | ADX: {adx:.1f}\n"
-            "📈 SMA20: {sma20} | SMA50: {sma50}\n"
-            "🧸 Teddy Score: {teddy_score}/100"
+            "📊 *ANALYSIS {symbol}*\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "🎯 Signal    : {signal_emoji} {signal}\n"
+            "📈 Score     : {teddy_score}/100 ({confidence})\n"
+            "💵 Price     : {price}\n"
+            "🛑 SL        : {sl}\n"
+            "🎯 TP        : {tp} (RR: {rr_ratio})\n"
+            "📊 RSI       : {rsi:.1f}\n"
+            "📉 SMA20/50  : {sma20} / {sma50}\n"
+            "📏 ADX       : {adx:.1f}\n"
+            "💡 Reason    : {reason}\n"
+            "⚠️ Advice    : {risk_advice}\n"
+            "━━━━━━━━━━━━━━━━━━━"
         ),
         "price_usage": "Usage: /price SYMBOL",
         "price_error": "❌ Price not available for {symbol}.",
-        "price_format": "*{symbol}*\n💰 Price: {price}\n📊 Bid: {bid} / Ask: {ask}",
+        "price_format": "💵 *{symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Price : {price}\n📉 Bid   : {bid}\n📈 Ask   : {ask}",
         "price_label": "Price",
 
         # ----- Scalping -----
@@ -529,7 +544,7 @@ TEXTS = {
         "tick_none": "❌ No recent tick.",
         "tick_current": "🕒 Last tick {symbol}: {price}",
         "spread_usage": "Usage: /spread SYMBOL",
-        "spread_format": "*{symbol}* Spread: {spread}",
+        "spread_format": "📏 *SPREAD {symbol}*\n━━━━━━━━━━━━━━━━━━━\n📉 Bid    : {bid}\n📈 Ask    : {ask}\n📊 Spread : {spread}",
         "spread_unavailable": "❌ Spread unavailable.",
         "scalp_usage": "Usage: /scalp SYMBOL DURATION (3,5,10,20)",
         "scalp_invalid_duration": "Invalid duration. Choose 3, 5, 10 or 20 seconds.",
@@ -537,13 +552,15 @@ TEXTS = {
         "scalp_signal_sell": "SELL",
         "scalp_signal_wait": "WAIT",
         "scalp_result": (
-            "⚡ *Scalping {symbol} ({duration}s)*\n"
-            "Signal: *{signal}*\n"
-            "Price: {price}\n"
-            "Bid: {bid} / Ask: {ask}\n"
-            "Spread: {spread} ({spread_pct}%)\n"
-            "RSI: {rsi:.1f}\n"
-            "{reason}"
+            "⚡ *SCALPING {symbol} · {duration}s*\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "📊 Signal : {signal_emoji} {signal}\n"
+            "💰 Price   : {price}\n"
+            "📉 Bid/Ask : {bid} / {ask}\n"
+            "📏 Spread  : {spread} ({spread_pct}%)\n"
+            "📈 RSI     : {rsi:.1f}\n"
+            "📋 Reason  : {reason}\n"
+            "━━━━━━━━━━━━━━━━━━━"
         ),
         "realtime_data_error": "❌ Could not retrieve real-time data.",
 
@@ -564,13 +581,13 @@ TEXTS = {
         "levels_usage": "Usage: /levels SYMBOL",
         "levels_no_data": "No data available.",
         "levels_result": (
-            "*{symbol}* Levels:\n"
-            "Support: {support}\n"
-            "Resistance: {resistance}\n"
-            "Fibonacci (last swing):\n"
-            "• 0.382: {fib382}\n"
-            "• 0.500: {fib500}\n"
-            "• 0.618: {fib618}"
+            "📏 *LEVELS {symbol}*\n"
+            "━━━━━━━━━━━━━━━━━━━\n"
+            "🟢 Support    : {support}\n"
+            "🔴 Resistance : {resistance}\n"
+            "📐 Fib 38.2%  : {fib382}\n"
+            "📐 Fib 50.0%  : {fib500}\n"
+            "📐 Fib 61.8%  : {fib618}"
         ),
 
         # ----- Sentiment / Compare / Top / Fav -----
@@ -640,7 +657,7 @@ TEXTS = {
         "revoke_usage": "Usage: /revoke USER_ID",
         "revoke_success": "✅ User {target_id} role revoked (free).",
         "revoke_confirm": "⚠️ Revoke access for {target_id}?",
-        "action_cancelled": "Action cancelled.",
+        "action_cancelled": "❌ Action annulée.",
         "redeem_usage": "Usage: /redeem CODE",
         "redeem_success": "✅ Promo code applied: {message}",
         "redeem_invalid": "❌ Invalid or expired promo code.",
@@ -728,6 +745,14 @@ TEXTS = {
         "cond_below": "Below",
         "alert_choose_condition": "Choose a condition:",
         "alert_enter_price": "Enter the target price after selecting condition.",
+        "alert_price_invalid_retry": "Invalid price, please try again.",
+        "watchlist_already": "ℹ️ {symbol} is already in your watchlist.",
+        "watchlist_missing": "ℹ️ {symbol} is not in your watchlist.",
+        "watchlist_added_styled": "✅ {symbol} added to your watchlist",
+        "watchlist_removed_styled": "🗑️ {symbol} removed from your watchlist",
+        "scalp_wait_reason": "All indicators are neutral, no edge detected.",
+        "scalp_fallback_buy": "Strong oversold RSI detected (fallback).",
+        "scalp_fallback_sell": "Strong overbought RSI detected (fallback).",
         "btn_upgrade_stars_fr": "Telegram Stars (19,99€/mois)",
         "btn_upgrade_binance_fr": "Binance Junior (USDC)",
         "settimeframe_choose_fr": "Choisissez un timeframe :",
