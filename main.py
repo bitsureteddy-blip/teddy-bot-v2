@@ -13,7 +13,7 @@ from bot_handlers import (
     alert, alerts, delalert, clearalerts, trend, volatility, correlation, levels,
     settings, settimeframe, setrisk, setlanguage, usage,
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
-    upgrade, plan_callback, pre_checkout, successful_payment,
+    upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
     menu_command, menu_callback, symbol_callback, clearalerts_callback,
     sentiment, compare, top, fav, learn
@@ -48,7 +48,7 @@ def main():
         ("settings", settings), ("settimeframe", settimeframe), ("setrisk", setrisk), ("setlanguage", setlanguage),
         ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
-        ("support", support),
+        ("support", support), ("pay_binance", pay_binance), ("confirm_payment", confirm_payment),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
         ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn)
     ]
@@ -62,8 +62,7 @@ def main():
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
 
     logger.info("Teddy Trading Bot started")
-    DataFetcher.get_instance().start_binance_ws()
-    DataFetcher.get_instance().start_twelvedata_websocket()
+    DataFetcher.get_instance().start_websocket()
     # Utiliser webhook si configuré, sinon polling
     webhook_url = os.environ.get("WEBHOOK_URL")
     if webhook_url:

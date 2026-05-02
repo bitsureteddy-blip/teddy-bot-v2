@@ -86,6 +86,11 @@ TEXTS = {
             "*Choisissez votre mode de paiement :*"
         ),
         "button_pro_stars": "⭐ PRO 19,99€/mois (Telegram Stars)",
+        "button_binance_usdc": "🟡 Binance USDC",
+        "binance_payment_info": "🟡 *Paiement Binance (USDC BEP20)*\n\nMontant: *{amount}*\nAdresse: `{address}`\nMémo/ID: `{memo}`\n\nEnvoyez le montant exact puis contactez le support avec votre ID.",
+        "confirm_payment_usage": "Usage: /confirm_payment <user_id>",
+        "confirm_payment_ok": "✅ Paiement confirmé pour l'utilisateur {user_id}.",
+        "confirm_payment_missing": "❌ Aucun paiement Binance en attente pour {user_id}.",
         "premium_required": "🔒 *Fonctionnalité Premium*\n\nCette commande est réservée aux membres PRO.\nUtilisez /upgrade pour découvrir l'offre.",
         "payment_success": "✅ *Paiement réussi !*\nVous êtes maintenant *PRO*.\nMerci de votre confiance ! 🧸",
         "stripe_soon": "💳 Le paiement par carte bancaire sera disponible très prochainement. En attendant, vous pouvez utiliser les Telegram Stars ou contacter le support.",
@@ -457,6 +462,11 @@ TEXTS = {
             "*Choose your payment method:*"
         ),
         "button_pro_stars": "⭐ PRO €19.99/month (Telegram Stars)",
+        "button_binance_usdc": "🟡 Binance USDC",
+        "binance_payment_info": "🟡 *Binance Payment (USDC BEP20)*\n\nAmount: *{amount}*\nAddress: `{address}`\nMemo/ID: `{memo}`\n\nSend the exact amount then contact support with your ID.",
+        "confirm_payment_usage": "Usage: /confirm_payment <user_id>",
+        "confirm_payment_ok": "✅ Payment confirmed for user {user_id}.",
+        "confirm_payment_missing": "❌ No pending Binance payment for {user_id}.",
         "premium_required": "🔒 *Premium Feature*\n\nThis command is reserved for PRO members.\nUse /upgrade to discover the offer.",
         "payment_success": "✅ *Payment successful!*\nYou are now *PRO*.\nThank you for your trust! 🧸",
         "stripe_soon": "💳 Credit card payment will be available very soon. In the meantime, you can use Telegram Stars or contact support.",

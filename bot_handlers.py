@@ -22,6 +22,7 @@ from history_manager import HistoryManager
 from challenge_manager import ChallengeManager
 from utils import format_number, is_valid_symbol, normalize_symbol
 from i18n import get_text
+from payments import generate_binance_payment
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +202,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "menu_upgrade":
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
+            [InlineKeyboardButton(get_text(lang, "button_binance_usdc"), callback_data="plan_binance")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_upgrade')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -494,6 +496,7 @@ async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
         [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
+            [InlineKeyboardButton(get_text(lang, "button_binance_usdc"), callback_data="plan_binance")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(get_text(lang, "upgrade_title"), parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
@@ -506,6 +509,8 @@ async def plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if data == "plan_pro_stars":
         await send_invoice(query, "PRO 19,99€/mois", 1999, "pro_monthly")
+    elif data == "plan_binance":
+        await plan_binance_callback(update, context)
     else:
         await query.edit_message_text(get_text(lang, "unavailable_option"))
 
@@ -541,6 +546,36 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
         parse_mode=ParseMode.MARKDOWN
     )
     await notify_admin_new_premium(context, user, role, "Telegram Stars")
+
+
+@check_limit
+async def plan_binance_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+    ident, text = generate_binance_payment(user_id, lang)
+    user_mgr.add_pending_binance(user_id, ident)
+    if update.callback_query:
+        await update.callback_query.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+    else:
+        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+@check_limit
+async def pay_binance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await plan_binance_callback(update, context)
+
+@check_limit
+async def confirm_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "confirm_payment_usage"))
+        return
+    uid = int(context.args[0])
+    if user_mgr.confirm_binance_payment(uid):
+        await update.message.reply_text(get_text(lang, "confirm_payment_ok", user_id=uid))
+    else:
+        await update.message.reply_text(get_text(lang, "confirm_payment_missing", user_id=uid))
 
 # ---------- ANALYSE ----------
 @check_limit
@@ -672,12 +707,12 @@ async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
         await respond(update, get_text(lang, "realtime_data_error"))
         return
 
-    ticks = fetcher.tick_history.get(symbol, [])
+    ticks = fetcher.get_ticks(symbol)
     if len(ticks) < 14:
         base_price = price_data["price"]
         pass
 
-    result = SignalEngine.analyze_scalp(ticks, price_data, int(duration))
+    result = SignalEngine.analyze_scalp(symbol, ticks, price_data, int(duration), lang)
 
     signal_map = {
         "BUY": get_text(lang, "scalp_signal_buy"),

@@ -58,3 +58,4 @@ WS_URL = "wss://api.realmarketapi.com/v1/ws"
 
 # --- Rôles Premium (simplifié) ---
 PREMIUM_ROLES = ["pro"]
+BINANCE_USDC_ADDRESS = os.environ.get("BINANCE_USDC_ADDRESS", "0x0000000000000000000000000000000000000000")

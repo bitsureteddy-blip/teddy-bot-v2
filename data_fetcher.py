@@ -1,4 +1,3 @@
-import asyncio
 import json
 import time
 import logging
@@ -25,15 +24,10 @@ class DataFetcher:
     def __init__(self):
         self.price_cache = {}
         self.history_cache = {}
-        self.ws_twelvedata = None
-        self.ws_thread = None
-        self.ws_running = False
-        self.subscribed_symbols = set()
-        self.ws_authenticated = False
         self.tick_history = {}
+        self.subscribed_symbols = set(["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "WTI", "XAGUSD", "AAPL", "TSLA", "NVDA", "SPX", "NDX"])
         self.ws = None
         self.ws_thread = None
-        self.twelve_thread = None
 
     @classmethod
     def get_instance(cls):
@@ -45,118 +39,59 @@ class DataFetcher:
         self.start_twelvedata_websocket()
 
     def start_twelvedata_websocket(self):
-        if not TWELVEDATA_API_KEY:
-            logger.warning("Twelve Data API key manquante.")
+        if not TWELVEDATA_API_KEY or (self.ws_thread and self.ws_thread.is_alive()):
             return
-        symbols = ["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "WTI", "XAGUSD", "AAPL", "TSLA", "NVDA", "SPX", "NDX"]
+
+        def on_open(ws):
+            ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(sorted(self.subscribed_symbols))}}))
+
         self.ws = websocket.WebSocketApp(
             "wss://ws.twelvedata.com/v1/quotes/price",
-            on_open=lambda ws: ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(symbols)}})),
+            on_open=on_open,
             on_message=lambda ws, msg: self._on_twelve_message(msg),
             on_error=lambda ws, err: logger.error(f"Twelve WS error: {err}"),
             on_close=lambda ws, *args: logger.info("Twelve WS closed")
         )
-        self.twelve_thread = threading.Thread(target=self.ws.run_forever, daemon=True)
-        self.twelve_thread.start()
-        logger.info("Twelve Data WebSocket activé pour 16 symboles")
+        self.ws_thread = threading.Thread(target=self.ws.run_forever, daemon=True)
+        self.ws_thread.start()
 
     def _on_twelve_message(self, message):
         try:
             data = json.loads(message)
-            if data.get("event") == "price":
-                symbol = data["symbol"]
-                price = float(data["price"])
-                self.add_tick(symbol, price)
-        except:
-            pass
-
-    def _run_ws(self):
-        while self.ws_running:
-            try:
-                ws = websocket.WebSocketApp(
-                    "wss://ws.twelvedata.com/v1/quotes/price",
-                    on_open=self._on_open,
-                    on_message=self._on_message,
-                    on_error=self._on_error,
-                    on_close=self._on_close
-                )
-                self.ws_twelvedata = ws
-                self.ws_authenticated = False
-                ws.run_forever()
-            except Exception as e:
-                logger.error(f"WS error: {e}")
-            time.sleep(5)
-
-    def _on_open(self, ws):
-        logger.info("WS connected")
-        ws.send(json.dumps({
-            "action": "auth",
-            "params": {"apikey": TWELVEDATA_API_KEY}
-        }))
-
-    def _on_message(self, ws, message):
-        try:
-            data = json.loads(message)
-            if data.get("event") == "price":
-                symbol = data.get("symbol")
-                price = float(data.get("price", 0))
-                bid = data.get("bid")
-                ask = data.get("ask")
-                if bid is None or ask is None:
-                    spread = max(price * 0.0003, 0.0001)
-                    bid = price - spread / 2
-                    ask = price + spread / 2
-                else:
-                    bid = float(bid)
-                    ask = float(ask)
-                self.price_cache[symbol] = {
-                    "price": price, "bid": bid, "ask": ask, "timestamp": time.time()
-                }
-                self.add_tick(symbol, price)
-            elif data.get("status") == "ok":
-                self.ws_authenticated = True
-                logger.info("WS authenticated")
-                if self.subscribed_symbols:
-                    ws.send(json.dumps({
-                        "action": "subscribe",
-                        "params": {"symbols": ",".join(self.subscribed_symbols)}
-                    }))
+            if data.get("event") != "price":
+                return
+            symbol = normalize_symbol(data.get("symbol", ""))
+            price = float(data.get("price", 0))
+            bid = float(data.get("bid", price - max(price * 0.00015, 0.00005)))
+            ask = float(data.get("ask", price + max(price * 0.00015, 0.00005)))
+            self.price_cache[symbol] = {"price": price, "bid": bid, "ask": ask, "timestamp": time.time()}
+            self.add_tick(symbol, price)
         except Exception as e:
-            logger.error(f"WS message error: {e}")
-
-    def _on_error(self, ws, error):
-        logger.error(f"WS error: {error}")
-
-    def _on_close(self, ws, *args):
-        logger.info("WS closed")
-        self.ws_authenticated = False
+            logger.debug(f"WS parse error: {e}")
 
     def subscribe_twelvedata(self, symbol: str):
         symbol = normalize_symbol(symbol)
         self.subscribed_symbols.add(symbol)
-        if self.ws_authenticated and self.ws_twelvedata and self.ws_twelvedata.sock and self.ws_twelvedata.sock.connected:
-            self.ws_twelvedata.send(json.dumps({
-                "action": "subscribe", "params": {"symbols": symbol}
-            }))
+        if self.ws and self.ws.sock and self.ws.sock.connected:
+            self.ws.send(json.dumps({"action": "subscribe", "params": {"symbols": symbol}}))
 
     def add_tick(self, symbol: str, price: float):
         symbol = normalize_symbol(symbol)
-        if symbol not in self.tick_history:
-            self.tick_history[symbol] = []
-        self.tick_history[symbol].append(price)
-        if len(self.tick_history[symbol]) > 30:
-            self.tick_history[symbol].pop(0)
+        self.tick_history.setdefault(symbol, []).append(price)
+        self.tick_history[symbol] = self.tick_history[symbol][-100:]
+
+    def get_ticks(self, symbol: str):
+        symbol = normalize_symbol(symbol)
+        return list(self.tick_history.get(symbol, []))
 
     async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
-        if symbol in self.price_cache:
-            if time.time() - self.price_cache[symbol]["timestamp"] < PRICE_CACHE_TTL:
-                return self.price_cache[symbol]
+        if symbol in self.price_cache and time.time() - self.price_cache[symbol]["timestamp"] < PRICE_CACHE_TTL:
+            return self.price_cache[symbol]
         price = await self._fetch_price(symbol)
         if price:
             self.price_cache[symbol] = price
-            return price
-        return None
+        return price
 
     async def _fetch_price(self, symbol: str) -> Optional[Dict]:
         if not TWELVEDATA_API_KEY:
@@ -168,15 +103,8 @@ class DataFetcher:
             if r.status_code == 200:
                 data = r.json()
                 price = float(data.get("close") or data.get("price", 0))
-                bid = data.get("bid")
-                ask = data.get("ask")
-                if bid is None or ask is None:
-                    spread = max(price * 0.0003, 0.0001)
-                    bid = price - spread / 2
-                    ask = price + spread / 2
-                else:
-                    bid = float(bid)
-                    ask = float(ask)
+                bid = float(data.get("bid", price - max(price * 0.00015, 0.00005)))
+                ask = float(data.get("ask", price + max(price * 0.00015, 0.00005)))
                 return {"price": price, "bid": bid, "ask": ask, "timestamp": time.time()}
         except Exception as e:
             logger.warning(f"Price error {symbol}: {e}")
@@ -184,34 +112,20 @@ class DataFetcher:
 
     def _format_symbol(self, symbol: str) -> str:
         s = symbol.upper()
-        crypto_list = ["BTC", "ETH", "XRP", "SOL", "ADA", "BNB", "LTC", "BCH", "DOT", "LINK"]
-        for crypto in crypto_list:
-            if s == f"{crypto}USD":
-                return f"{crypto}/USD"
         if len(s) == 6:
             return f"{s[:3]}/{s[3:]}"
-        if s == "XAUUSD":
-            return "XAU/USD"
-        if s == "XAGUSD":
-            return "XAG/USD"
-        if s in ["USOIL", "WTI"]:
+        if s == "WTI":
             return "WTI/USD"
-        if s == "UKOIL":
-            return "BRENT/USD"
         return s
 
-    async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME,
-                                  period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
+    async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME, period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:
         symbol = normalize_symbol(symbol)
         key = cache_key(symbol, timeframe, period)
-        if key in self.history_cache:
-            if time.time() - self.history_cache[key]["timestamp"] < HISTORY_CACHE_TTL:
-                return self.history_cache[key]["data"]
+        if key in self.history_cache and time.time() - self.history_cache[key]["timestamp"] < HISTORY_CACHE_TTL:
+            return self.history_cache[key]["data"]
         df = await self._fetch_history(symbol, timeframe)
         if df is None and FCS_API_KEY:
             df = await self._fetch_fcs_history(symbol, timeframe, period)
-        if df is None:
-            df = await self._fetch_yahoo_history(symbol, timeframe, period)
         if df is not None and not df.empty:
             self.history_cache[key] = {"data": df, "timestamp": time.time()}
             return df
@@ -220,19 +134,14 @@ class DataFetcher:
     async def _fetch_history(self, symbol: str, timeframe: str):
         try:
             td_symbol = self._format_symbol(symbol)
-            interval_map = {"1m": "1min", "5m": "5min", "1h": "1h", "4h": "4h", "1d": "1day"}
-            interval = interval_map.get(timeframe, "1day")
+            interval = {"1m": "1min", "5m": "5min", "1h": "1h", "4h": "4h", "1d": "1day"}.get(timeframe, "1day")
             url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&outputsize=200&apikey={TWELVEDATA_API_KEY}"
             r = requests.get(url, timeout=10)
             if r.status_code == 200:
                 data = r.json().get("values", [])
                 if not data:
                     return None
-                df = pd.DataFrame(data)
-                df = df.rename(columns={
-                    "datetime": "Date", "open": "Open", "high": "High",
-                    "low": "Low", "close": "Close", "volume": "Volume"
-                })
+                df = pd.DataFrame(data).rename(columns={"datetime": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
                 df = df.iloc[::-1]
                 df["Date"] = pd.to_datetime(df["Date"])
                 df.set_index("Date", inplace=True)
@@ -241,39 +150,16 @@ class DataFetcher:
             logger.warning(f"History error {symbol}: {e}")
         return None
 
-    async def _fetch_yahoo_history(self, symbol: str, timeframe: str, period: str):
-        try:
-            import yfinance as yf
-            if symbol.upper() in ["BTCUSD", "ETHUSD", "XAUUSD"]:
-                ticker = symbol.replace("USD", "-USD")
-            elif len(symbol) == 6 and symbol.endswith("USD"):
-                ticker = symbol + "=X"
-            else:
-                ticker = symbol
-            df = yf.Ticker(ticker).history(period=period, interval=timeframe)
-            return df if not df.empty else None
-        except Exception as e:
-            logger.warning(f"Yahoo fallback error: {e}")
-        return None
-
     async def _fetch_fcs_history(self, symbol: str, timeframe: str, period: str):
-        if not FCS_API_KEY:
-            return None
         try:
-            days = 180
-            from_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            from_date = (datetime.now() - timedelta(days=180)).strftime("%Y-%m-%d")
             to_date = datetime.now().strftime("%Y-%m-%d")
             url = f"https://fcsapi.com/api-v3/forex/history?symbol={symbol}&period={timeframe}&from={from_date}&to={to_date}&access_key={FCS_API_KEY}"
             r = requests.get(url, timeout=10)
             if r.status_code == 200:
                 data = r.json()
                 if data.get("code") == 200 and data.get("response"):
-                    rows = []
-                    for item in data["response"]:
-                        rows.append({
-                            "Date": item["date"], "Open": float(item["o"]), "High": float(item["h"]),
-                            "Low": float(item["l"]), "Close": float(item["c"]), "Volume": float(item.get("v", 0))
-                        })
+                    rows = [{"Date": i["date"], "Open": float(i["o"]), "High": float(i["h"]), "Low": float(i["l"]), "Close": float(i["c"]), "Volume": float(i.get("v", 0))} for i in data["response"]]
                     df = pd.DataFrame(rows)
                     df["Date"] = pd.to_datetime(df["Date"])
                     df.set_index("Date", inplace=True)
@@ -281,32 +167,3 @@ class DataFetcher:
         except Exception as e:
             logger.warning(f"FCS fallback error: {e}")
         return None
-
-    def on_message(self, ws, message):
-        import json
-        data = json.loads(message)
-        price = float(data['p'])
-        symbol = "BTCUSD"
-        self.add_tick(symbol, price)
-
-    def on_error(self, ws, error):
-        logger.error(f"WebSocket error: {error}")
-
-    def on_close(self, ws, close_status_code, close_msg):
-        logger.info("Binance WebSocket closed")
-
-    def on_open(self, ws):
-        logger.info("✅ Binance WebSocket connecté")
-
-    def start_binance_ws(self):
-        ws_url = "wss://stream.binance.com:9443/ws/btcusdt@trade"
-        self.ws = websocket.WebSocketApp(
-            ws_url,
-            on_message=self.on_message,
-            on_error=self.on_error,
-            on_close=self.on_close,
-            on_open=self.on_open
-        )
-        self.ws_thread = threading.Thread(target=self.ws.run_forever)
-        self.ws_thread.daemon = True
-        self.ws_thread.start()
