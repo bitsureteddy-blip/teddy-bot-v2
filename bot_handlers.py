@@ -16,6 +16,7 @@ from telegram.constants import ParseMode
 from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD
 from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
+from indicators import atr
 from user_manager import UserManager
 from alert_manager import AlertManager
 from history_manager import HistoryManager
@@ -919,7 +920,6 @@ async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callba
 
 # ---------- ALERTES ----------
 @check_limit
-@check_limit
 async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
         return
@@ -943,7 +943,6 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 @check_limit
-@check_limit
 async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     alerts_list = alert_mgr.get_alerts(update.effective_user.id)
@@ -956,7 +955,6 @@ async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"{status} #{a['id']} {a['symbol']} {a['condition']} {a['price']}\n"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
-@check_limit
 @check_limit
 async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -1001,7 +999,6 @@ async def removewatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr.remove_from_watchlist(update.effective_user.id, symbol)
     await respond(update, get_text(lang, "watchlist_removed_styled", symbol=symbol))
 
-@check_limit
 @check_limit
 async def clearalerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -1061,7 +1058,6 @@ async def volatility(update: Update, context: ContextTypes.DEFAULT_TYPE, from_ca
     if df is None or df.empty:
         await respond(update, get_text(lang, "trend_no_data"))
         return
-    from indicators import atr
     atr_val = atr(df['High'], df['Low'], df['Close'], 14).iloc[-1]
     text = get_text(lang, "volatility_result", symbol=symbol, atr=format_number(atr_val))
     await respond(update, text, parse_mode=ParseMode.MARKDOWN)
