@@ -57,7 +57,7 @@ class SignalEngine:
         ]
 
         buy_count, sell_count = sum(buy_cond), sum(sell_cond)
-        teddy_score = int(max(buy_count, sell_count) / 6 * 100)
+        teddy_score = min(int(max(buy_count, sell_count) / 6 * 100), 95)
 
         signal = "WAIT"
         if buy_count == 6:

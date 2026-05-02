@@ -43,7 +43,7 @@ class DataFetcher:
             return
 
         def on_open(ws):
-            ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(sorted(self.subscribed_symbols))}}))
+            ws.send(json.dumps({"action": "auth", "params": {"apikey": TWELVEDATA_API_KEY}}))
 
         self.ws = websocket.WebSocketApp(
             "wss://ws.twelvedata.com/v1/quotes/price",
@@ -58,12 +58,19 @@ class DataFetcher:
     def _on_twelve_message(self, message):
         try:
             data = json.loads(message)
-            if data.get("event") != "price":
+            event = data.get("event")
+
+            if event == "subscribe-status" and data.get("status") == "ok" and self.ws and self.ws.sock and self.ws.sock.connected:
+                self.ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(sorted(self.subscribed_symbols))}}))
                 return
+
+            if event != "price":
+                return
+
             symbol = normalize_symbol(data.get("symbol", ""))
             price = float(data.get("price", 0))
-            bid = float(data.get("bid", price - max(price * 0.00015, 0.00005)))
-            ask = float(data.get("ask", price + max(price * 0.00015, 0.00005)))
+            bid = float(data.get("bid", price - max(price * 0.0005, 0.0001)))
+            ask = float(data.get("ask", price + max(price * 0.0005, 0.0001)))
             self.price_cache[symbol] = {"price": price, "bid": bid, "ask": ask, "timestamp": time.time()}
             self.add_tick(symbol, price)
         except Exception as e:
@@ -87,7 +94,12 @@ class DataFetcher:
     async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
         if symbol in self.price_cache and time.time() - self.price_cache[symbol]["timestamp"] < PRICE_CACHE_TTL:
-            return self.price_cache[symbol]
+            p = self.price_cache[symbol]
+            if p["ask"] <= p["bid"]:
+                spread = max(p["price"] * 0.0005, 0.0001)
+                p["bid"] = p["price"] - spread / 2
+                p["ask"] = p["price"] + spread / 2
+            return p
         price = await self._fetch_price(symbol)
         if price:
             self.price_cache[symbol] = price
@@ -103,8 +115,8 @@ class DataFetcher:
             if r.status_code == 200:
                 data = r.json()
                 price = float(data.get("close") or data.get("price", 0))
-                bid = float(data.get("bid", price - max(price * 0.00015, 0.00005)))
-                ask = float(data.get("ask", price + max(price * 0.00015, 0.00005)))
+                bid = float(data.get("bid", price - max(price * 0.0005, 0.0001)))
+                ask = float(data.get("ask", price + max(price * 0.0005, 0.0001)))
                 return {"price": price, "bid": bid, "ask": ask, "timestamp": time.time()}
         except Exception as e:
             logger.warning(f"Price error {symbol}: {e}")

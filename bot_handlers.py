@@ -250,7 +250,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             _,symbol,cond=cmd.split("_")
             context.user_data["pending_alert_symbol"]=symbol
             context.user_data["pending_alert_cond"]=cond
-            await message.reply_text(get_text(lang,"alert_enter_price")); return
+            await query.message.reply_text(get_text(lang,"alert_enter_price")); return
         if cmd.startswith("settimeframe_"):
             context.args=[cmd.split("_",1)[1]]
             await settimeframe(update, context); return
@@ -1101,14 +1101,14 @@ async def settimeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     lang = get_user_lang(update)
     if not context.args:
-        await update.message.reply_text(get_text(lang, "settimeframe_usage"))
+        await respond(update, get_text(lang, "settimeframe_usage"))
         return
     tf = context.args[0]
     if tf not in ("1h", "4h", "1d"):
-        await update.message.reply_text(get_text(lang, "settimeframe_invalid"))
+        await respond(update, get_text(lang, "settimeframe_invalid"))
         return
     user_mgr.set_setting(update.effective_user.id, "timeframe", tf)
-    await update.message.reply_text(get_text(lang, "settimeframe_success", tf=tf))
+    await respond(update, get_text(lang, "settimeframe_success", tf=tf))
 
 @check_limit
 async def setrisk(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1129,15 +1129,15 @@ async def setlanguage(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     lang = get_user_lang(update)
     if not context.args:
-        await update.message.reply_text(get_text(lang, "setlanguage_usage"))
+        await respond(update, get_text(lang, "setlanguage_usage"))
         return
     new_lang = context.args[0].lower()
     if new_lang not in ("en", "fr"):
-        await update.message.reply_text(get_text(lang, "setlanguage_invalid"))
+        await respond(update, get_text(lang, "setlanguage_invalid"))
         return
     user_id = update.effective_user.id
     user_mgr.set_setting(user_id, "lang", new_lang)
-    await update.message.reply_text(get_text(new_lang, f"setlanguage_success_{new_lang}"))
+    await respond(update, get_text(new_lang, f"setlanguage_success_{new_lang}"))
 
 @check_limit
 async def usage(update: Update, context: ContextTypes.DEFAULT_TYPE):
