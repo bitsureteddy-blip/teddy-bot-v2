@@ -91,7 +91,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             tp = float(result["tp1"])
             if sl is None or tp is None or sl == entry_price:
                 continue
-
             is_buy = result["signal"] == "BUY"
             outcome = None
             exit_price = None
