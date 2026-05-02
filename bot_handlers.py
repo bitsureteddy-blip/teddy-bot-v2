@@ -276,7 +276,6 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
         [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
-        [InlineKeyboardButton(get_text(lang, "menu_scalping"), callback_data="menu_scalping")],
         [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
         [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
         [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
@@ -319,15 +318,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-
-    elif data == "menu_scalping":
-        keyboard = [
-            [InlineKeyboardButton(get_text(lang, "btn_scalp"), callback_data="cmd_scalp")],
-            [InlineKeyboardButton(get_text(lang, "btn_tick"), callback_data="cmd_tick")],
-            [InlineKeyboardButton(get_text(lang, "btn_spread"), callback_data="cmd_spread")],
-            [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
-        ]
-        await safe_edit(f"*{get_text(lang, 'menu_scalping')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
     elif data == "menu_alertes":
         keyboard = [
@@ -372,8 +362,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "menu_back":
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
-            [InlineKeyboardButton(get_text(lang, "menu_scalping"), callback_data="menu_scalping")],
-            [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
+                [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
             [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
             [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
             [InlineKeyboardButton(get_text(lang, "menu_upgrade"), callback_data="menu_upgrade")],
@@ -383,10 +372,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Exécution réelle des commandes ---
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
-        if cmd.startswith("scalpdur_"):
-            _,symbol,dur=cmd.split("_")
-            context.args=[symbol,dur]
-            await scalp(update, context); return
         if cmd.startswith("alertcond_"):
             _,symbol,cond=cmd.split("_")
             context.user_data["pending_alert_symbol"]=symbol
@@ -401,7 +386,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cmd.startswith("delalert_"):
             context.args=[cmd.split("_",1)[1]]
             await delalert(update, context); return
-        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread", "scalp", "alert", "addwatch", "removewatch"]:
+        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "alert", "addwatch", "removewatch"]:
             await symbol_selection(update, context, cmd)
 
         elif cmd == "alerts":
@@ -505,7 +490,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         else:
             usage_map = {
-                "scalp": "scalp_usage",
                 "alert": "alert_usage",
                 "delalert": "delalert_usage",
                 "addwatch": "addwatch_usage",
@@ -581,13 +565,6 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await levels(update, context, from_callback=True)
             elif command == "symbolinfo":
                 await symbolinfo(update, context, from_callback=True)
-            elif command == "tick":
-                await tick(update, context, from_callback=True)
-            elif command == "spread":
-                await spread(update, context, from_callback=True)
-            elif command == "scalp":
-                kb=[[InlineKeyboardButton("3s",callback_data=f"cmd_scalpdur_{symbol}_3"),InlineKeyboardButton("5s",callback_data=f"cmd_scalpdur_{symbol}_5")],[InlineKeyboardButton("10s",callback_data=f"cmd_scalpdur_{symbol}_10"),InlineKeyboardButton("20s",callback_data=f"cmd_scalpdur_{symbol}_20")]]
-                await query.message.reply_text(get_text(lang,"scalp_choose_duration"), reply_markup=InlineKeyboardMarkup(kb))
             elif command == "alert":
                 kb=[[InlineKeyboardButton(get_text(lang,"cond_above"),callback_data=f"cmd_alertcond_{symbol}_above"),InlineKeyboardButton(get_text(lang,"cond_below"),callback_data=f"cmd_alertcond_{symbol}_below")]]
                 await query.message.reply_text(get_text(lang,"alert_choose_condition"), reply_markup=InlineKeyboardMarkup(kb))
@@ -881,95 +858,6 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
         await respond(update, get_text(lang, "price_error", symbol=symbol))
 
 # ---------- PREMIUM : SCALPING ----------
-@check_limit
-@premium_required
-async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
-    if await handle_pending_alert_input(update, context):
-        return
-    lang = get_user_lang(update)
-    symbol = context.args[0].upper() if context.args else None
-    if not symbol:
-        await respond(update, get_text(lang, "tick_usage"), parse_mode=ParseMode.MARKDOWN)
-        return
-    fetcher.subscribe_twelvedata(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
-    if price_data:
-        text = get_text(lang, "tick_current", symbol=symbol, price=format_number(price_data['price']))
-        await respond(update, text)
-    else:
-        await respond(update, get_text(lang, "tick_none"))
-
-@check_limit
-@premium_required
-async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
-    if await handle_pending_alert_input(update, context):
-        return
-    lang = get_user_lang(update)
-    if len(context.args) < 2:
-        await respond(update, get_text(lang, "scalp_usage"))
-        return
-    symbol = context.args[0].upper()
-    duration = context.args[1]
-    if duration not in ("3", "5", "10", "20"):
-        await respond(update, get_text(lang, "scalp_invalid_duration"))
-        return
-
-    fetcher.subscribe_twelvedata(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
-    if not price_data:
-        await respond(update, get_text(lang, "realtime_data_error"))
-        return
-
-    ticks = fetcher.get_ticks(symbol)
-    if len(ticks) < 14:
-        base_price = price_data["price"]
-        pass
-
-    result = SignalEngine.analyze_scalp(symbol, ticks, price_data, int(duration), lang)
-
-    signal_map = {
-        "BUY": get_text(lang, "scalp_signal_buy"),
-        "SELL": get_text(lang, "scalp_signal_sell"),
-        "WAIT": get_text(lang, "scalp_signal_wait")
-    }
-    signal_text = signal_map.get(result['signal'], result['signal'])
-
-    signal_emoji = {"BUY": "🟢", "SELL": "🔴", "WAIT": "⚪"}.get(result["signal"], "⚪")
-    await respond(
-        update,
-        get_text(lang, "scalp_result",
-                 symbol=symbol,
-                 duration=duration,
-                 signal_emoji=signal_emoji,
-                 signal=signal_text,
-                 price=format_number(result['price']),
-                 bid=format_number(result['bid'], 5),
-                 ask=format_number(result['ask'], 5),
-                 spread=format_number(result['spread'], 5),
-                 spread_pct=result['spread_pct'],
-                 rsi=result['rsi'],
-                 reason=result['reason']),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-@check_limit
-@premium_required
-async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
-    if await handle_pending_alert_input(update, context):
-        return
-    lang = get_user_lang(update)
-    symbol = context.args[0].upper() if context.args else None
-    if not symbol:
-        await respond(update, get_text(lang, "spread_usage"), parse_mode=ParseMode.MARKDOWN)
-        return
-    fetcher.subscribe_twelvedata(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
-    if price_data:
-        spread_val = price_data['ask'] - price_data['bid']
-        text = get_text(lang, "spread_format", symbol=symbol, bid=format_number(price_data['bid'], 5), ask=format_number(price_data['ask'], 5), spread=format_number(spread_val, 5))
-        await respond(update, text, parse_mode=ParseMode.MARKDOWN)
-    else:
-        await respond(update, get_text(lang, "spread_unavailable"))
 
 # ---------- ALERTES ----------
 @check_limit

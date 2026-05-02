@@ -9,7 +9,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 
 from config import TELEGRAM_TOKEN
 from bot_handlers import (
-    start, help_command, analyse, price, scalp, tick, spread,
+    start, help_command, analyse, price,
     alert, alerts, delalert, clearalerts, trend, volatility, correlation, levels,
     settings, settimeframe, setrisk, setlanguage, usage,
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
@@ -42,7 +42,7 @@ def main():
     # Commandes
     handlers = [
         ("start", start), ("help", help_command), ("menu", menu_command),
-        ("analyse", analyse), ("price", price), ("scalp", scalp), ("tick", tick), ("spread", spread),
+        ("analyse", analyse), ("price", price),
         ("alert", alert), ("alerts", alerts), ("delalert", delalert), ("clearalerts", clearalerts),
         ("trend", trend), ("volatility", volatility), ("correlation", correlation), ("levels", levels),
         ("settings", settings), ("settimeframe", settimeframe), ("setrisk", setrisk), ("setlanguage", setlanguage),

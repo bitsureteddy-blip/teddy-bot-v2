@@ -1,32 +1,28 @@
 import pandas as pd
 from typing import Dict
 
-from indicators import (
-    rsi, macd, sma, atr, adx, bollinger_bands,
-    rsi_from_ticks, macd_from_ticks
-)
-
+from indicators import rsi, macd, sma, atr, adx, bollinger_bands
 from config import (
     ATR_MULTIPLIER_SL, RR_RATIO_TARGET,
     ADX_THRESHOLDS, ATR_PRICE_MAX,
-    RSI_BUY_LOW, RSI_BUY_HIGH,
-    RSI_SELL_LOW, RSI_SELL_HIGH
+    RSI_BUY_LOW, RSI_BUY_HIGH, RSI_SELL_LOW, RSI_SELL_HIGH
 )
-
 from i18n import get_text
 
 
 class SignalEngine:
 
-    # ================= UTILS =================
     @staticmethod
     def _asset_type(symbol: str) -> str:
         symbol = symbol.upper()
-        if symbol in {"EURUSD", "GBPUSD", "USDJPY"}:
+        forex = {"EURUSD", "GBPUSD", "USDJPY"}
+        metals = {"XAUUSD"}
+        crypto = {"BTCUSD", "ETHUSD"}
+        if symbol in forex:
             return "forex"
-        if symbol in {"XAUUSD"}:
+        if symbol in metals:
             return "metal"
-        if symbol in {"BTCUSD", "ETHUSD"}:
+        if symbol in crypto:
             return "crypto"
         return "stock"
 
@@ -58,10 +54,8 @@ class SignalEngine:
             "indicators": {}
         }
 
-    # ================= MAIN =================
     @staticmethod
     def analyze(df: pd.DataFrame, lang="en", symbol="") -> Dict:
-
         symbol = symbol.upper()
         df = SignalEngine._normalize_df(df)
 
@@ -83,7 +77,6 @@ class SignalEngine:
 
         rsi_val = float(rsi(close, 14).iloc[-1])
         macd_line, macd_sig, hist = macd(close, 12, 26, 9)
-
         macd_val = float(macd_line.iloc[-1])
         macd_sig_val = float(macd_sig.iloc[-1])
         hist_val = float(hist.iloc[-1])
@@ -125,16 +118,14 @@ class SignalEngine:
         }
 
         return SignalEngine._finalize(
-            buy_cond, sell_cond, last_price, atr_val, indicators, lang
+            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=5
         )
 
-    # ================= BTC =================
     @staticmethod
     def _analyze_btc(df, lang):
-
         df = SignalEngine._normalize_df(df)
 
-        if not SignalEngine._valid_df(df, 100):
+        if not SignalEngine._valid_df(df, 80):
             return SignalEngine._wait(lang)
 
         close, high, low = df["Close"], df["High"], df["Low"]
@@ -160,7 +151,7 @@ class SignalEngine:
             adx_val >= 28,
             rsi_val >= 55,
             last_price > upper,
-            0.003 <= atr_ratio <= 0.04,
+            0.002 <= atr_ratio <= 0.05,
         ]
 
         sell_cond = [
@@ -169,7 +160,7 @@ class SignalEngine:
             adx_val >= 28,
             rsi_val <= 45,
             last_price < lower,
-            0.003 <= atr_ratio <= 0.04,
+            0.002 <= atr_ratio <= 0.05,
         ]
 
         indicators = {
@@ -188,10 +179,8 @@ class SignalEngine:
             buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=5
         )
 
-    # ================= XAU =================
     @staticmethod
     def _analyze_xau(df, lang):
-
         df = SignalEngine._normalize_df(df)
 
         if not SignalEngine._valid_df(df):
@@ -249,10 +238,8 @@ class SignalEngine:
             buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=5
         )
 
-    # ================= FINAL =================
     @staticmethod
     def _finalize(buy_cond, sell_cond, price, atr_val, indicators, lang, min_cond=4):
-
         buy_count = sum(buy_cond)
         sell_count = sum(sell_cond)
 
@@ -299,26 +286,3 @@ class SignalEngine:
             "rr_ratio": rr,
             "indicators": indicators,
         }
-
-    # ================= SCALP =================
-    @staticmethod
-    def analyze_scalp(symbol, ticks, price_data, duration, lang="en"):
-
-        if not ticks or len(ticks) < 14:
-            return {"signal": "WAIT", "reason": get_text(lang, "signal_insufficient_data")}
-
-        rsi_val = float(rsi_from_ticks(ticks, 14).iloc[-1])
-        macd_line, macd_sig, hist = macd_from_ticks(ticks)
-
-        macd_v = float(macd_line.iloc[-1])
-        macd_sig_v = float(macd_sig.iloc[-1])
-        hist_v = float(hist.iloc[-1])
-
-        price = float(price_data["price"])
-
-        if rsi_val < 40 and macd_v > macd_sig_v:
-            return {"signal": "BUY", "price": price}
-        elif rsi_val > 60 and macd_v < macd_sig_v:
-            return {"signal": "SELL", "price": price}
-
-        return {"signal": "WAIT", "price": price}
