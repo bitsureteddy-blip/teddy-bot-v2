@@ -15,7 +15,7 @@ from bot_handlers import (
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
-    menu_command, menu_callback, symbol_callback, clearalerts_callback,
+    menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest,
     sentiment, compare, top, fav, learn
 )
 from data_fetcher import DataFetcher
@@ -50,7 +50,8 @@ def main():
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
         ("support", support), ("pay_binance", pay_binance), ("confirm_payment", confirm_payment),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
-        ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn)
+        ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn),
+        ("backtest", backtest)
     ]
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))

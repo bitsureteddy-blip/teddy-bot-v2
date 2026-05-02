@@ -2,13 +2,49 @@ import pandas as pd
 from typing import Dict
 
 from indicators import rsi, macd, sma, atr, adx, bollinger_bands, rsi_from_ticks, macd_from_ticks
-from config import ATR_MULTIPLIER_SL, RR_RATIO_TARGET
+from config import (
+    ATR_MULTIPLIER_SL, RR_RATIO_TARGET,
+    ADX_THRESHOLDS, ATR_PRICE_MAX,
+    RSI_BUY_LOW, RSI_BUY_HIGH, RSI_SELL_LOW, RSI_SELL_HIGH
+)
 from i18n import get_text
 
 
 class SignalEngine:
     @staticmethod
-    def analyze(df: pd.DataFrame, lang: str = "en") -> Dict:
+    def _asset_type(symbol: str) -> str:
+        symbol = symbol.upper()
+        forex = {"EURUSD", "GBPUSD", "USDJPY", "AUDUSD"}
+        metals = {"XAUUSD", "XAGUSD"}
+        crypto = {"BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "ADAUSD"}
+
+        if symbol in forex:
+            return "forex"
+        if symbol in metals:
+            return "metal"
+        if symbol in crypto:
+            return "crypto"
+        return "stock"
+
+    @staticmethod
+    def analyze(df: pd.DataFrame, lang: str = "en", symbol: str = "") -> Dict:
+        asset = SignalEngine._asset_type(symbol) if symbol else "forex"
+        # Seuils spécifiques BTCUSD (après asset = "crypto")
+        if symbol.upper() == "BTCUSD":
+            adx_threshold = 25
+            atr_price_max_val = 0.04
+            rsi_buy_low_val = 48
+            rsi_buy_high_val = 75
+            rsi_sell_low_val = 25
+            rsi_sell_high_val = 52
+        else:
+            adx_threshold = ADX_THRESHOLDS[asset]
+            atr_price_max_val = ATR_PRICE_MAX[asset]
+            rsi_buy_low_val = RSI_BUY_LOW[asset]
+            rsi_buy_high_val = RSI_BUY_HIGH[asset]
+            rsi_sell_low_val = RSI_SELL_LOW[asset]
+            rsi_sell_high_val = RSI_SELL_HIGH[asset]
+
         # Normaliser les colonnes (minuscules -> Majuscules)
         rename = {}
         for c in df.columns:
@@ -38,32 +74,46 @@ class SignalEngine:
         atr_val = float(atr(high, low, close, 14).iloc[-1])
         upper_bb, _, lower_bb = bollinger_bands(close, 20, 2.0)
         trend = "BULLISH" if last_price > sma20_val > sma50_val else "BEARISH" if last_price < sma20_val < sma50_val else "NEUTRAL"
+        # Condition volume (BTC uniquement)
+        if "Volume" in df.columns:
+            avg_vol = df["Volume"].rolling(20).mean().iloc[-1]
+            current_vol = df["Volume"].iloc[-1]
+            volume_ok = current_vol > avg_vol
+        else:
+            volume_ok = True
 
         buy_cond = [
             last_price > sma20_val > sma50_val,
-            55 <= rsi_val <= 68,
+            rsi_buy_low_val <= rsi_val <= rsi_buy_high_val,
             macd_val > macd_sig_val and hist_val > 0,
-            adx_val >= 25,
+            adx_val >= adx_threshold,
             abs(sma20_val - sma50_val) >= 0.25 * atr_val,
-            (atr_val / last_price) <= 0.04,
+            (atr_val / last_price) <= atr_price_max_val,
         ]
         sell_cond = [
             last_price < sma20_val < sma50_val,
-            32 <= rsi_val <= 45,
+            rsi_sell_low_val <= rsi_val <= rsi_sell_high_val,
             macd_val < macd_sig_val and hist_val < 0,
-            adx_val >= 25,
+            adx_val >= adx_threshold,
             abs(sma20_val - sma50_val) >= 0.25 * atr_val,
-            (atr_val / last_price) <= 0.04,
+            (atr_val / last_price) <= atr_price_max_val,
         ]
+        if symbol.upper() == "BTCUSD":
+            buy_cond.append(volume_ok)
+            sell_cond.append(volume_ok)
 
         buy_count, sell_count = sum(buy_cond), sum(sell_cond)
-        teddy_score = min(int(max(buy_count, sell_count) / 6 * 100), 95)
+        condition_count = 7 if symbol.upper() == "BTCUSD" else 6
+        teddy_score = min(int(max(buy_count, sell_count) / condition_count * 100), 95)
 
         signal = "WAIT"
         if buy_count == 6:
             signal = "BUY"
         elif sell_count == 6:
             signal = "SELL"
+
+        if symbol.upper() == "BTCUSD" and not volume_ok:
+            signal = "WAIT"
 
         sl = tp = tp1 = tp2 = rr_ratio = None
         if signal in ("BUY", "SELL") and atr_val > 0:
