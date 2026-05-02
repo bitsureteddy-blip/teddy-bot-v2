@@ -48,7 +48,6 @@ class SignalEngine:
             rsi_buy_high_val = RSI_BUY_HIGH[asset]
             rsi_sell_low_val = RSI_SELL_LOW[asset]
             rsi_sell_high_val = RSI_SELL_HIGH[asset]
-
         # Normaliser les colonnes (minuscules -> Majuscules)
         rename = {}
         for c in df.columns:
