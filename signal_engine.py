@@ -44,7 +44,6 @@ class SignalEngine:
             rsi_buy_high_val = RSI_BUY_HIGH[asset]
             rsi_sell_low_val = RSI_SELL_LOW[asset]
             rsi_sell_high_val = RSI_SELL_HIGH[asset]
-
         # Normaliser les colonnes (minuscules -> Majuscules)
         rename = {}
         for c in df.columns:
@@ -97,6 +96,7 @@ class SignalEngine:
             adx_val >= adx_threshold,
             abs(sma20_val - sma50_val) >= 0.25 * atr_val,
             (atr_val / last_price) <= atr_price_max_val,
+        ]
         ]
         if symbol.upper() == "BTCUSD":
             buy_cond.append(volume_ok)
