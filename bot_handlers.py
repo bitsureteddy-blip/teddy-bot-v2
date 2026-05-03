@@ -392,6 +392,13 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Exécution réelle des commandes ---
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
+        if cmd.startswith("checkdir_"):
+            parts = cmd.split("_")
+            if len(parts) >= 3:
+                _, symbol, direction = parts[0], parts[1], parts[2]
+                context.args = [symbol, direction]
+                await check(update, context, from_callback=True)
+            return
         if cmd.startswith("alertcond_"):
             _,symbol,cond=cmd.split("_")
             context.user_data["pending_alert_symbol"]=symbol
@@ -585,8 +592,6 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await levels(update, context, from_callback=True)
             elif command == "symbolinfo":
                 await symbolinfo(update, context, from_callback=True)
-            elif command == "check":
-                await check(update, context, from_callback=True)
             elif command == "alert":
                 kb=[[InlineKeyboardButton(get_text(lang,"cond_above"),callback_data=f"cmd_alertcond_{symbol}_above"),InlineKeyboardButton(get_text(lang,"cond_below"),callback_data=f"cmd_alertcond_{symbol}_below")]]
                 await query.message.reply_text(get_text(lang,"alert_choose_condition"), reply_markup=InlineKeyboardMarkup(kb))
@@ -596,6 +601,15 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif command == "removewatch":
                 context.args=[symbol]
                 await removewatch(update, context)
+            elif command == "check":
+                kb = [
+                    [InlineKeyboardButton("BUY 🟢", callback_data=f"checkdir_{symbol}_BUY"),
+                     InlineKeyboardButton("SELL 🔴", callback_data=f"checkdir_{symbol}_SELL")]
+                ]
+                await query.message.reply_text(
+                    get_text(lang, "check_choose_direction", symbol=symbol),
+                    reply_markup=InlineKeyboardMarkup(kb)
+                )
         return
 
     elif data == "noop":
