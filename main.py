@@ -16,7 +16,7 @@ from bot_handlers import (
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
-    sentiment, compare, top, fav, learn
+    sentiment, compare, top, fav, learn, check
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -50,7 +50,7 @@ def main():
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
         ("support", support), ("pay_binance", pay_binance), ("confirm_payment", confirm_payment),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
-        ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn),
+        ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn), ("check", check),
         ("backtest", backtest)
     ]
     for cmd, func in handlers:

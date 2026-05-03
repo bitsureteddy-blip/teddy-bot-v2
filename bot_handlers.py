@@ -1285,16 +1285,70 @@ async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @check_limit
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text(get_text(user_mgr.get_setting(update.effective_user.id, "lang", "en"), "broadcast_admin_only"))
+    user_id = update.effective_user.id
+    lang = user_mgr.get_setting(user_id, "lang", "en")
+    if not user_mgr.can_use_premium_feature(user_id):
+        await update.message.reply_text(get_text(lang, "premium_required"), parse_mode=ParseMode.MARKDOWN)
         return
-    lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
-    user_mgr._load_users()
-    total = len(user_mgr.users)
-    free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
-    pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
-    text = get_text(lang, "stats_info", total=total, free=free, pro=pro)
+    signals = history_mgr.get_recent_signals(20)
+    if not signals:
+        await update.message.reply_text(get_text(lang, "history_empty"))
+        return
+
+    completed = [s for s in signals if s.get("status") in ("win", "loss")]
+    total = len(completed)
+    wins = sum(1 for s in completed if s.get("status") == "win")
+    win_rate = (wins / total * 100) if total else 0
+    pcts = [float(s.get("result_pct") or 0) for s in completed]
+    avg_gain = (sum(pcts) / len(pcts)) if pcts else 0
+    worst = min(pcts) if pcts else 0
+
+    advice = "💡 Conseil : attends un score > 70"
+    text = (
+        "📊 *ANALYSE IA HISTORIQUE*\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        f"🔢 Signaux analysés : {len(signals)}\n"
+        f"✅ Win rate : {win_rate:.1f}%\n"
+        f"📈 Gain moyen : {avg_gain:.2f}%\n"
+        f"📉 Pire trade : {worst:.2f}%\n"
+        f"{advice}"
+    )
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+@check_limit
+async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: /check SYMBOL BUY|SELL")
+        return
+    symbol = normalize_symbol(context.args[0].upper())
+    side = context.args[1].upper()
+    if side not in ("BUY", "SELL"):
+        await update.message.reply_text("Usage: /check SYMBOL BUY|SELL")
+        return
+    df = await fetcher.get_historical_data(symbol)
+    if df is None or df.empty:
+        await update.message.reply_text(get_text(lang, "data_unavailable"))
+        return
+    result = SignalEngine.analyze(df, lang, symbol=symbol)
+    ind = result.get("indicators", {})
+    trend = ind.get("trend", "NEUTRAL")
+    trend_txt = get_text(lang, f"trend_{trend.lower()}") if isinstance(trend, str) else "N/A"
+    score = int(result.get("teddy_score", 0))
+    color = "🟢 FAVORABLE" if score >= 80 else "🟡 PRUDENT" if score >= 60 else "🔴 RISQUÉ"
+    atr_v = float(ind.get("atr") or 0)
+    price_v = float(ind.get("price") or 1)
+    vol_txt = "Élevée" if price_v and (atr_v / price_v) > 0.03 else "Normale"
+    msg = (
+        f"📊 VALIDATION {symbol}\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        f"✅ Tendance : {trend_txt}\n"
+        f"✅ RSI : {float(ind.get('rsi') or 0):.1f}\n"
+        f"⚠️ Volatilité : {vol_txt}\n"
+        f"📈 Score : {score}/100 → {color}\n"
+        f"🎯 SL : {format_number(result.get('sl')) if result.get('sl') else 'N/A'} | TP : {format_number(result.get('tp')) if result.get('tp') else 'N/A'}"
+    )
+    await update.message.reply_text(msg)
 
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
