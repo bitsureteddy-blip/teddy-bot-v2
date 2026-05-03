@@ -1375,12 +1375,11 @@ def start_weekly_report_scheduler(app):
         day_of_week="sun",
         hour=18,
         minute=0,
-        kwargs={"context": app.bot},
+        kwargs={"bot": app.bot},
         id="weekly_report_job",
         replace_existing=True,
     )
     weekly_scheduler.start()
-
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
