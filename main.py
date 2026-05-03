@@ -12,11 +12,11 @@ from bot_handlers import (
     start, help_command, analyse, price,
     alert, alerts, delalert, clearalerts, trend, volatility, correlation, levels,
     settings, settimeframe, setrisk, setlanguage, usage,
-    status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
+    status, about, symbolinfo, myid, broadcast, reload_cmd, stats, find_memo,
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
-    sentiment, compare, top, fav, learn, check
+    sentiment, compare, top, fav, learn, check, start_weekly_report_scheduler
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -38,6 +38,7 @@ def main():
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     AlertManager.get_instance().start_monitoring(app)
+    start_weekly_report_scheduler(app)
 
     # Commandes
     handlers = [
@@ -47,7 +48,7 @@ def main():
         ("trend", trend), ("volatility", volatility), ("correlation", correlation), ("levels", levels),
         ("settings", settings), ("settimeframe", settimeframe), ("setrisk", setrisk), ("setlanguage", setlanguage),
         ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
-        ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
+        ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("find_memo", find_memo), ("upgrade", upgrade),
         ("support", support), ("pay_binance", pay_binance), ("confirm_payment", confirm_payment),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
         ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn), ("check", check),

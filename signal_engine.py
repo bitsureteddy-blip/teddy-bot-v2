@@ -15,9 +15,9 @@ class SignalEngine:
     @staticmethod
     def _asset_type(symbol: str) -> str:
         symbol = symbol.upper()
-        forex = {"EURUSD", "GBPUSD", "USDJPY"}
-        metals = {"XAUUSD"}
-        crypto = {"BTCUSD", "ETHUSD"}
+        forex = {"EURUSD", "GBPUSD", "USDJPY", "AUDUSD"}
+        metals = {"XAUUSD", "XAGUSD"}
+        crypto = {"BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "ADAUSD"}
         if symbol in forex:
             return "forex"
         if symbol in metals:
