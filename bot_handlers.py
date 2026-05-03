@@ -435,7 +435,8 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cmd.startswith("checkdir_"):
             parts = cmd.split("_")
             if len(parts) >= 3:
-                _, symbol, direction = parts[0], parts[1], parts[2]
+                symbol = parts[1]
+                direction = parts[2]
                 context.args = [symbol, direction]
                 await check(update, context, from_callback=True)
             return
