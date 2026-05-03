@@ -15,7 +15,13 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("backtest")
 
-SYMBOLS = ["BTCUSD", "ETHUSD", "EURUSD", "XAUUSD", "AAPL"]
+SYMBOLS = [
+    "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
+    "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
+    "XAUUSD", "WTI", "XAGUSD",
+    "AAPL", "TSLA", "NVDA",
+    "SPX", "NDX"
+]
 TIMEFRAME = "1h"
 MIN_BARS = 60
 STEP = 24

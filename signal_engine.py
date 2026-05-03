@@ -3,28 +3,12 @@ from typing import Dict
 
 from indicators import rsi, macd, sma, atr, adx, bollinger_bands
 from config import (
-    ATR_MULTIPLIER_SL, RR_RATIO_TARGET,
-    ADX_THRESHOLDS, ATR_PRICE_MAX,
-    RSI_BUY_LOW, RSI_BUY_HIGH, RSI_SELL_LOW, RSI_SELL_HIGH
+    ATR_MULTIPLIER_SL, RR_RATIO_TARGET, SYMBOL_CONFIGS
 )
 from i18n import get_text
 
 
 class SignalEngine:
-
-    @staticmethod
-    def _asset_type(symbol: str) -> str:
-        symbol = symbol.upper()
-        forex = {"EURUSD", "GBPUSD", "USDJPY", "AUDUSD"}
-        metals = {"XAUUSD", "XAGUSD"}
-        crypto = {"BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "ADAUSD"}
-        if symbol in forex:
-            return "forex"
-        if symbol in metals:
-            return "metal"
-        if symbol in crypto:
-            return "crypto"
-        return "stock"
 
     @staticmethod
     def _normalize_df(df):
@@ -59,15 +43,10 @@ class SignalEngine:
         symbol = symbol.upper()
         df = SignalEngine._normalize_df(df)
 
-        if symbol == "BTCUSD":
-            return SignalEngine._analyze_btc(df, lang)
-        if symbol == "XAUUSD":
-            return SignalEngine._analyze_xau(df, lang)
-
         if not SignalEngine._valid_df(df):
             return SignalEngine._wait(lang)
 
-        asset = SignalEngine._asset_type(symbol)
+        cfg = SYMBOL_CONFIGS.get(symbol, SYMBOL_CONFIGS["EURUSD"])
 
         close, high, low = df["Close"], df["High"], df["Low"]
         last_price = float(close.iloc[-1])
@@ -92,150 +71,29 @@ class SignalEngine:
 
         buy_cond = [
             last_price > sma20 > sma50,
-            RSI_BUY_LOW[asset] <= rsi_val <= RSI_BUY_HIGH[asset],
+            cfg["rsi_buy_low"] <= rsi_val <= cfg["rsi_buy_high"],
             macd_val > macd_sig_val and hist_val > 0,
-            adx_val >= ADX_THRESHOLDS[asset],
-            atr_ratio <= ATR_PRICE_MAX[asset],
+            adx_val >= cfg["adx_min"],
+            atr_ratio <= cfg["atr_max_pct"] / 100,
         ]
 
         sell_cond = [
             last_price < sma20 < sma50,
-            RSI_SELL_LOW[asset] <= rsi_val <= RSI_SELL_HIGH[asset],
+            cfg["rsi_sell_low"] <= rsi_val <= cfg["rsi_sell_high"],
             macd_val < macd_sig_val and hist_val < 0,
-            adx_val >= ADX_THRESHOLDS[asset],
-            atr_ratio <= ATR_PRICE_MAX[asset],
+            adx_val >= cfg["adx_min"],
+            atr_ratio <= cfg["atr_max_pct"] / 100,
         ]
 
         indicators = {
-            "price": last_price,
-            "rsi": rsi_val,
-            "adx": adx_val,
-            "sma20": sma20,
-            "sma50": sma50,
-            "atr": atr_val,
-            "bb_upper": upper,
-            "bb_lower": lower,
+            "price": last_price, "rsi": rsi_val, "adx": adx_val,
+            "sma20": sma20, "sma50": sma50, "atr": atr_val,
+            "bb_upper": upper, "bb_lower": lower,
         }
 
         return SignalEngine._finalize(
-            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=4
-        )
-
-    @staticmethod
-    def _analyze_btc(df, lang):
-        df = SignalEngine._normalize_df(df)
-
-        if not SignalEngine._valid_df(df, 80):
-            return SignalEngine._wait(lang)
-
-        close, high, low = df["Close"], df["High"], df["Low"]
-        last_price = float(close.iloc[-1])
-
-        sma20 = float(sma(close, 20).iloc[-1])
-        sma50 = float(sma(close, 50).iloc[-1])
-        sma200 = float(sma(close, 200).iloc[-1])
-
-        rsi_val = float(rsi(close, 14).iloc[-1])
-        adx_val = float(adx(high, low, close, 14)[0].iloc[-1])
-        atr_val = float(atr(high, low, close, 14).iloc[-1])
-
-        upper, _, lower = bollinger_bands(close, 20, 2)
-        upper = float(upper.iloc[-1])
-        lower = float(lower.iloc[-1])
-
-        atr_ratio = atr_val / last_price if last_price else 0
-
-        buy_cond = [
-            sma50 > sma200,
-            last_price > sma20 > sma50,
-            adx_val >= 28,
-            rsi_val >= 55,
-            last_price > upper,
-            0.002 <= atr_ratio <= 0.05,
-        ]
-
-        sell_cond = [
-            sma50 < sma200,
-            last_price < sma20 < sma50,
-            adx_val >= 28,
-            rsi_val <= 45,
-            last_price < lower,
-            0.002 <= atr_ratio <= 0.05,
-        ]
-
-        indicators = {
-            "price": last_price,
-            "rsi": rsi_val,
-            "adx": adx_val,
-            "sma20": sma20,
-            "sma50": sma50,
-            "sma200": sma200,
-            "atr": atr_val,
-            "bb_upper": upper,
-            "bb_lower": lower,
-        }
-
-        return SignalEngine._finalize(
-            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=4
-        )
-
-    @staticmethod
-    def _analyze_xau(df, lang):
-        df = SignalEngine._normalize_df(df)
-
-        if not SignalEngine._valid_df(df):
-            return SignalEngine._wait(lang)
-
-        close, high, low, open_ = df["Close"], df["High"], df["Low"], df["Open"]
-        last_price = float(close.iloc[-1])
-
-        sma50 = float(sma(close, 50).iloc[-1])
-        sma200 = float(sma(close, 200).iloc[-1]) if len(df) >= 200 else sma50
-
-        rsi_val = float(rsi(close, 14).iloc[-1])
-        adx_val = float(adx(high, low, close, 14)[0].iloc[-1])
-        atr_val = float(atr(high, low, close, 14).iloc[-1])
-
-        upper, _, lower = bollinger_bands(close, 20, 2)
-        upper = float(upper.iloc[-1])
-        lower = float(lower.iloc[-1])
-
-        atr_ratio = atr_val / last_price if last_price else 0
-
-        bullish = close.iloc[-1] > open_.iloc[-1]
-        bearish = close.iloc[-1] < open_.iloc[-1]
-
-        buy_cond = [
-            sma50 >= sma200,
-            adx_val <= 25,
-            last_price <= lower * 1.005,
-            rsi_val <= 38,
-            bullish,
-            atr_ratio <= 0.03,
-        ]
-
-        sell_cond = [
-            sma50 <= sma200,
-            adx_val <= 25,
-            last_price >= upper * 0.995,
-            rsi_val >= 62,
-            bearish,
-            atr_ratio <= 0.03,
-        ]
-
-        indicators = {
-            "price": last_price,
-            "rsi": rsi_val,
-            "adx": adx_val,
-            "sma50": sma50,
-            "sma200": sma200,
-            "atr": atr_val,
-            "bb_upper": upper,
-            "bb_lower": lower,
-        }
-
-        return SignalEngine._finalize(
-            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=4
+            buy_cond, sell_cond, last_price, atr_val, indicators, lang,
+            min_cond=cfg["min_cond"]
         )
 
     @staticmethod

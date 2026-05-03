@@ -125,10 +125,24 @@ class DataFetcher:
 
     def _format_symbol(self, symbol: str) -> str:
         s = symbol.upper()
+        # Forex (6 caractères = 3+3)
         if len(s) == 6:
             return f"{s[:3]}/{s[3:]}"
+        # Matières premières
         if s == "WTI":
             return "WTI/USD"
+        if s == "XAGUSD":
+            return "XAG/USD"
+        if s == "XAUUSD":
+            return "XAU/USD"
+        # Actions (pas de /USD, Twelve Data utilise le ticker seul)
+        if s in ["AAPL", "TSLA", "NVDA"]:
+            return s
+        # Indices
+        if s == "SPX":
+            return "SPX"
+        if s == "NDX":
+            return "NDX"
         return s
 
     async def get_historical_data(self, symbol: str, timeframe: str = DEFAULT_TIMEFRAME, period: str = HISTORY_PERIOD) -> Optional[pd.DataFrame]:

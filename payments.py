@@ -1,11 +1,9 @@
 import hashlib
 import time
-from config import BINANCE_USDC_ADDRESS
+from config import BINANCE_ID
 from i18n import get_text
 
-
-def generate_binance_payment(user_id: int, lang: str):
+def generate_binance_payment(user_id: int, lang: str) -> tuple:
     ident = hashlib.md5(f"{user_id}{time.time()}".encode()).hexdigest()[:8].upper()
-    amount = "19.99 USDC"
-    text = get_text(lang, "binance_payment_info", amount=amount, address=BINANCE_USDC_ADDRESS, memo=ident)
+    text = get_text(lang, "binance_payment_info", amount="19.99", binance_id=BINANCE_ID, memo=ident)
     return ident, text
