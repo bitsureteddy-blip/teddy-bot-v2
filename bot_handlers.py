@@ -249,6 +249,14 @@ def premium_required(func):
             else:
                 await update.message.reply_text(get_text(lang, "terms_must_accept"))
                 return
+        try:
+            member = await context.bot.get_chat_member("@Tsworld", user_id)
+            if member.status not in ("member", "administrator", "creator"):
+                target = update.callback_query.message if update.callback_query else update.message
+                await target.reply_text(get_text(lang, "channel_required"))
+                return
+        except Exception:
+            pass
         if not user_mgr.can_use_premium_feature(user_id):
             text = get_text(lang, "premium_required")
             if update.callback_query:
