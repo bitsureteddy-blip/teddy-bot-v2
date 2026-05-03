@@ -18,6 +18,21 @@ TEXTS = {
         "status_free_ended": "🆓 Gratuit (essai terminé)",
         "status_pro": "💎 PRO",
         "international_payment_info": "",
+        "terms_title": "📋 Conditions d'utilisation",
+        "terms_text": (
+            "Avant d'utiliser Bitsure Teddy, tu dois lire et accepter les conditions suivantes :\n\n"
+            "1. Ce bot fournit des signaux de trading à titre indicatif uniquement. Aucun conseil financier n'est donné.\n"
+            "2. Les performances passées (backtests) ne garantissent pas les résultats futurs.\n"
+            "3. Tu es seul responsable de tes décisions de trading. Ne trade jamais plus que ce que tu es prêt à perdre.\n"
+            "4. Le trading comporte des risques élevés. Bitsure Teddy et son créateur ne pourront être tenus responsables de tes pertes.\n"
+            "5. En utilisant ce bot, tu confirmes avoir compris et accepté ces conditions."
+        ),
+        "terms_accept": "✅ J'accepte",
+        "terms_refuse": "❌ Je refuse",
+        "terms_accepted": "✅ Conditions acceptées. Bienvenue sur Bitsure Teddy ! Utilise /menu pour commencer.",
+        "terms_refused_msg": "❌ Tu ne peux pas utiliser le bot sans accepter les conditions. Retape /start quand tu seras prêt.",
+        "terms_must_accept": "⚠️ Tu dois d'abord accepter les conditions d'utilisation. Tape /start pour les consulter.",
+        "terms_button": "📋 Lire les conditions d'utilisation",
 
         # ----- Aide -----
         "help_full": (
@@ -402,6 +417,21 @@ TEXTS = {
         "status_free_ended": "🆓 Free (trial ended)",
         "status_pro": "💎 PRO",
         "international_payment_info": "",
+        "terms_title": "📋 Terms of Use",
+        "terms_text": (
+            "Before using Bitsure Teddy, you must read and accept the following terms:\n\n"
+            "1. This bot provides trading signals for informational purposes only. No financial advice is given.\n"
+            "2. Past performance (backtests) does not guarantee future results.\n"
+            "3. You are solely responsible for your trading decisions. Never trade more than you can afford to lose.\n"
+            "4. Trading involves high risk. Bitsure Teddy and its creator cannot be held liable for your losses.\n"
+            "5. By using this bot, you confirm that you have read, understood, and accepted these terms."
+        ),
+        "terms_accept": "✅ I Accept",
+        "terms_refuse": "❌ I Refuse",
+        "terms_accepted": "✅ Terms accepted. Welcome to Bitsure Teddy! Use /menu to get started.",
+        "terms_refused_msg": "❌ You cannot use the bot without accepting the terms. Type /start when you are ready.",
+        "terms_must_accept": "⚠️ You must first accept the terms of use. Type /start to review them.",
+        "terms_button": "📋 Read Terms of Use",
 
         # ----- Help -----
         "help_full": (
