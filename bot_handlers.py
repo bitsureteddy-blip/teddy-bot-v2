@@ -1343,8 +1343,7 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
     )
     await update.message.reply_text(msg)
 
-async def send_weekly_reports(context):
-    bot = context.bot
+async def send_weekly_reports(bot):
     pro_users = [int(uid) for uid, u in user_mgr.users.items() if u.get("role") == "pro"]
     signals = history_mgr.get_recent_signals(50)
     completed = [s for s in signals if s.get("status") in ("win", "loss")]
