@@ -25,7 +25,7 @@ HISTORY_CACHE_TTL = 300     # secondes (5 minutes)
 
 # --- Analyse technique ---
 DEFAULT_TIMEFRAME = "1d"
-HISTORY_PERIOD = "1y"
+HISTORY_PERIOD = "6mo"
 RSI_PERIOD = 14
 STOCH_K_PERIOD = 14
 STOCH_D_PERIOD = 3
