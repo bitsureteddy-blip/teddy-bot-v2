@@ -389,6 +389,19 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         await safe_edit(get_text(lang, "menu_title"), keyboard)
 
+    elif data == "check_subscription":
+        try:
+            member = await context.bot.get_chat_member("@Tsworld", query.from_user.id)
+            if member.status in ("member", "administrator", "creator"):
+                await query.edit_message_text(get_text(lang, "channel_verified"))
+                # Relancer /start
+                context.args = []
+                await start(update, context)
+            else:
+                await query.answer(get_text(lang, "channel_not_joined"), show_alert=True)
+        except Exception:
+            await query.answer("Erreur. Réessaie.", show_alert=True)
+
     # --- Exécution réelle des commandes ---
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
@@ -640,6 +653,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.MARKDOWN
         )
         return
+
+    # Vérifier l'abonnement au canal
+    try:
+        member = await context.bot.get_chat_member("@Tsworld", user_id)
+        if member.status not in ("member", "administrator", "creator"):
+            keyboard = [
+                [InlineKeyboardButton("📢 Rejoindre T's World", url="https://t.me/+c_xPX-20JAo0MTE0")],
+                [InlineKeyboardButton(get_text(lang, "check_subscription"), callback_data="check_subscription")],
+            ]
+            await update.message.reply_text(
+                get_text(lang, "channel_required"),
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+    except Exception:
+        pass
 
     # Utilisateur existant qui a déjà accepté → comportement normal
     role = user_mgr.get_role(user_id)
