@@ -8,14 +8,17 @@ import random
 import hashlib
 import time
 import requests
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from types import SimpleNamespace
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes, CallbackContext
 from telegram.constants import ParseMode
 
-from config import ADMIN_ID, DEFAULT_TIMEFRAME
+from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD
 from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
+from indicators import atr
 from user_manager import UserManager
 from alert_manager import AlertManager
 from history_manager import HistoryManager
@@ -31,6 +34,7 @@ user_mgr = UserManager.get_instance()
 alert_mgr = AlertManager.get_instance()
 history_mgr = HistoryManager.get_instance()
 challenge_mgr = ChallengeManager.get_instance()
+weekly_scheduler = None
 
 # 15 symboles PRO
 SYMBOLS_15 = [
@@ -40,6 +44,11 @@ SYMBOLS_15 = [
     "AAPL", "TSLA", "NVDA",
     "SPX", "NDX"
 ]
+
+BACKTEST_SYMBOLS = ["BTCUSD", "ETHUSD", "EURUSD", "XAUUSD", "AAPL"]
+BACKTEST_TIMEFRAME = "1h"
+BACKTEST_MIN_BARS = 60
+BACKTEST_STEP = 24
 
 def generate_signal_id():
     raw = f"{time.time()}-{random.random()}"
@@ -57,6 +66,127 @@ async def respond(update: Update, text: str, **kwargs):
             await update.callback_query.message.reply_text(text, **kwargs)
     else:
         await update.message.reply_text(text, **kwargs)
+
+async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+
+    await update.message.reply_text("🚀 Lancement du backtest (peut prendre quelques instants)...")
+    engine = SignalEngine()
+
+    for symbol in BACKTEST_SYMBOLS:
+        logger.info(f"=== BACKTEST {symbol} ===")
+        df = await fetcher.get_historical_data(symbol, timeframe=BACKTEST_TIMEFRAME, period=HISTORY_PERIOD)
+        if df is None or df.empty:
+            await update.message.reply_text(f"⚠️ Pas de données pour {symbol}")
+            continue
+
+        trades = []
+
+        for i in range(BACKTEST_MIN_BARS, len(df), BACKTEST_STEP):
+            window = df.iloc[:i]
+            result = engine.analyze(window, symbol=symbol)
+
+            if result["signal"] not in ("BUY", "SELL"):
+                continue
+
+            entry_price = float(df["Close"].iloc[i])
+            sl = float(result["sl"])
+            tp = float(result["tp1"])
+            if sl is None or tp is None or sl == entry_price:
+                continue
+
+            is_buy = result["signal"] == "BUY"
+            outcome = None
+            exit_price = None
+            exit_idx = i
+
+            for j in range(i + 1, len(df)):
+                low_j = float(df["Low"].iloc[j])
+                high_j = float(df["High"].iloc[j])
+
+                if is_buy:
+                    if low_j <= sl:
+                        outcome = "LOSS"
+                        exit_price = sl
+                        exit_idx = j
+                        break
+                    if high_j >= tp:
+                        outcome = "WIN"
+                        exit_price = tp
+                        exit_idx = j
+                        break
+                else:
+                    if high_j >= sl:
+                        outcome = "LOSS"
+                        exit_price = sl
+                        exit_idx = j
+                        break
+                    if low_j <= tp:
+                        outcome = "WIN"
+                        exit_price = tp
+                        exit_idx = j
+                        break
+
+            if outcome is None:
+                exit_price = float(df["Close"].iloc[-1])
+                exit_idx = len(df) - 1
+                if is_buy:
+                    outcome = "WIN" if exit_price > entry_price else "LOSS"
+                else:
+                    outcome = "WIN" if exit_price < entry_price else "LOSS"
+
+            pnl_pct = ((exit_price - entry_price) / entry_price * 100)
+            if not is_buy:
+                pnl_pct = -pnl_pct
+
+            trades.append({
+                "date": str(df.index[i]),
+                "symbol": symbol,
+                "signal": result["signal"],
+                "score": result["teddy_score"],
+                "entry": round(entry_price, 5),
+                "exit": round(exit_price, 5),
+                "sl": round(sl, 5),
+                "tp": round(tp, 5),
+                "outcome": outcome,
+                "pnl_pct": round(pnl_pct, 4),
+                "bars_held": exit_idx - i,
+            })
+
+        if not trades:
+            await update.message.reply_text(f"ℹ️ {symbol}: Aucun trade.")
+            continue
+
+        trades_df = pd.DataFrame(trades)
+        total = len(trades_df)
+        wins = (trades_df["outcome"] == "WIN").sum()
+        losses = total - wins
+        win_rate = wins / total * 100
+        avg_pnl = trades_df["pnl_pct"].mean()
+        total_pnl = trades_df["pnl_pct"].sum()
+        best = trades_df["pnl_pct"].max()
+        worst = trades_df["pnl_pct"].min()
+        avg_bars = trades_df["bars_held"].mean()
+
+        cumul = trades_df["pnl_pct"].cumsum()
+        max_drawdown = (cumul.cummax() - cumul).max()
+
+        result_text = f"""
+📊 {symbol} – Résultats du backtest
+━━━━━━━━━━━━━━━━━━━━━━━━
+🔢 Trades        : {total}
+✅ Gagnants      : {wins} ({win_rate:.1f}%)
+❌ Perdants      : {losses}
+📈 Gain moyen    : {avg_pnl:.4f}%
+💰 Gain total    : {total_pnl:.2f}%
+🏆 Meilleur      : {best:.4f}%
+📉 Pire          : {worst:.4f}%
+📊 Max drawdown  : {max_drawdown:.2f}%
+⏳ Durée moyenne : {avg_bars:.0f} bougies
+━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        await update.message.reply_text(result_text)
 
 async def handle_pending_alert_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if not update.message or not update.message.text:
@@ -83,6 +213,22 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
+        try:
+            member = await context.bot.get_chat_member("@Tsworld", user_id)
+            if member.status not in ("member", "administrator", "creator"):
+                await (update.callback_query.message.reply_text if update.callback_query else update.message.reply_text)(
+                    get_text(lang, "channel_required")
+                )
+                return
+        except Exception:
+            pass
+        if func.__name__ != "start" and not user_mgr.has_accepted_terms(user_id):
+            if update.callback_query:
+                await update.callback_query.answer(get_text(lang, "terms_must_accept"), show_alert=True)
+                return
+            else:
+                await update.message.reply_text(get_text(lang, "terms_must_accept"))
+                return
         if not user_mgr.check_limit(user_id):
             if update.callback_query:
                 await update.callback_query.answer(get_text(lang, "limit_reached"), show_alert=True)
@@ -98,6 +244,13 @@ def premium_required(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
+        if not user_mgr.has_accepted_terms(user_id):
+            if update.callback_query:
+                await update.callback_query.answer(get_text(lang, "terms_must_accept"), show_alert=True)
+                return
+            else:
+                await update.message.reply_text(get_text(lang, "terms_must_accept"))
+                return
         if not user_mgr.can_use_premium_feature(user_id):
             text = get_text(lang, "premium_required")
             if update.callback_query:
@@ -136,7 +289,6 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
         [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
-        [InlineKeyboardButton(get_text(lang, "menu_scalping"), callback_data="menu_scalping")],
         [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
         [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
         [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
@@ -176,18 +328,10 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_volatility"), callback_data="cmd_volatility")],
             [InlineKeyboardButton(get_text(lang, "btn_levels"), callback_data="cmd_levels")],
             [InlineKeyboardButton(get_text(lang, "btn_symbolinfo"), callback_data="cmd_symbolinfo")],
+            [InlineKeyboardButton(get_text(lang, "btn_check"), callback_data="cmd_check")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-
-    elif data == "menu_scalping":
-        keyboard = [
-            [InlineKeyboardButton(get_text(lang, "btn_scalp"), callback_data="cmd_scalp")],
-            [InlineKeyboardButton(get_text(lang, "btn_tick"), callback_data="cmd_tick")],
-            [InlineKeyboardButton(get_text(lang, "btn_spread"), callback_data="cmd_spread")],
-            [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
-        ]
-        await safe_edit(f"*{get_text(lang, 'menu_scalping')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
     elif data == "menu_alertes":
         keyboard = [
@@ -232,8 +376,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "menu_back":
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
-            [InlineKeyboardButton(get_text(lang, "menu_scalping"), callback_data="menu_scalping")],
-            [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
+                [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
             [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
             [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
             [InlineKeyboardButton(get_text(lang, "menu_upgrade"), callback_data="menu_upgrade")],
@@ -243,10 +386,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Exécution réelle des commandes ---
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
-        if cmd.startswith("scalpdur_"):
-            _,symbol,dur=cmd.split("_")
-            context.args=[symbol,dur]
-            await scalp(update, context); return
         if cmd.startswith("alertcond_"):
             _,symbol,cond=cmd.split("_")
             context.user_data["pending_alert_symbol"]=symbol
@@ -261,7 +400,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cmd.startswith("delalert_"):
             context.args=[cmd.split("_",1)[1]]
             await delalert(update, context); return
-        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "tick", "spread", "scalp", "alert", "addwatch", "removewatch"]:
+        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "alert", "addwatch", "removewatch", "check"]:
             await symbol_selection(update, context, cmd)
 
         elif cmd == "alerts":
@@ -301,7 +440,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 for sym in wl:
                     df = await fetcher.get_historical_data(sym)
                     if df is not None and not df.empty:
-                        res = SignalEngine.analyze(df, lang)
+                        res = SignalEngine.analyze(df, lang, symbol=sym)
                         results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
                     else:
                         results.append(f"{sym}: {get_text(lang, 'data_unavailable')}")
@@ -365,7 +504,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         else:
             usage_map = {
-                "scalp": "scalp_usage",
                 "alert": "alert_usage",
                 "delalert": "delalert_usage",
                 "addwatch": "addwatch_usage",
@@ -441,13 +579,8 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await levels(update, context, from_callback=True)
             elif command == "symbolinfo":
                 await symbolinfo(update, context, from_callback=True)
-            elif command == "tick":
-                await tick(update, context, from_callback=True)
-            elif command == "spread":
-                await spread(update, context, from_callback=True)
-            elif command == "scalp":
-                kb=[[InlineKeyboardButton("3s",callback_data=f"cmd_scalpdur_{symbol}_3"),InlineKeyboardButton("5s",callback_data=f"cmd_scalpdur_{symbol}_5")],[InlineKeyboardButton("10s",callback_data=f"cmd_scalpdur_{symbol}_10"),InlineKeyboardButton("20s",callback_data=f"cmd_scalpdur_{symbol}_20")]]
-                await query.message.reply_text(get_text(lang,"scalp_choose_duration"), reply_markup=InlineKeyboardMarkup(kb))
+            elif command == "check":
+                await check(update, context, from_callback=True)
             elif command == "alert":
                 kb=[[InlineKeyboardButton(get_text(lang,"cond_above"),callback_data=f"cmd_alertcond_{symbol}_above"),InlineKeyboardButton(get_text(lang,"cond_below"),callback_data=f"cmd_alertcond_{symbol}_below")]]
                 await query.message.reply_text(get_text(lang,"alert_choose_condition"), reply_markup=InlineKeyboardMarkup(kb))
@@ -467,21 +600,29 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
-
-    current_lang = user_mgr.get_setting(user_id, "lang", None)
-    if current_lang is None:
-        user_mgr.set_setting(user_id, "lang", "en")
-        lang = "en"
-    else:
-        lang = current_lang
-
+    lang = user_mgr.get_setting(user_id, "lang", "en")
     was_new = str(user_id) not in user_mgr.users
     user_mgr.get_user(user_id)
-    role = user_mgr.get_role(user_id)
 
     if was_new:
         await notify_admin_new_user(update, context)
 
+    # Vérifier si l'utilisateur a déjà accepté les conditions
+    if not user_mgr.has_accepted_terms(user_id):
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "terms_button"), callback_data="terms_show")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        welcome = get_text(lang, "start", status=get_text(lang, "status_free_trial"))
+        await update.message.reply_text(
+            welcome + "\n\n" + get_text(lang, "terms_must_accept"),
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+
+    # Utilisateur existant qui a déjà accepté → comportement normal
+    role = user_mgr.get_role(user_id)
     if role == "free" and user_mgr.is_trial_valid(user_id):
         status = get_text(lang, "status_free_trial")
     elif role == "free":
@@ -497,6 +638,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     full_text = welcome + disclaimer + payment_info
     await update.message.reply_text(full_text, parse_mode=ParseMode.MARKDOWN)
+
+async def terms_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+
+    if data == "terms_show":
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "terms_accept"), callback_data="terms_accept")],
+            [InlineKeyboardButton(get_text(lang, "terms_refuse"), callback_data="terms_refuse")],
+        ]
+        await query.edit_message_text(
+            get_text(lang, "terms_text"),
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    elif data == "terms_accept":
+        user_mgr.accept_terms(user_id)
+        await query.edit_message_text(
+            get_text(lang, "terms_accepted"),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+    elif data == "terms_refuse":
+        await query.edit_message_text(
+            get_text(lang, "terms_refused_msg"),
+            parse_mode=ParseMode.MARKDOWN
+        )
 
 @check_limit
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -621,7 +793,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     if df is None or df.empty:
         await msg.edit_text(get_text(lang, "analyse_error", symbol=symbol))
         return
-    result = SignalEngine.analyze(df, lang)
+    result = SignalEngine.analyze(df, lang, symbol=symbol)
     ind = result['indicators']
 
     plt.style.use('dark_background')
@@ -702,98 +874,8 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
         await respond(update, get_text(lang, "price_error", symbol=symbol))
 
 # ---------- PREMIUM : SCALPING ----------
-@check_limit
-@premium_required
-async def tick(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
-    if await handle_pending_alert_input(update, context):
-        return
-    lang = get_user_lang(update)
-    symbol = context.args[0].upper() if context.args else None
-    if not symbol:
-        await respond(update, get_text(lang, "tick_usage"), parse_mode=ParseMode.MARKDOWN)
-        return
-    fetcher.subscribe_twelvedata(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
-    if price_data:
-        text = get_text(lang, "tick_current", symbol=symbol, price=format_number(price_data['price']))
-        await respond(update, text)
-    else:
-        await respond(update, get_text(lang, "tick_none"))
-
-@check_limit
-@premium_required
-async def scalp(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
-    if await handle_pending_alert_input(update, context):
-        return
-    lang = get_user_lang(update)
-    if len(context.args) < 2:
-        await respond(update, get_text(lang, "scalp_usage"))
-        return
-    symbol = context.args[0].upper()
-    duration = context.args[1]
-    if duration not in ("3", "5", "10", "20"):
-        await respond(update, get_text(lang, "scalp_invalid_duration"))
-        return
-
-    fetcher.subscribe_twelvedata(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
-    if not price_data:
-        await respond(update, get_text(lang, "realtime_data_error"))
-        return
-
-    ticks = fetcher.get_ticks(symbol)
-    if len(ticks) < 14:
-        base_price = price_data["price"]
-        pass
-
-    result = SignalEngine.analyze_scalp(symbol, ticks, price_data, int(duration), lang)
-
-    signal_map = {
-        "BUY": get_text(lang, "scalp_signal_buy"),
-        "SELL": get_text(lang, "scalp_signal_sell"),
-        "WAIT": get_text(lang, "scalp_signal_wait")
-    }
-    signal_text = signal_map.get(result['signal'], result['signal'])
-
-    signal_emoji = {"BUY": "🟢", "SELL": "🔴", "WAIT": "⚪"}.get(result["signal"], "⚪")
-    await respond(
-        update,
-        get_text(lang, "scalp_result",
-                 symbol=symbol,
-                 duration=duration,
-                 signal_emoji=signal_emoji,
-                 signal=signal_text,
-                 price=format_number(result['price']),
-                 bid=format_number(result['bid'], 5),
-                 ask=format_number(result['ask'], 5),
-                 spread=format_number(result['spread'], 5),
-                 spread_pct=result['spread_pct'],
-                 rsi=result['rsi'],
-                 reason=result['reason']),
-        parse_mode=ParseMode.MARKDOWN
-    )
-
-@check_limit
-@premium_required
-async def spread(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
-    if await handle_pending_alert_input(update, context):
-        return
-    lang = get_user_lang(update)
-    symbol = context.args[0].upper() if context.args else None
-    if not symbol:
-        await respond(update, get_text(lang, "spread_usage"), parse_mode=ParseMode.MARKDOWN)
-        return
-    fetcher.subscribe_twelvedata(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
-    if price_data:
-        spread_val = price_data['ask'] - price_data['bid']
-        text = get_text(lang, "spread_format", symbol=symbol, bid=format_number(price_data['bid'], 5), ask=format_number(price_data['ask'], 5), spread=format_number(spread_val, 5))
-        await respond(update, text, parse_mode=ParseMode.MARKDOWN)
-    else:
-        await respond(update, get_text(lang, "spread_unavailable"))
 
 # ---------- ALERTES ----------
-@check_limit
 @check_limit
 async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
@@ -818,7 +900,6 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 @check_limit
-@check_limit
 async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     alerts_list = alert_mgr.get_alerts(update.effective_user.id)
@@ -831,7 +912,6 @@ async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"{status} #{a['id']} {a['symbol']} {a['condition']} {a['price']}\n"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
-@check_limit
 @check_limit
 async def delalert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -876,7 +956,6 @@ async def removewatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr.remove_from_watchlist(update.effective_user.id, symbol)
     await respond(update, get_text(lang, "watchlist_removed_styled", symbol=symbol))
 
-@check_limit
 @check_limit
 async def clearalerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -936,7 +1015,6 @@ async def volatility(update: Update, context: ContextTypes.DEFAULT_TYPE, from_ca
     if df is None or df.empty:
         await respond(update, get_text(lang, "trend_no_data"))
         return
-    from indicators import atr
     atr_val = atr(df['High'], df['Low'], df['Close'], 14).iloc[-1]
     text = get_text(lang, "volatility_result", symbol=symbol, atr=format_number(atr_val))
     await respond(update, text, parse_mode=ParseMode.MARKDOWN)
@@ -1014,8 +1092,8 @@ async def compare(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if df1 is None or df2 is None or len(df1) < 2 or len(df2) < 2:
         await update.message.reply_text(get_text(lang, "insufficient_data"))
         return
-    res1 = SignalEngine.analyze(df1, lang)
-    res2 = SignalEngine.analyze(df2, lang)
+    res1 = SignalEngine.analyze(df1, lang, symbol=sym1)
+    res2 = SignalEngine.analyze(df2, lang, symbol=sym2)
     trend1 = get_text(lang, f"trend_{res1['indicators']['trend'].lower()}")
     trend2 = get_text(lang, f"trend_{res2['indicators']['trend'].lower()}")
     text = get_text(lang, "compare_result", symbol1=sym1, symbol2=sym2, trend1=trend1, trend2=trend2)
@@ -1231,8 +1309,127 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total = len(user_mgr.users)
     free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
     pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
-    text = get_text(lang, "stats_info", total=total, free=free, pro=pro)
+    text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+@check_limit
+async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    lang = get_user_lang(update)
+    if len(context.args) < 2:
+        await update.message.reply_text(get_text(lang, "check_usage"))
+        return
+    symbol = normalize_symbol(context.args[0].upper())
+    side = context.args[1].upper()
+    if side not in ("BUY", "SELL"):
+        await update.message.reply_text(get_text(lang, "check_usage"))
+        return
+    df = await fetcher.get_historical_data(symbol)
+    if df is None or df.empty:
+        await update.message.reply_text(get_text(lang, "data_unavailable"))
+        return
+    result = SignalEngine.analyze(df, lang, symbol=symbol)
+    ind = result.get("indicators", {})
+    trend = ind.get("trend", "NEUTRAL")
+    trend_txt = get_text(lang, f"trend_{trend.lower()}") if isinstance(trend, str) else "N/A"
+    score = int(result.get("teddy_score", 0))
+    color = get_text(lang, "check_green") if score >= 80 else get_text(lang, "check_orange") if score >= 60 else get_text(lang, "check_red")
+    atr_v = float(ind.get("atr") or 0)
+    price_v = float(ind.get("price") or 1)
+    vol_txt = get_text(lang, "check_vol_high") if price_v and (atr_v / price_v) > 0.03 else get_text(lang, "check_vol_normal")
+    msg = get_text(
+        lang, "check",
+        symbol=symbol, trend=trend_txt, rsi=f"{float(ind.get('rsi') or 0):.1f}",
+        volatility=vol_txt, score=score, light=color,
+        sl=format_number(result.get('sl')) if result.get('sl') else "N/A",
+        tp=format_number(result.get('tp')) if result.get('tp') else "N/A"
+    )
+    await update.message.reply_text(msg)
+
+async def send_weekly_reports(context):
+    bot = context.bot
+    pro_users = [int(uid) for uid, u in user_mgr.users.items() if u.get("role") == "pro"]
+    signals = history_mgr.get_recent_signals(50)
+    completed = [s for s in signals if s.get("status") in ("win", "loss")]
+    total = len(completed)
+    wins = sum(1 for s in completed if s.get("status") == "win")
+    win_rate = (wins / total * 100) if total else 0
+    pcts = [float(s.get("result_pct") or 0) for s in completed]
+    best = max(pcts) if pcts else 0
+    worst = min(pcts) if pcts else 0
+    msg = (
+        "📊 RAPPORT HEBDOMADAIRE\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        f"📈 Signaux reçus : {len(signals)}\n"
+        f"✅ Gagnés : {wins} ({win_rate:.0f}%)\n"
+        f"📉 Meilleur : {best:+.1f}%\n"
+        f"💸 Pire : {worst:+.1f}%\n"
+        "💡 Conseil : attends un score > 70"
+    )
+    for uid in pro_users:
+        try:
+            await bot.send_message(chat_id=uid, text=msg)
+        except Exception as e:
+            logger.warning(f"Weekly report failed for {uid}: {e}")
+
+def start_weekly_report_scheduler(app):
+    global weekly_scheduler
+    if weekly_scheduler is not None:
+        return
+    weekly_scheduler = AsyncIOScheduler(timezone="UTC")
+    weekly_scheduler.add_job(
+        send_weekly_reports,
+        "cron",
+        day_of_week="sun",
+        hour=18,
+        minute=0,
+        kwargs={"context": SimpleNamespace(bot=app.bot)},
+        id="weekly_report_job",
+        replace_existing=True,
+    )
+    weekly_scheduler.start()
+
+signal_scheduler = None
+async def check_signal_outcomes(bot):
+    signals = history_mgr.get_recent_signals(50)
+    for s in signals:
+        if s.get("status") not in (None, "pending"):
+            continue
+        symbol = s["symbol"]
+        entry = float(s["entry_price"])
+        sl = float(s.get("sl", 0) or 0)
+        tp = float(s.get("tp", 0) or 0)
+        if sl == 0 or tp == 0:
+            continue
+        price_data = await fetcher.get_realtime_price(symbol)
+        if not price_data:
+            continue
+        current_price = float(price_data["price"])
+        direction = s["direction"]
+        if direction == "BUY":
+            if current_price >= tp:
+                history_mgr.update_signal_status(s["id"], "win", round((tp - entry) / entry * 100, 4))
+            elif current_price <= sl:
+                history_mgr.update_signal_status(s["id"], "loss", round((sl - entry) / entry * 100, 4))
+        elif direction == "SELL":
+            if current_price <= tp:
+                history_mgr.update_signal_status(s["id"], "win", round((entry - tp) / entry * 100, 4))
+            elif current_price >= sl:
+                history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
+
+def start_signal_monitoring(app):
+    global signal_scheduler
+    if signal_scheduler is not None:
+        return
+    signal_scheduler = AsyncIOScheduler(timezone="UTC")
+    signal_scheduler.add_job(
+        check_signal_outcomes,
+        "interval",
+        minutes=5,
+        kwargs={"bot": app.bot},
+        id="signal_monitor",
+        replace_existing=True,
+    )
+    signal_scheduler.start()
 
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1259,7 +1456,7 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(get_text(lang, "data_unavailable"))
             return
 
-        result = SignalEngine.analyze(df, lang)
+        result = SignalEngine.analyze(df, lang, symbol=symbol)
         signal_text = result['signal_text']
         price = result['indicators']['price']
 
@@ -1300,15 +1497,38 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
     if target_message is None:
         return
-    signals = history_mgr.get_recent_signals(10)
+    signals = history_mgr.get_recent_signals(20)
     if not signals:
         await target_message.reply_text(get_text(lang, "history_empty"))
         return
-    text = get_text(lang, "history_title")
+    completed = [s for s in signals if s.get("status") in ("win", "loss")]
+    wins = sum(1 for s in completed if s.get("status") == "win")
+    losses = sum(1 for s in completed if s.get("status") == "loss")
+    win_rate = (wins / len(completed) * 100) if completed else 0
+    pcts = [float(s.get("result_pct") or 0) for s in completed]
+    avg_gain = (sum(pcts) / len(pcts)) if pcts else 0
+    worst = min(pcts) if pcts else 0
+    best = max(pcts) if pcts else 0
+    advice = get_text(lang, "history_advice_high") if win_rate >= 55 else get_text(lang, "history_advice_low")
+    text = get_text(lang, "history_stats_header", total=len(signals), wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, avg=f"{avg_gain:+.2f}", worst=f"{worst:+.1f}", best=f"{best:+.1f}", advice=advice)
     for s in signals:
         status = "✅" if s['status'] == 'win' else "❌" if s['status'] == 'loss' else "⏳"
         text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:10]})\n"
     await target_message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+@check_limit
+async def find_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /find_memo <memo>")
+        return
+    memo = context.args[0].upper()
+    user_id = user_mgr.find_user_by_memo(memo)
+    if user_id:
+        await update.message.reply_text(f"✅ Mémo {memo} → User ID: {user_id}")
+    else:
+        await update.message.reply_text(f"❌ Aucun utilisateur trouvé pour le mémo {memo}")
 
 # ---------- SNAPSHOT / VERIFY ----------
 @check_limit
@@ -1324,7 +1544,7 @@ async def snapshot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if df is None:
         await update.message.reply_text(get_text(lang, "data_unavailable"))
         return
-    result = SignalEngine.analyze(df, lang)
+    result = SignalEngine.analyze(df, lang, symbol=symbol)
     ind = result['indicators']
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(10, 6))

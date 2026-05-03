@@ -117,3 +117,11 @@ class HistoryManager:
         cutoff = datetime.utcnow() - timedelta(days=days)
         self.signals = [s for s in self.signals if datetime.fromisoformat(s["timestamp"]) > cutoff]
         self._save()
+
+    def update_signal_status(self, signal_id, status, result_pct):
+        for s in self.signals:
+            if s["id"] == signal_id:
+                s["status"] = status
+                s["result_pct"] = result_pct
+                self._save()
+                return

@@ -9,14 +9,14 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 
 from config import TELEGRAM_TOKEN
 from bot_handlers import (
-    start, help_command, analyse, price, scalp, tick, spread,
+    start, help_command, analyse, price,
     alert, alerts, delalert, clearalerts, trend, volatility, correlation, levels,
     settings, settimeframe, setrisk, setlanguage, usage,
-    status, about, symbolinfo, myid, broadcast, reload_cmd, stats,
+    status, about, symbolinfo, myid, broadcast, reload_cmd, stats, find_memo,
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
-    menu_command, menu_callback, symbol_callback, clearalerts_callback,
-    sentiment, compare, top, fav, learn
+    menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
+    sentiment, compare, top, fav, learn, check, start_weekly_report_scheduler, start_signal_monitoring
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -38,19 +38,22 @@ def main():
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     AlertManager.get_instance().start_monitoring(app)
+    start_weekly_report_scheduler(app)
+    start_signal_monitoring(app)
 
     # Commandes
     handlers = [
         ("start", start), ("help", help_command), ("menu", menu_command),
-        ("analyse", analyse), ("price", price), ("scalp", scalp), ("tick", tick), ("spread", spread),
+        ("analyse", analyse), ("price", price),
         ("alert", alert), ("alerts", alerts), ("delalert", delalert), ("clearalerts", clearalerts),
         ("trend", trend), ("volatility", volatility), ("correlation", correlation), ("levels", levels),
         ("settings", settings), ("settimeframe", settimeframe), ("setrisk", setrisk), ("setlanguage", setlanguage),
         ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
-        ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("upgrade", upgrade),
+        ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("find_memo", find_memo), ("upgrade", upgrade),
         ("support", support), ("pay_binance", pay_binance), ("confirm_payment", confirm_payment),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
-        ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn)
+        ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn), ("check", check),
+        ("backtest", backtest)
     ]
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))
@@ -60,6 +63,7 @@ def main():
     app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^(symcat_|sympage_|symsel_|noop)"))
     app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
+    app.add_handler(CallbackQueryHandler(terms_callback, pattern="^terms_"))
 
     logger.info("Teddy Trading Bot started")
     DataFetcher.get_instance().start_websocket()
