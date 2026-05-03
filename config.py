@@ -13,6 +13,7 @@ if ADMIN_ID == 0:
 FCS_API_KEY = os.environ.get("FCS_API_KEY")
 REALMARKET_API_KEY = os.environ.get("REALMARKET_API_KEY")
 TWELVEDATA_API_KEY = os.environ.get("TWELVEDATA_API_KEY")
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
 
 # --- Limites utilisateur ---
 FREE_DAILY_REQUESTS = 5
@@ -82,4 +83,4 @@ WS_URL = "wss://api.realmarketapi.com/v1/ws"
 
 # --- Rôles Premium (simplifié) ---
 PREMIUM_ROLES = ["pro"]
-BINANCE_USDC_ADDRESS = os.environ.get("BINANCE_USDC_ADDRESS", "0x0000000000000000000000000000000000000000")
+BINANCE_ID = "1240718832"
