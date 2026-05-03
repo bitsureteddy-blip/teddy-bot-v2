@@ -34,6 +34,7 @@ TEXTS = {
         "terms_must_accept": "⚠️ Tu dois d'abord accepter les conditions d'utilisation. Tape /start pour les consulter.",
         "terms_button": "📋 Lire les conditions d'utilisation",
         "check_usage": "Usage: /check SYMBOLE BUY|SELL",
+        "check_choose_direction": "📊 {symbol} – Choisis la direction :",
         "check": "📊 VALIDATION {symbol}\n━━━━━━━━━━━━━━━━━━━\n✅ Tendance : {trend}\n✅ RSI : {rsi}\n⚠️ Volatilité : {volatility}\n📈 Score : {score}/100 → {light}\n🎯 SL : {sl}\n💰 TP : {tp}",
         "check_green": "🟢 FAVORABLE",
         "check_orange": "🟡 PRUDENT",
@@ -103,7 +104,15 @@ TEXTS = {
         ),
         "button_pro_stars": "⭐ PRO 19,99€/mois (Telegram Stars)",
         "button_binance_usdc": "🟡 Binance USDC",
-        "binance_payment_info": "🟡 *Paiement Binance (USDC BEP20)*\n\nMontant: *{amount}*\nAdresse: `{address}`\nMémo/ID: `{memo}`\n\nEnvoyez le montant exact puis contactez le support avec votre ID.",
+        "binance_payment_info": (
+            "🟡 Paiement Binance (USDC)\n\n"
+            "1. Ouvre Binance → Portefeuille → Envoyer\n"
+            "2. Entre l'ID Binance : {binance_id}\n"
+            "3. Montant : {amount} USDC\n"
+            "4. Vérifie que le pseudo affiché est bien le tien\n\n"
+            "Ton ID de transaction : {memo}\n\n"
+            "⚠️ Copie cet ID et envoie-le à l'admin après avoir payé."
+        ),
         "confirm_payment_usage": "Usage: /confirm_payment <user_id>",
         "confirm_payment_ok": "✅ Paiement confirmé pour l'utilisateur {user_id}.",
         "confirm_payment_missing": "❌ Aucun paiement Binance en attente pour {user_id}.",
@@ -445,6 +454,7 @@ TEXTS = {
         "terms_must_accept": "⚠️ You must first accept the terms of use. Type /start to review them.",
         "terms_button": "📋 Read Terms of Use",
         "check_usage": "Usage: /check SYMBOL BUY|SELL",
+        "check_choose_direction": "📊 {symbol} – Choose direction:",
         "check": "📊 VALIDATION {symbol}\n━━━━━━━━━━━━━━━━━━━\n✅ Trend: {trend}\n✅ RSI: {rsi}\n⚠️ Volatility: {volatility}\n📈 Score: {score}/100 → {light}\n🎯 SL: {sl}\n💰 TP: {tp}",
         "check_green": "🟢 FAVORABLE",
         "check_orange": "🟡 CAUTION",
@@ -514,7 +524,15 @@ TEXTS = {
         ),
         "button_pro_stars": "⭐ PRO €19.99/month (Telegram Stars)",
         "button_binance_usdc": "🟡 Binance USDC",
-        "binance_payment_info": "🟡 *Binance Payment (USDC BEP20)*\n\nAmount: *{amount}*\nAddress: `{address}`\nMemo/ID: `{memo}`\n\nSend the exact amount then contact support with your ID.",
+        "binance_payment_info": (
+            "🟡 Binance Payment (USDC)\n\n"
+            "1. Open Binance → Wallet → Send\n"
+            "2. Enter Binance ID: {binance_id}\n"
+            "3. Amount: {amount} USDC\n"
+            "4. Verify the displayed username is correct\n\n"
+            "Your transaction ID: {memo}\n\n"
+            "⚠️ Copy this ID and send it to the admin after paying."
+        ),
         "confirm_payment_usage": "Usage: /confirm_payment <user_id>",
         "confirm_payment_ok": "✅ Payment confirmed for user {user_id}.",
         "confirm_payment_missing": "❌ No pending Binance payment for {user_id}.",
