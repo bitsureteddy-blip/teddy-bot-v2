@@ -808,6 +808,34 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     plt.xticks(rotation=45)
     plt.tight_layout()
     buf = io.BytesIO()
+
+    # Filigrane
+    fig.text(0.5, 0.5, "Bitsure Teddy", fontsize=40, color='gray',
+             ha='center', va='center', alpha=0.12, rotation=30)
+
+    # Lignes SL/TP
+    if result.get('sl'):
+        ax.axhline(y=result['sl'], color='red', linestyle='--', linewidth=1.2, alpha=0.8, label='SL')
+    if result.get('tp'):
+        ax.axhline(y=result['tp'], color='green', linestyle='--', linewidth=1.2, alpha=0.8, label='TP')
+
+    # Fibonacci (50 dernières bougies)
+    try:
+        recent_high = float(df['High'].iloc[-50:].max())
+        recent_low = float(df['Low'].iloc[-50:].min())
+        diff = recent_high - recent_low
+        for level_name, ratio in [("0.382", 0.382), ("0.500", 0.500), ("0.618", 0.618)]:
+            fib_price = recent_high - diff * ratio
+            ax.axhline(y=fib_price, color='yellow', linestyle=':', linewidth=0.8, alpha=0.5)
+            ax.text(df.index[-1], fib_price, f'Fib {level_name}', color='yellow', fontsize=7, alpha=0.7)
+    except:
+        pass
+
+    # Flèche d'entrée
+    ax.scatter(df.index[-1], float(ind['price']), color='cyan', s=100, marker='v', zorder=5, label='Entrée')
+
+    # Rafraîchir la légende
+    ax.legend(loc='upper left', fontsize=7)
     plt.savefig(buf, format='png')
     buf.seek(0)
     plt.close()
