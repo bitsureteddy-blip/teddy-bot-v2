@@ -215,7 +215,7 @@ def check_limit(func):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
         try:
-            member = await context.bot.get_chat_member("@Tsworld", user_id)
+            member = await context.bot.get_chat_member("@t_sworld", user_id)
             if member.status not in ("member", "administrator", "creator"):
                 target = update.callback_query.message if update.callback_query else update.message
                 await target.reply_text(get_text(lang, "channel_required"))
