@@ -95,7 +95,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             tp = float(result["tp1"])
             if sl is None or tp is None or sl == entry_price:
                 continue
-
             is_buy = result["signal"] == "BUY"
             outcome = None
             exit_price = None
@@ -216,9 +215,8 @@ def check_limit(func):
         try:
             member = await context.bot.get_chat_member("@Tsworld", user_id)
             if member.status not in ("member", "administrator", "creator"):
-                await (update.callback_query.message.reply_text if update.callback_query else update.message.reply_text)(
-                    get_text(lang, "channel_required")
-                )
+                target = update.callback_query.message if update.callback_query else update.message
+                await target.reply_text(get_text(lang, "channel_required"))
                 return
         except Exception:
             pass
@@ -1382,13 +1380,13 @@ def start_weekly_report_scheduler(app):
         day_of_week="sun",
         hour=18,
         minute=0,
-        kwargs={"context": SimpleNamespace(bot=app.bot)},
+        kwargs={"bot": app.bot},
         id="weekly_report_job",
         replace_existing=True,
     )
     weekly_scheduler.start()
-
 signal_scheduler = None
+
 async def check_signal_outcomes(bot):
     signals = history_mgr.get_recent_signals(50)
     for s in signals:
@@ -1430,7 +1428,6 @@ def start_signal_monitoring(app):
         replace_existing=True,
     )
     signal_scheduler.start()
-
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
