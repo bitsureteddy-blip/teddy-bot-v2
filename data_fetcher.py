@@ -148,7 +148,7 @@ class DataFetcher:
         try:
             td_symbol = self._format_symbol(symbol)
             interval = {"1m": "1min", "5m": "5min", "1h": "1h", "4h": "4h", "1d": "1day"}.get(timeframe, "1day")
-            url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&outputsize=200&apikey={TWELVEDATA_API_KEY}"
+            url = f"https://api.twelvedata.com/time_series?symbol={td_symbol}&interval={interval}&outputsize=5000&apikey={TWELVEDATA_API_KEY}"
             r = requests.get(url, timeout=10)
             if r.status_code == 200:
                 data = r.json().get("values", [])
