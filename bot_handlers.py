@@ -8,6 +8,8 @@ import random
 import hashlib
 import time
 import requests
+import os
+from openai import OpenAI
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from types import SimpleNamespace
 
@@ -45,7 +47,13 @@ SYMBOLS_15 = [
     "SPX", "NDX"
 ]
 
-BACKTEST_SYMBOLS = ["BTCUSD", "ETHUSD", "EURUSD", "XAUUSD", "AAPL"]
+BACKTEST_SYMBOLS = [
+    "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
+    "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
+    "XAUUSD", "WTI", "XAGUSD",
+    "AAPL", "TSLA", "NVDA",
+    "SPX", "NDX"
+]
 BACKTEST_TIMEFRAME = "1h"
 BACKTEST_MIN_BARS = 60
 BACKTEST_STEP = 24
@@ -238,6 +246,31 @@ def check_limit(func):
         return await func(update, context, *args, **kwargs)
     return wrapper
 
+@check_limit
+async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "ask_usage"))
+        return
+    
+    question = " ".join(context.args)
+    await update.message.reply_text(get_text(lang, "ask_wait"))
+    
+    try:
+        client = OpenAI(
+            api_key=os.environ.get("DEEPSEEK_API_KEY"),
+            base_url="https://api.deepseek.com"
+        )
+        response = client.chat.completions.create(
+            model="deepseek-v4-flash",
+            messages=[{"role": "user", "content": question}],
+            stream=False
+        )
+        answer = response.choices[0].message.content
+        await update.message.reply_text(answer[:4000])  # Telegram limit
+    except Exception as e:
+        await update.message.reply_text(get_text(lang, "ask_error", error=str(e)))
+
 def premium_required(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
@@ -249,6 +282,14 @@ def premium_required(func):
             else:
                 await update.message.reply_text(get_text(lang, "terms_must_accept"))
                 return
+        try:
+            member = await context.bot.get_chat_member("@Tsworld", user_id)
+            if member.status not in ("member", "administrator", "creator"):
+                target = update.callback_query.message if update.callback_query else update.message
+                await target.reply_text(get_text(lang, "channel_required"))
+                return
+        except Exception:
+            pass
         if not user_mgr.can_use_premium_feature(user_id):
             text = get_text(lang, "premium_required")
             if update.callback_query:
@@ -381,9 +422,30 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         await safe_edit(get_text(lang, "menu_title"), keyboard)
 
+    elif data == "check_subscription":
+        try:
+            member = await context.bot.get_chat_member("@Tsworld", query.from_user.id)
+            if member.status in ("member", "administrator", "creator"):
+                await query.edit_message_text(get_text(lang, "channel_verified"))
+                # Relancer /start
+                context.args = []
+                await start(update, context)
+            else:
+                await query.answer(get_text(lang, "channel_not_joined"), show_alert=True)
+        except Exception:
+            await query.answer("Erreur. Réessaie.", show_alert=True)
+
     # --- Exécution réelle des commandes ---
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
+        if cmd.startswith("checkdir_"):
+            parts = cmd.split("_")
+            if len(parts) >= 3:
+                symbol = parts[1]
+                direction = parts[2]
+                context.args = [symbol, direction]
+                await check(update, context, from_callback=True)
+            return
         if cmd.startswith("alertcond_"):
             _,symbol,cond=cmd.split("_")
             context.user_data["pending_alert_symbol"]=symbol
@@ -577,8 +639,6 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await levels(update, context, from_callback=True)
             elif command == "symbolinfo":
                 await symbolinfo(update, context, from_callback=True)
-            elif command == "check":
-                await check(update, context, from_callback=True)
             elif command == "alert":
                 kb=[[InlineKeyboardButton(get_text(lang,"cond_above"),callback_data=f"cmd_alertcond_{symbol}_above"),InlineKeyboardButton(get_text(lang,"cond_below"),callback_data=f"cmd_alertcond_{symbol}_below")]]
                 await query.message.reply_text(get_text(lang,"alert_choose_condition"), reply_markup=InlineKeyboardMarkup(kb))
@@ -588,6 +648,15 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif command == "removewatch":
                 context.args=[symbol]
                 await removewatch(update, context)
+            elif command == "check":
+                kb = [
+                    [InlineKeyboardButton("BUY 🟢", callback_data=f"checkdir_{symbol}_BUY"),
+                     InlineKeyboardButton("SELL 🔴", callback_data=f"checkdir_{symbol}_SELL")]
+                ]
+                await query.message.reply_text(
+                    get_text(lang, "check_choose_direction", symbol=symbol),
+                    reply_markup=InlineKeyboardMarkup(kb)
+                )
         return
 
     elif data == "noop":
@@ -618,6 +687,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.MARKDOWN
         )
         return
+
+    # Vérifier l'abonnement au canal
+    try:
+        member = await context.bot.get_chat_member("@Tsworld", user_id)
+        if member.status not in ("member", "administrator", "creator"):
+            keyboard = [
+                [InlineKeyboardButton("📢 Rejoindre T's World", url="https://t.me/+c_xPX-20JAo0MTE0")],
+                [InlineKeyboardButton(get_text(lang, "check_subscription"), callback_data="check_subscription")],
+            ]
+            await update.message.reply_text(
+                get_text(lang, "channel_required"),
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+    except Exception:
+        pass
 
     # Utilisateur existant qui a déjà accepté → comportement normal
     role = user_mgr.get_role(user_id)
@@ -808,6 +894,34 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     plt.xticks(rotation=45)
     plt.tight_layout()
     buf = io.BytesIO()
+
+    # Filigrane
+    fig.text(0.5, 0.5, "Bitsure Teddy", fontsize=40, color='gray',
+             ha='center', va='center', alpha=0.12, rotation=30)
+
+    # Lignes SL/TP
+    if result.get('sl'):
+        ax.axhline(y=result['sl'], color='red', linestyle='--', linewidth=1.2, alpha=0.8, label='SL')
+    if result.get('tp'):
+        ax.axhline(y=result['tp'], color='green', linestyle='--', linewidth=1.2, alpha=0.8, label='TP')
+
+    # Fibonacci (50 dernières bougies)
+    try:
+        recent_high = float(df['High'].iloc[-50:].max())
+        recent_low = float(df['Low'].iloc[-50:].min())
+        diff = recent_high - recent_low
+        for level_name, ratio in [("0.382", 0.382), ("0.500", 0.500), ("0.618", 0.618)]:
+            fib_price = recent_high - diff * ratio
+            ax.axhline(y=fib_price, color='yellow', linestyle=':', linewidth=0.8, alpha=0.5)
+            ax.text(df.index[-1], fib_price, f'Fib {level_name}', color='yellow', fontsize=7, alpha=0.7)
+    except:
+        pass
+
+    # Flèche d'entrée
+    ax.scatter(df.index[-1], float(ind['price']), color='cyan', s=100, marker='v', zorder=5, label='Entrée')
+
+    # Rafraîchir la légende
+    ax.legend(loc='upper left', fontsize=7)
     plt.savefig(buf, format='png')
     buf.seek(0)
     plt.close()
