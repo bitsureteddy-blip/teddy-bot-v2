@@ -48,6 +48,9 @@ TEXTS = {
         "channel_verified": "✅ Abonnement vérifié. Bienvenue !",
         "channel_not_joined": "❌ Tu n'as pas encore rejoint le canal. Rejoins-le d'abord.",
         "check_subscription": "✅ J'ai rejoint",
+        "ask_usage": "Usage : /ask <ta question>",
+        "ask_wait": "🤔 Je réfléchis...",
+        "ask_error": "❌ Erreur : {error}",
 
         # ----- Aide -----
         "help_full": (
@@ -471,6 +474,9 @@ TEXTS = {
         "channel_verified": "✅ Subscription verified. Welcome!",
         "channel_not_joined": "❌ You haven't joined the channel yet. Join it first.",
         "check_subscription": "✅ I joined",
+        "ask_usage": "Usage: /ask <your question>",
+        "ask_wait": "🤔 Thinking...",
+        "ask_error": "❌ Error: {error}",
 
         # ----- Help -----
         "help_full": (

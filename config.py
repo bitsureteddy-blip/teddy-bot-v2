@@ -13,6 +13,7 @@ if ADMIN_ID == 0:
 FCS_API_KEY = os.environ.get("FCS_API_KEY")
 REALMARKET_API_KEY = os.environ.get("REALMARKET_API_KEY")
 TWELVEDATA_API_KEY = os.environ.get("TWELVEDATA_API_KEY")
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
 
 # --- Limites utilisateur ---
 FREE_DAILY_REQUESTS = 5

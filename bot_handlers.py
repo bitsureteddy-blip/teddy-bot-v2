@@ -8,6 +8,8 @@ import random
 import hashlib
 import time
 import requests
+import os
+from openai import OpenAI
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from types import SimpleNamespace
 
@@ -237,6 +239,31 @@ def check_limit(func):
         user_mgr.increment_usage(user_id)
         return await func(update, context, *args, **kwargs)
     return wrapper
+
+@check_limit
+async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "ask_usage"))
+        return
+    
+    question = " ".join(context.args)
+    await update.message.reply_text(get_text(lang, "ask_wait"))
+    
+    try:
+        client = OpenAI(
+            api_key=os.environ.get("DEEPSEEK_API_KEY"),
+            base_url="https://api.deepseek.com"
+        )
+        response = client.chat.completions.create(
+            model="deepseek-v4-flash",
+            messages=[{"role": "user", "content": question}],
+            stream=False
+        )
+        answer = response.choices[0].message.content
+        await update.message.reply_text(answer[:4000])  # Telegram limit
+    except Exception as e:
+        await update.message.reply_text(get_text(lang, "ask_error", error=str(e)))
 
 def premium_required(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
