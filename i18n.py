@@ -33,6 +33,17 @@ TEXTS = {
         "terms_refused_msg": "❌ Tu ne peux pas utiliser le bot sans accepter les conditions. Retape /start quand tu seras prêt.",
         "terms_must_accept": "⚠️ Tu dois d'abord accepter les conditions d'utilisation. Tape /start pour les consulter.",
         "terms_button": "📋 Lire les conditions d'utilisation",
+        "check_usage": "Usage: /check SYMBOLE BUY|SELL",
+        "check": "📊 VALIDATION {symbol}\n━━━━━━━━━━━━━━━━━━━\n✅ Tendance : {trend}\n✅ RSI : {rsi}\n⚠️ Volatilité : {volatility}\n📈 Score : {score}/100 → {light}\n🎯 SL : {sl}\n💰 TP : {tp}",
+        "check_green": "🟢 FAVORABLE",
+        "check_orange": "🟡 PRUDENT",
+        "check_red": "🔴 RISQUÉ",
+        "check_vol_high": "Élevée",
+        "check_vol_normal": "Normale",
+        "history_stats_header": "📊 TON HISTORIQUE\n━━━━━━━━━━━━━━━━━━━\n📈 Signaux reçus : {total}\n✅ Gagnants : {wins} ({win_rate}%)\n❌ Perdants : {losses}\n\n💰 Gain moyen : {avg}%\n📉 Pire : {worst}%\n🏆 Meilleur : {best}%\n\n💡 Conseil : {advice}\n\n📋 DERNIERS SIGNAUX :\n",
+        "history_advice_high": "Continue, mais garde une gestion de risque stricte.",
+        "history_advice_low": "Réduis le risque et privilégie les scores élevés.",
+        "channel_required": "⚠️ Tu dois rejoindre le canal T's World pour utiliser Bitsure Teddy.\n\n👉 https://t.me/+c_xPX-20JAo0MTE0\n\nReviens après avoir rejoint !",
 
         # ----- Aide -----
         "help_full": (
@@ -432,6 +443,17 @@ TEXTS = {
         "terms_refused_msg": "❌ You cannot use the bot without accepting the terms. Type /start when you are ready.",
         "terms_must_accept": "⚠️ You must first accept the terms of use. Type /start to review them.",
         "terms_button": "📋 Read Terms of Use",
+        "check_usage": "Usage: /check SYMBOL BUY|SELL",
+        "check": "📊 VALIDATION {symbol}\n━━━━━━━━━━━━━━━━━━━\n✅ Trend: {trend}\n✅ RSI: {rsi}\n⚠️ Volatility: {volatility}\n📈 Score: {score}/100 → {light}\n🎯 SL: {sl}\n💰 TP: {tp}",
+        "check_green": "🟢 FAVORABLE",
+        "check_orange": "🟡 CAUTION",
+        "check_red": "🔴 RISKY",
+        "check_vol_high": "High",
+        "check_vol_normal": "Normal",
+        "history_stats_header": "📊 YOUR HISTORY\n━━━━━━━━━━━━━━━━━━━\n📈 Signals received: {total}\n✅ Winners: {wins} ({win_rate}%)\n❌ Losers: {losses}\n\n💰 Average gain: {avg}%\n📉 Worst: {worst}%\n🏆 Best: {best}%\n\n💡 Advice: {advice}\n\n📋 LATEST SIGNALS:\n",
+        "history_advice_high": "Keep going, but maintain strict risk management.",
+        "history_advice_low": "Reduce risk and favor higher scores.",
+        "channel_required": "⚠️ You must join T's World channel to use Bitsure Teddy.\n\n👉 https://t.me/+c_xPX-20JAo0MTE0\n\nCome back after joining!",
 
         # ----- Help -----
         "help_full": (

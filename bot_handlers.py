@@ -212,6 +212,15 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
+        try:
+            member = await context.bot.get_chat_member("@Tsworld", user_id)
+            if member.status not in ("member", "administrator", "creator"):
+                await (update.callback_query.message.reply_text if update.callback_query else update.message.reply_text)(
+                    get_text(lang, "channel_required")
+                )
+                return
+        except Exception:
+            pass
         if func.__name__ != "start" and not user_mgr.has_accepted_terms(user_id):
             if update.callback_query:
                 await update.callback_query.answer(get_text(lang, "terms_must_accept"), show_alert=True)
@@ -1288,46 +1297,27 @@ async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @check_limit
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    lang = user_mgr.get_setting(user_id, "lang", "en")
-    if not user_mgr.can_use_premium_feature(user_id):
-        await update.message.reply_text(get_text(lang, "premium_required"), parse_mode=ParseMode.MARKDOWN)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(user_mgr.get_setting(update.effective_user.id, "lang", "en"), "broadcast_admin_only"))
         return
-    signals = history_mgr.get_recent_signals(20)
-    if not signals:
-        await update.message.reply_text(get_text(lang, "history_empty"))
-        return
-
-    completed = [s for s in signals if s.get("status") in ("win", "loss")]
-    total = len(completed)
-    wins = sum(1 for s in completed if s.get("status") == "win")
-    win_rate = (wins / total * 100) if total else 0
-    pcts = [float(s.get("result_pct") or 0) for s in completed]
-    avg_gain = (sum(pcts) / len(pcts)) if pcts else 0
-    worst = min(pcts) if pcts else 0
-
-    advice = "💡 Conseil : attends un score > 70"
-    text = (
-        "📊 *ANALYSE IA HISTORIQUE*\n"
-        "━━━━━━━━━━━━━━━━━━━\n"
-        f"🔢 Signaux analysés : {len(signals)}\n"
-        f"✅ Win rate : {win_rate:.1f}%\n"
-        f"📈 Gain moyen : {avg_gain:.2f}%\n"
-        f"📉 Pire trade : {worst:.2f}%\n"
-        f"{advice}"
-    )
+    lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
+    user_mgr._load_users()
+    total = len(user_mgr.users)
+    free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
+    pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
+    text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 @check_limit
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     if len(context.args) < 2:
-        await update.message.reply_text("Usage: /check SYMBOL BUY|SELL")
+        await update.message.reply_text(get_text(lang, "check_usage"))
         return
     symbol = normalize_symbol(context.args[0].upper())
     side = context.args[1].upper()
     if side not in ("BUY", "SELL"):
-        await update.message.reply_text("Usage: /check SYMBOL BUY|SELL")
+        await update.message.reply_text(get_text(lang, "check_usage"))
         return
     df = await fetcher.get_historical_data(symbol)
     if df is None or df.empty:
@@ -1338,18 +1328,16 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     trend = ind.get("trend", "NEUTRAL")
     trend_txt = get_text(lang, f"trend_{trend.lower()}") if isinstance(trend, str) else "N/A"
     score = int(result.get("teddy_score", 0))
-    color = "🟢 FAVORABLE" if score >= 80 else "🟡 PRUDENT" if score >= 60 else "🔴 RISQUÉ"
+    color = get_text(lang, "check_green") if score >= 80 else get_text(lang, "check_orange") if score >= 60 else get_text(lang, "check_red")
     atr_v = float(ind.get("atr") or 0)
     price_v = float(ind.get("price") or 1)
-    vol_txt = "Élevée" if price_v and (atr_v / price_v) > 0.03 else "Normale"
-    msg = (
-        f"📊 VALIDATION {symbol}\n"
-        "━━━━━━━━━━━━━━━━━━━\n"
-        f"✅ Tendance : {trend_txt}\n"
-        f"✅ RSI : {float(ind.get('rsi') or 0):.1f}\n"
-        f"⚠️ Volatilité : {vol_txt}\n"
-        f"📈 Score : {score}/100 → {color}\n"
-        f"🎯 SL : {format_number(result.get('sl')) if result.get('sl') else 'N/A'} | TP : {format_number(result.get('tp')) if result.get('tp') else 'N/A'}"
+    vol_txt = get_text(lang, "check_vol_high") if price_v and (atr_v / price_v) > 0.03 else get_text(lang, "check_vol_normal")
+    msg = get_text(
+        lang, "check",
+        symbol=symbol, trend=trend_txt, rsi=f"{float(ind.get('rsi') or 0):.1f}",
+        volatility=vol_txt, score=score, light=color,
+        sl=format_number(result.get('sl')) if result.get('sl') else "N/A",
+        tp=format_number(result.get('tp')) if result.get('tp') else "N/A"
     )
     await update.message.reply_text(msg)
 
@@ -1461,15 +1449,38 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
     if target_message is None:
         return
-    signals = history_mgr.get_recent_signals(10)
+    signals = history_mgr.get_recent_signals(20)
     if not signals:
         await target_message.reply_text(get_text(lang, "history_empty"))
         return
-    text = get_text(lang, "history_title")
+    completed = [s for s in signals if s.get("status") in ("win", "loss")]
+    wins = sum(1 for s in completed if s.get("status") == "win")
+    losses = sum(1 for s in completed if s.get("status") == "loss")
+    win_rate = (wins / len(completed) * 100) if completed else 0
+    pcts = [float(s.get("result_pct") or 0) for s in completed]
+    avg_gain = (sum(pcts) / len(pcts)) if pcts else 0
+    worst = min(pcts) if pcts else 0
+    best = max(pcts) if pcts else 0
+    advice = get_text(lang, "history_advice_high") if win_rate >= 55 else get_text(lang, "history_advice_low")
+    text = get_text(lang, "history_stats_header", total=len(signals), wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, avg=f"{avg_gain:+.2f}", worst=f"{worst:+.1f}", best=f"{best:+.1f}", advice=advice)
     for s in signals:
         status = "✅" if s['status'] == 'win' else "❌" if s['status'] == 'loss' else "⏳"
         text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:10]})\n"
     await target_message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+@check_limit
+async def find_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /find_memo <memo>")
+        return
+    memo = context.args[0].upper()
+    user_id = user_mgr.find_user_by_memo(memo)
+    if user_id:
+        await update.message.reply_text(f"✅ Mémo {memo} → User ID: {user_id}")
+    else:
+        await update.message.reply_text(f"❌ Aucun utilisateur trouvé pour le mémo {memo}")
 
 # ---------- SNAPSHOT / VERIFY ----------
 @check_limit

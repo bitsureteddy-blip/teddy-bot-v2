@@ -220,6 +220,7 @@ class UserManager:
     def add_pending_binance(self, user_id: int, ident: str):
         user = self.get_user(user_id)
         user["pending_binance_payment"] = {"id": ident, "created_at": time.time()}
+        user["pending_binance_id"] = ident
         self._save()
 
     def confirm_binance_payment(self, user_id: int) -> bool:
@@ -228,8 +229,15 @@ class UserManager:
             return False
         user["role"] = "pro"
         user.pop("pending_binance_payment", None)
+        user.pop("pending_binance_id", None)
         self._save()
         return True
+
+    def find_user_by_memo(self, memo: str):
+        for uid, data in self.users.items():
+            if data.get("pending_binance_id") == memo:
+                return uid
+        return None
 
     def _save(self):
         save_json(USERS_FILE, self.users)
