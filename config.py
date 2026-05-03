@@ -67,7 +67,6 @@ XAU_RSI_BUY_MAX = 35
 XAU_RSI_SELL_MIN = 65
 XAU_ATR_MAX_RATIO = 0.03
 XAU_TIMEFRAME = "1h"
- main
 # --- Fichiers de données ---
 DATA_DIR = "data"
 USERS_FILE = f"{DATA_DIR}/users.json"
