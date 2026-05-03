@@ -16,7 +16,7 @@ from bot_handlers import (
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
-    sentiment, compare, top, fav, learn, check, start_weekly_report_scheduler, start_signal_monitoring
+    sentiment, compare, top, fav, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -52,14 +52,14 @@ def main():
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("find_memo", find_memo), ("upgrade", upgrade),
         ("support", support), ("pay_binance", pay_binance), ("confirm_payment", confirm_payment),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
-        ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn), ("check", check),
+        ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn), ("check", check), ("ask", ask),
         ("backtest", backtest)
     ]
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))
 
     # Callbacks
-    app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_)"))
+    app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_|checkdir_|check_subscription)"))
     app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^(symcat_|sympage_|symsel_|noop)"))
     app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
