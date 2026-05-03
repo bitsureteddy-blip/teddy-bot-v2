@@ -9,6 +9,7 @@ import hashlib
 import time
 import requests
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from types import SimpleNamespace
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes, CallbackContext
@@ -325,6 +326,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_volatility"), callback_data="cmd_volatility")],
             [InlineKeyboardButton(get_text(lang, "btn_levels"), callback_data="cmd_levels")],
             [InlineKeyboardButton(get_text(lang, "btn_symbolinfo"), callback_data="cmd_symbolinfo")],
+            [InlineKeyboardButton(get_text(lang, "btn_check"), callback_data="cmd_check")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -396,7 +398,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cmd.startswith("delalert_"):
             context.args=[cmd.split("_",1)[1]]
             await delalert(update, context); return
-        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "alert", "addwatch", "removewatch"]:
+        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "alert", "addwatch", "removewatch", "check"]:
             await symbol_selection(update, context, cmd)
 
         elif cmd == "alerts":
@@ -575,6 +577,8 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await levels(update, context, from_callback=True)
             elif command == "symbolinfo":
                 await symbolinfo(update, context, from_callback=True)
+            elif command == "check":
+                await check(update, context, from_callback=True)
             elif command == "alert":
                 kb=[[InlineKeyboardButton(get_text(lang,"cond_above"),callback_data=f"cmd_alertcond_{symbol}_above"),InlineKeyboardButton(get_text(lang,"cond_below"),callback_data=f"cmd_alertcond_{symbol}_below")]]
                 await query.message.reply_text(get_text(lang,"alert_choose_condition"), reply_markup=InlineKeyboardMarkup(kb))
@@ -1307,7 +1311,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 @check_limit
-async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
     lang = get_user_lang(update)
     if len(context.args) < 2:
         await update.message.reply_text(get_text(lang, "check_usage"))
@@ -1339,7 +1343,8 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(msg)
 
-async def send_weekly_reports(bot):
+async def send_weekly_reports(context):
+    bot = context.bot
     pro_users = [int(uid) for uid, u in user_mgr.users.items() if u.get("role") == "pro"]
     signals = history_mgr.get_recent_signals(50)
     completed = [s for s in signals if s.get("status") in ("win", "loss")]
@@ -1380,6 +1385,49 @@ def start_weekly_report_scheduler(app):
         replace_existing=True,
     )
     weekly_scheduler.start()
+signal_scheduler = None
+
+async def check_signal_outcomes(bot):
+    signals = history_mgr.get_recent_signals(50)
+    for s in signals:
+        if s.get("status") not in (None, "pending"):
+            continue
+        symbol = s["symbol"]
+        entry = float(s["entry_price"])
+        sl = float(s.get("sl", 0) or 0)
+        tp = float(s.get("tp", 0) or 0)
+        if sl == 0 or tp == 0:
+            continue
+        price_data = await fetcher.get_realtime_price(symbol)
+        if not price_data:
+            continue
+        current_price = float(price_data["price"])
+        direction = s["direction"]
+        if direction == "BUY":
+            if current_price >= tp:
+                history_mgr.update_signal_status(s["id"], "win", round((tp - entry) / entry * 100, 4))
+            elif current_price <= sl:
+                history_mgr.update_signal_status(s["id"], "loss", round((sl - entry) / entry * 100, 4))
+        elif direction == "SELL":
+            if current_price <= tp:
+                history_mgr.update_signal_status(s["id"], "win", round((entry - tp) / entry * 100, 4))
+            elif current_price >= sl:
+                history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
+
+def start_signal_monitoring(app):
+    global signal_scheduler
+    if signal_scheduler is not None:
+        return
+    signal_scheduler = AsyncIOScheduler(timezone="UTC")
+    signal_scheduler.add_job(
+        check_signal_outcomes,
+        "interval",
+        minutes=5,
+        kwargs={"bot": app.bot},
+        id="signal_monitor",
+        replace_existing=True,
+    )
+    signal_scheduler.start()
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)

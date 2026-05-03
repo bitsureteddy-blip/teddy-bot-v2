@@ -118,7 +118,7 @@ class SignalEngine:
         }
 
         return SignalEngine._finalize(
-            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=5
+            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=4
         )
 
     @staticmethod
@@ -176,7 +176,7 @@ class SignalEngine:
         }
 
         return SignalEngine._finalize(
-            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=5
+            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=4
         )
 
     @staticmethod
@@ -235,7 +235,7 @@ class SignalEngine:
         }
 
         return SignalEngine._finalize(
-            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=5
+            buy_cond, sell_cond, last_price, atr_val, indicators, lang, min_cond=4
         )
 
     @staticmethod

@@ -16,7 +16,7 @@ from bot_handlers import (
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
-    sentiment, compare, top, fav, learn, check, start_weekly_report_scheduler
+    sentiment, compare, top, fav, learn, check, start_weekly_report_scheduler, start_signal_monitoring
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -39,6 +39,7 @@ def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     AlertManager.get_instance().start_monitoring(app)
     start_weekly_report_scheduler(app)
+    start_signal_monitoring(app)
 
     # Commandes
     handlers = [
