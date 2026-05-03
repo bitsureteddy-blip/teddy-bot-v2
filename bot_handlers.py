@@ -94,7 +94,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             tp = float(result["tp1"])
             if sl is None or tp is None or sl == entry_price:
                 continue
-
             is_buy = result["signal"] == "BUY"
             outcome = None
             exit_price = None
@@ -215,9 +214,8 @@ def check_limit(func):
         try:
             member = await context.bot.get_chat_member("@Tsworld", user_id)
             if member.status not in ("member", "administrator", "creator"):
-                await (update.callback_query.message.reply_text if update.callback_query else update.message.reply_text)(
-                    get_text(lang, "channel_required")
-                )
+                target = update.callback_query.message if update.callback_query else update.message
+                await target.reply_text(get_text(lang, "channel_required"))
                 return
         except Exception:
             pass
