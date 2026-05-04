@@ -1,5 +1,13 @@
 import asyncio
 import os
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
+
+# Forcer les variables d'environnement manquantes
+os.environ["TELEGRAM_TOKEN"] = "dummy"
+os.environ["ADMIN_ID"] = "123456789"
+os.environ["TWELVEDATA_API_KEY"] = "c7b582eed7b24bff942030a3623c6429"
+
 from data_fetcher import DataFetcher
 
 SYMBOLS = [

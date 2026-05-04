@@ -1,15 +1,15 @@
 """
-Backtest Bitsure Teddy – strict, transparent, automatique
-Utilise le vrai SignalEngine.analyze() sur données historiques Twelve Data.
+Backtest Bitsure Teddy - strict, transparent, 100% reproductible
+Utilise les CSV locaux (pas d'API).
 """
 
-import asyncio
+import os
+os.environ["TELEGRAM_TOKEN"] = "dummy"
+os.environ["ADMIN_ID"] = "123456789"
+
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
-from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
-from config import HISTORY_PERIOD
 import logging
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -28,34 +28,30 @@ STEP = 24
 SL_ATR_MULT = 1.5
 TP_ATR_MULT = 2.0
 
-async def run_backtest():
-    fetcher = DataFetcher.get_instance()
+def run_backtest():
     engine = SignalEngine()
 
     for symbol in SYMBOLS:
         logger.info(f"=== BACKTEST {symbol} ===")
-        if symbol == "BTCUSD":
-            tf = "4h"
-        elif symbol == "XAUUSD":
-            tf = "1h"
-        else:
-            tf = TIMEFRAME
-        df = await fetcher.get_historical_data(symbol, timeframe=tf, period=HISTORY_PERIOD)
-        if df is None or df.empty:
-            logger.warning(f"Pas de données pour {symbol}")
+        filename = f"data/{symbol}_{TIMEFRAME}.csv"
+        if not os.path.exists(filename):
+            logger.warning(f"Fichier introuvable : {filename}")
             continue
+
+        df = pd.read_csv(filename, parse_dates=["Date"], index_col="Date")
+        df = df.sort_index()
 
         logger.info(f"{len(df)} bougies chargées.")
         trades = []
 
-        for i in range(MIN_BARS, len(df), STEP):
+        for i in range(MIN_BARS, len(df) - 1, STEP):
             window = df.iloc[:i]
             result = engine.analyze(window, symbol=symbol)
 
             if result["signal"] not in ("BUY", "SELL"):
                 continue
 
-            entry_price = float(df["Close"].iloc[i])
+            entry_price = float(df["Open"].iloc[i + 1])
             sl = float(result["sl"])
             tp = float(result["tp1"])
             if sl is None or tp is None or sl == entry_price:
@@ -64,7 +60,7 @@ async def run_backtest():
             is_buy = result["signal"] == "BUY"
             outcome = None
             exit_price = None
-            exit_idx = i
+            exit_idx = i + 1
 
             for j in range(i + 1, len(df)):
                 low_j = float(df["Low"].iloc[j])
@@ -106,7 +102,7 @@ async def run_backtest():
                 pnl_pct = -pnl_pct
 
             trades.append({
-                "date": str(df.index[i]),
+                "date": str(df.index[i + 1]),
                 "symbol": symbol,
                 "signal": result["signal"],
                 "score": result["teddy_score"],
@@ -116,7 +112,7 @@ async def run_backtest():
                 "tp": round(tp, 5),
                 "outcome": outcome,
                 "pnl_pct": round(pnl_pct, 4),
-                "bars_held": exit_idx - i,
+                "bars_held": exit_idx - (i + 1),
             })
 
         if not trades:
@@ -155,4 +151,4 @@ async def run_backtest():
         logger.info(f"Résultats sauvegardés : backtest_{symbol}_{TIMEFRAME}.csv")
 
 if __name__ == "__main__":
-    asyncio.run(run_backtest())
+    run_backtest()
