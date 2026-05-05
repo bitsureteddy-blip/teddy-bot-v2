@@ -24,7 +24,7 @@ PRICE_CACHE_TTL = 15        # secondes
 HISTORY_CACHE_TTL = 300     # secondes (5 minutes)
 
 # --- Analyse technique ---
-DEFAULT_TIMEFRAME = "1d"
+DEFAULT_TIMEFRAME = "1h"
 HISTORY_PERIOD = "6mo"
 RSI_PERIOD = 14
 STOCH_K_PERIOD = 14
