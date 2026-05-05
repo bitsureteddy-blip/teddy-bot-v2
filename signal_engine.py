@@ -93,11 +93,11 @@ class SignalEngine:
 
         return SignalEngine._finalize(
             buy_cond, sell_cond, last_price, atr_val, indicators, lang,
-            min_cond=cfg["min_cond"]
+            min_cond=cfg["min_cond"], cfg=cfg
         )
 
     @staticmethod
-    def _finalize(buy_cond, sell_cond, price, atr_val, indicators, lang, min_cond=4):
+    def _finalize(buy_cond, sell_cond, price, atr_val, indicators, lang, min_cond=4, cfg=None):
         buy_count = sum(buy_cond)
         sell_count = sum(sell_cond)
 
@@ -125,7 +125,11 @@ class SignalEngine:
             tp = tp1
             rr = round(abs(tp1 - price) / abs(price - sl), 2)
 
-        score = int(max(buy_count, sell_count) / len(buy_cond) * 100)
+        weights = (cfg or {}).get("weights", {"trend": 20, "rsi": 20, "macd": 20, "adx": 20, "atr": 20})
+        weight_list = [weights["trend"], weights["rsi"], weights["macd"], weights["adx"], weights["atr"]]
+        buy_score = sum(w for w, c in zip(weight_list, buy_cond) if c)
+        sell_score = sum(w for w, c in zip(weight_list, sell_cond) if c)
+        score = max(buy_score, sell_score)
 
         reason = get_text(lang, f"signal_{signal.lower()}_reason") if signal != "WAIT" else get_text(lang, "signal_wait_neutral")
         risk = get_text(lang, f"signal_{signal.lower()}_advice") if signal != "WAIT" else get_text(lang, "signal_wait_advice")

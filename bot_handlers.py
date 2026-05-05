@@ -17,7 +17,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Labeled
 from telegram.ext import ContextTypes, CallbackContext
 from telegram.constants import ParseMode
 
-from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD
+from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD, SYMBOL_CONFIGS
 from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
 from indicators import atr
@@ -1442,7 +1442,8 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
     ind = result.get("indicators", {})
     trend = ind.get("trend", "NEUTRAL")
     trend_txt = get_text(lang, f"trend_{trend.lower()}") if isinstance(trend, str) else "N/A"
-    score = int(result.get("teddy_score", 0))
+    cfg = SYMBOL_CONFIGS.get(symbol, SYMBOL_CONFIGS["EURUSD"])
+    score = int(result.get("teddy_score", cfg.get("weights", {}).get("trend", 0)))
     color = get_text(lang, "check_green") if score >= 80 else get_text(lang, "check_orange") if score >= 60 else get_text(lang, "check_red")
     atr_v = float(ind.get("atr") or 0)
     price_v = float(ind.get("price") or 1)
