@@ -39,20 +39,18 @@ challenge_mgr = ChallengeManager.get_instance()
 weekly_scheduler = None
 
 # 15 symboles PRO
-SYMBOLS_15 = [
+SYMBOLS_12 = [
     "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
     "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
-    "XAUUSD", "WTI", "XAGUSD",
-    "AAPL", "TSLA", "NVDA",
-    "SPX", "NDX"
+    "XAUUSD",
+    "AAPL", "TSLA", "NVDA"
 ]
 
 BACKTEST_SYMBOLS = [
     "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
     "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
-    "XAUUSD", "WTI", "XAGUSD",
-    "AAPL", "TSLA", "NVDA",
-    "SPX", "NDX"
+    "XAUUSD",
+    "AAPL", "TSLA", "NVDA"
 ]
 BACKTEST_TIMEFRAME = "1h"
 BACKTEST_MIN_BARS = 60
@@ -579,7 +577,7 @@ async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, c
     await query.answer()
     lang = get_user_lang(update)
 
-    symbols = SYMBOLS_15
+    symbols = SYMBOLS_12
     per_page = 8
     total_pages = (len(symbols) + per_page - 1) // per_page
     page = max(0, min(page, total_pages - 1))

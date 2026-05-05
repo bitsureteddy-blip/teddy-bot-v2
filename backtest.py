@@ -18,9 +18,8 @@ logger = logging.getLogger("backtest")
 SYMBOLS = [
     "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
     "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
-    "XAUUSD", "WTI", "XAGUSD",
-    "AAPL", "TSLA", "NVDA",
-    "SPX", "NDX"
+    "XAUUSD",
+    "AAPL", "TSLA", "NVDA"
 ]
 TIMEFRAME = "1h"
 MIN_BARS = 60
