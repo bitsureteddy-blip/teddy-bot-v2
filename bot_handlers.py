@@ -17,7 +17,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Labeled
 from telegram.ext import ContextTypes, CallbackContext
 from telegram.constants import ParseMode
 
-from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD
+from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD, SYMBOL_CONFIGS
 from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
 from indicators import atr
@@ -39,20 +39,18 @@ challenge_mgr = ChallengeManager.get_instance()
 weekly_scheduler = None
 
 # 15 symboles PRO
-SYMBOLS_15 = [
+SYMBOLS_12 = [
     "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
     "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
-    "XAUUSD", "WTI", "XAGUSD",
-    "AAPL", "TSLA", "NVDA",
-    "SPX", "NDX"
+    "XAUUSD",
+    "AAPL", "TSLA", "NVDA"
 ]
 
 BACKTEST_SYMBOLS = [
     "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
     "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
-    "XAUUSD", "WTI", "XAGUSD",
-    "AAPL", "TSLA", "NVDA",
-    "SPX", "NDX"
+    "XAUUSD",
+    "AAPL", "TSLA", "NVDA"
 ]
 BACKTEST_TIMEFRAME = "1h"
 BACKTEST_MIN_BARS = 60
@@ -579,7 +577,7 @@ async def symbol_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, c
     await query.answer()
     lang = get_user_lang(update)
 
-    symbols = SYMBOLS_15
+    symbols = SYMBOLS_12
     per_page = 8
     total_pages = (len(symbols) + per_page - 1) // per_page
     page = max(0, min(page, total_pages - 1))
@@ -1443,7 +1441,8 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
     ind = result.get("indicators", {})
     trend = ind.get("trend", "NEUTRAL")
     trend_txt = get_text(lang, f"trend_{trend.lower()}") if isinstance(trend, str) else "N/A"
-    score = int(result.get("teddy_score", 0))
+    cfg = SYMBOL_CONFIGS.get(symbol, SYMBOL_CONFIGS["EURUSD"])
+    score = int(result.get("teddy_score", cfg.get("weights", {}).get("trend", 0)))
     color = get_text(lang, "check_green") if score >= 80 else get_text(lang, "check_orange") if score >= 60 else get_text(lang, "check_red")
     atr_v = float(ind.get("atr") or 0)
     price_v = float(ind.get("price") or 1)
