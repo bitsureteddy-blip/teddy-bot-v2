@@ -125,11 +125,14 @@ class SignalEngine:
             tp = tp1
             rr = round(abs(tp1 - price) / abs(price - sl), 2)
 
-        weights = (cfg or {}).get("weights", {"trend": 20, "rsi": 20, "macd": 20, "adx": 20, "atr": 20})
-        weight_list = [weights["trend"], weights["rsi"], weights["macd"], weights["adx"], weights["atr"]]
-        buy_score = sum(w for w, c in zip(weight_list, buy_cond) if c)
-        sell_score = sum(w for w, c in zip(weight_list, sell_cond) if c)
-        score = max(buy_score, sell_score)
+        if cfg and "weights" in cfg:
+            w = cfg["weights"]
+            weight_list = [w["trend"], w["rsi"], w["macd"], w["adx"], w["atr"]]
+            buy_score = sum(wt for wt, c in zip(weight_list, buy_cond) if c)
+            sell_score = sum(wt for wt, c in zip(weight_list, sell_cond) if c)
+            score = max(buy_score, sell_score)
+        else:
+            score = int(max(buy_count, sell_count) / len(buy_cond) * 100)
 
         reason = get_text(lang, f"signal_{signal.lower()}_reason") if signal != "WAIT" else get_text(lang, "signal_wait_neutral")
         risk = get_text(lang, f"signal_{signal.lower()}_advice") if signal != "WAIT" else get_text(lang, "signal_wait_advice")
