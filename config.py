@@ -24,7 +24,7 @@ PRICE_CACHE_TTL = 15        # secondes
 HISTORY_CACHE_TTL = 300     # secondes (5 minutes)
 
 # --- Analyse technique ---
-DEFAULT_TIMEFRAME = "1d"
+DEFAULT_TIMEFRAME = "1h"
 HISTORY_PERIOD = "6mo"
 RSI_PERIOD = 14
 STOCH_K_PERIOD = 14
@@ -54,31 +54,11 @@ SYMBOL_CONFIGS = {
     "USDJPY": {"adx_min": 18, "rsi_buy_low": 31, "rsi_buy_high": 41, "rsi_sell_low": 59, "rsi_sell_high": 69, "atr_max_pct": 1.0, "min_cond": 4, "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}},
     "AUDUSD": {"adx_min": 18, "rsi_buy_low": 30, "rsi_buy_high": 40, "rsi_sell_low": 60, "rsi_sell_high": 70, "atr_max_pct": 1.1, "min_cond": 4, "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}},
     "XAUUSD": {"adx_min": 20, "rsi_buy_low": 32, "rsi_buy_high": 44, "rsi_sell_low": 56, "rsi_sell_high": 68, "atr_max_pct": 2.0, "min_cond": 4, "weights": {"trend": 25, "rsi": 15, "macd": 20, "adx": 20, "atr": 20}},
-    "WTI": {"adx_min": 21, "rsi_buy_low": 33, "rsi_buy_high": 46, "rsi_sell_low": 54, "rsi_sell_high": 67, "atr_max_pct": 4.0, "min_cond": 4},
-    "XAGUSD": {"adx_min": 21, "rsi_buy_low": 33, "rsi_buy_high": 46, "rsi_sell_low": 54, "rsi_sell_high": 67, "atr_max_pct": 4.5, "min_cond": 4},
     "AAPL": {"adx_min": 20, "rsi_buy_low": 33, "rsi_buy_high": 45, "rsi_sell_low": 55, "rsi_sell_high": 67, "atr_max_pct": 3.0, "min_cond": 4, "weights": {"trend": 25, "rsi": 20, "macd": 20, "adx": 20, "atr": 15}},
     "TSLA": {"adx_min": 22, "rsi_buy_low": 34, "rsi_buy_high": 47, "rsi_sell_low": 53, "rsi_sell_high": 66, "atr_max_pct": 6.0, "min_cond": 4, "weights": {"trend": 20, "rsi": 20, "macd": 25, "adx": 20, "atr": 15}},
     "NVDA": {"adx_min": 21, "rsi_buy_low": 34, "rsi_buy_high": 46, "rsi_sell_low": 54, "rsi_sell_high": 66, "atr_max_pct": 4.5, "min_cond": 4, "weights": {"trend": 25, "rsi": 20, "macd": 20, "adx": 20, "atr": 15}},
-    "SPX": {"adx_min": 18, "rsi_buy_low": 32, "rsi_buy_high": 44, "rsi_sell_low": 56, "rsi_sell_high": 68, "atr_max_pct": 1.5, "min_cond": 4},
-    "NDX": {"adx_min": 19, "rsi_buy_low": 33, "rsi_buy_high": 45, "rsi_sell_low": 55, "rsi_sell_high": 67, "atr_max_pct": 2.2, "min_cond": 4},
 }
 
-# Seuils BTCUSD (trend + breakout)
-BTC_ADX_MIN = 30
-BTC_RSI_BUY_LOW = 55
-BTC_RSI_BUY_HIGH = 70
-BTC_RSI_SELL_LOW = 30
-BTC_RSI_SELL_HIGH = 45
-BTC_ATR_MIN_RATIO = 0.005
-BTC_ATR_MAX_RATIO = 0.08
-BTC_TIMEFRAME = "4h"
-
-# Seuils XAUUSD (range + mean reversion)
-XAU_ADX_MAX = 25
-XAU_RSI_BUY_MAX = 35
-XAU_RSI_SELL_MIN = 65
-XAU_ATR_MAX_RATIO = 0.03
-XAU_TIMEFRAME = "1h"
 # --- Fichiers de données ---
 DATA_DIR = "data"
 USERS_FILE = f"{DATA_DIR}/users.json"
