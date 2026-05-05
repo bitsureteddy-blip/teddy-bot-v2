@@ -871,7 +871,8 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
         msg = await update.callback_query.edit_message_text(get_text(lang, "analyse_wait", symbol=symbol))
     else:
         msg = await update.message.reply_text(get_text(lang, "analyse_wait", symbol=symbol))
-    df = await fetcher.get_historical_data(symbol)
+    tf = user_mgr.get_setting(update.effective_user.id, "timeframe", DEFAULT_TIMEFRAME)
+    df = await fetcher.get_historical_data(symbol, timeframe=tf)
     if df is None or df.empty:
         await msg.edit_text(get_text(lang, "analyse_error", symbol=symbol))
         return
