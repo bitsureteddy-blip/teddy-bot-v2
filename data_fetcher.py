@@ -25,7 +25,7 @@ class DataFetcher:
         self.price_cache = {}
         self.history_cache = {}
         self.tick_history = {}
-        self.subscribed_symbols = set(["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "WTI", "XAGUSD", "AAPL", "TSLA", "NVDA", "SPX", "NDX"])
+        self.subscribed_symbols = set(["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "AAPL", "TSLA", "NVDA"])
         self.ws = None
         self.ws_thread = None
 
