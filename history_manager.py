@@ -44,7 +44,8 @@ class HistoryManager:
             logger.error(f"Error saving history: {e}")
 
     def add_signal(self, symbol: str, direction: str, price: float, timeframe: str,
-                   signal_type: str = "analyse", score: int = 0) -> str:
+                   signal_type: str = "analyse", score: int = 0,
+                   sl: Optional[float] = None, tp: Optional[float] = None) -> str:
         """Ajoute un signal à l'historique et retourne son ID unique."""
         signal_id = hashlib.md5(f"{symbol}{direction}{price}{timeframe}{time.time()}".encode()).hexdigest()[:8]
         signal = {
@@ -57,6 +58,8 @@ class HistoryManager:
             "score": score,
             "timestamp": datetime.utcnow().isoformat(),
             "status": "pending",
+            "sl": sl,
+            "tp": tp,
             "result_price": None,
             "result_pct": None
         }

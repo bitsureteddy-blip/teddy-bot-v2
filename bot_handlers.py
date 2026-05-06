@@ -218,6 +218,8 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
+        if update.message and await handle_pending_alert_input(update, context):
+            return
         try:
             member = await context.bot.get_chat_member("@t_sworld", user_id)
             if member.status not in ("member", "administrator", "creator"):
@@ -950,7 +952,8 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
                        teddy_score=result['teddy_score'])
 
     signal_id = history_mgr.add_signal(symbol, result['signal'],
-                                       ind['price'], DEFAULT_TIMEFRAME, "analyse", result['teddy_score'])
+                                       ind['price'], DEFAULT_TIMEFRAME, "analyse", result['teddy_score'],
+                                       sl=result.get('sl'), tp=result.get('tp'))
     caption += f"\n\n🔐 ID: `{signal_id}`"
 
     await msg.delete()
