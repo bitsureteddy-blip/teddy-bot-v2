@@ -5,7 +5,7 @@ Teddy Trading Bot - Bitsure Teddy
 
 import logging
 import os
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 from config import TELEGRAM_TOKEN
 from bot_handlers import (
@@ -16,7 +16,8 @@ from bot_handlers import (
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
-    sentiment, compare, top, fav, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring
+    sentiment, compare, top, fav, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring,
+    handle_pending_alert_input
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -57,6 +58,8 @@ def main():
     ]
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_pending_alert_input))
 
     # Callbacks
     app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_|checkdir_|check_subscription)"))
