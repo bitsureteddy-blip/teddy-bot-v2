@@ -45,6 +45,14 @@ TEXTS = {
         "history_advice_high": "Continue, mais garde une gestion de risque stricte.",
         "history_advice_low": "Réduis le risque et privilégie les scores élevés.",
         "channel_required": "⚠️ Tu dois rejoindre le canal T's World pour utiliser Bitsure Teddy.\n\n👉 https://t.me/+c_xPX-20JAo0MTE0\n\nReviens après avoir rejoint !",
+        "channel_required_message": (
+            "📢 Avant de continuer...\n\n"
+            "Rejoins T's World pour voir :\n"
+            "📊 Les backtests publics chaque semaine\n"
+            "📈 Les signaux en direct\n"
+            "💡 Les analyses de marché\n\n"
+            "C'est gratuit et ça t'aide à mieux utiliser Bitsure Teddy."
+        ),
         "channel_verified": "✅ Abonnement vérifié. Bienvenue !",
         "channel_not_joined": "❌ Tu n'as pas encore rejoint le canal. Rejoins-le d'abord.",
         "check_subscription": "✅ J'ai rejoint",
@@ -501,6 +509,14 @@ TEXTS = {
         "history_advice_high": "Keep going, but maintain strict risk management.",
         "history_advice_low": "Reduce risk and favor higher scores.",
         "channel_required": "⚠️ You must join T's World channel to use Bitsure Teddy.\n\n👉 https://t.me/+c_xPX-20JAo0MTE0\n\nCome back after joining!",
+        "channel_required_message": (
+            "📢 Before you continue...\n\n"
+            "Join T's World to see:\n"
+            "📊 Public backtests every week\n"
+            "📈 Live signals\n"
+            "💡 Market analysis\n\n"
+            "It's free and helps you get the most out of Bitsure Teddy."
+        ),
         "channel_verified": "✅ Subscription verified. Welcome!",
         "channel_not_joined": "❌ You haven't joined the channel yet. Join it first.",
         "check_subscription": "✅ I joined",
