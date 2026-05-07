@@ -185,8 +185,10 @@ async def handle_pending_alert_input(update: Update, context: ContextTypes.DEFAU
     except ValueError:
         await update.message.reply_text(get_text(lang, "alert_price_invalid_retry"))
         return True
-    alert_id = alert_mgr.add_alert(update.effective_user.id, pending_symbol, pending_cond, price)
-    await update.message.reply_text(get_text(lang, "alert_created", id=alert_id, symbol=pending_symbol, cond=pending_cond, price=price))
+    symbol = normalize_symbol(pending_symbol)
+    cond_label = get_text(lang, "cond_above") if pending_cond == "above" else get_text(lang, "cond_below")
+    alert_id = alert_mgr.add_alert(update.effective_user.id, symbol, pending_cond, price)
+    await update.message.reply_text(get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond_label, price=price))
     context.user_data.pop("pending_alert_symbol", None)
     context.user_data.pop("pending_alert_cond", None)
     return True
@@ -896,7 +898,7 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 3:
         await update.message.reply_text(get_text(lang, "alert_usage"))
         return
-    symbol = context.args[0]
+    symbol = normalize_symbol(context.args[0])
     cond = context.args[1].lower()
     try:
         price = float(context.args[2])
@@ -906,9 +908,10 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if cond not in ("above", "below"):
         await update.message.reply_text(get_text(lang, "alert_invalid_cond"))
         return
+    cond_label = get_text(lang, "cond_above") if cond == "above" else get_text(lang, "cond_below")
     alert_id = alert_mgr.add_alert(update.effective_user.id, symbol, cond, price)
     await update.message.reply_text(
-        get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond, price=price)
+        get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond_label, price=price)
     )
 @check_limit
 async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1295,6 +1298,82 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+@check_limit
+async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await handle_pending_alert_input(update, context):
+        return
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+    if not update.message:
+        if update.callback_query:
+            update.message = update.callback_query.message
+        else:
+            return
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "paper_usage"))
+        return
+    action = context.args[0].lower()
+    if action == "start":
+        paper_trader.init_capital(user_id)
+        await update.message.reply_text(get_text(lang, "paper_started", capital=10000))
+    elif action == "status":
+        stats = paper_trader.get_stats(user_id)
+        positions = paper_trader.get_positions(user_id)
+        msg = get_text(lang, "paper_status", capital=stats["capital"], equity=stats["equity"], open_positions=stats["open_positions"], total_pnl=stats["total_pnl"])
+        for pos in positions:
+            msg += f"\n{pos['symbol']} @ {pos['entry_price']:.2f} | SL: {pos['sl']:.2f} | TP: {pos['tp']:.2f} | PnL: {pos['pnl_usdt']:.2f}$"
+        await update.message.reply_text(msg)
+    elif action == "buy":
+        if len(context.args) < 2:
+            await update.message.reply_text(get_text(lang, "paper_buy_usage"))
+            return
+        symbol = normalize_symbol(context.args[1].upper())
+        df = await fetcher.get_historical_data(symbol)
+        if df is None or df.empty:
+            await update.message.reply_text(get_text(lang, "data_unavailable"))
+            return
+        result = SignalEngine.analyze(df, lang, symbol=symbol)
+        if result["signal"] == "WAIT":
+            await update.message.reply_text(get_text(lang, "paper_no_signal"))
+            return
+        capital = paper_trader.get_capital(user_id)
+        price = float(result["indicators"]["price"])
+        qty = capital / price
+        sl = float(result["sl"])
+        tp = float(result.get("tp") or result.get("tp1") or 0)
+        paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
+        await update.message.reply_text(get_text(lang, "paper_opened", symbol=symbol, price=price, sl=sl, tp=tp))
+    elif action == "sell":
+        if len(context.args) < 2:
+            await update.message.reply_text(get_text(lang, "paper_sell_usage"))
+            return
+        symbol = normalize_symbol(context.args[1].upper())
+        closed_any = False
+        for pos in paper_trader.get_positions(user_id):
+            if pos["symbol"] == symbol:
+                price_data = await fetcher.get_realtime_price(symbol)
+                exit_price = float(price_data["price"]) if price_data else float(pos["current_price"])
+                paper_trader.close_position(user_id, pos["id"], exit_price)
+                closed_any = True
+        if closed_any:
+            await update.message.reply_text(get_text(lang, "paper_closed", symbol=symbol))
+        else:
+            await update.message.reply_text(get_text(lang, "paper_no_open_position", symbol=symbol))
+    elif action == "history":
+        closed = paper_trader.get_closed_positions(user_id)
+        if not closed:
+            await update.message.reply_text(get_text(lang, "paper_history_empty"))
+            return
+        msg = get_text(lang, "paper_history_title")
+        for pos in closed[-10:]:
+            emoji = "🟢" if pos.get("pnl_usdt", 0) > 0 else "🔴"
+            msg += f"\n{emoji} {pos['symbol']} @ {pos['entry_price']:.2f} -> {pos.get('exit_reason', '?')} ({pos.get('pnl_usdt', 0):.2f}$)"
+        await update.message.reply_text(msg)
+    elif action == "stats":
+        stats = paper_trader.get_stats(user_id)
+        await update.message.reply_text(get_text(lang, "paper_stats", capital=stats["capital"], equity=stats["equity"], total_pnl=stats["total_pnl"], total_trades=stats["total_trades"], wins=stats["wins"], losses=stats["losses"], win_rate=stats["win_rate"]))
+    else:
+        await update.message.reply_text(get_text(lang, "paper_usage"))
 
 @check_limit
 async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1477,12 +1556,12 @@ async def check_signal_outcomes(bot):
         direction = s["direction"]
         if direction == "BUY":
             if current_price >= tp:
-                history_mgr.update_signal_status(s["id"], "win", round((tp - entry) / entry * 100, 4))
+                history_mgr.update_signal_status(s["id"], "win", round((current_price - entry) / entry * 100, 4))
             elif current_price <= sl:
-                history_mgr.update_signal_status(s["id"], "loss", round((sl - entry) / entry * 100, 4))
+                history_mgr.update_signal_status(s["id"], "loss", round((current_price - entry) / entry * 100, 4))
         elif direction == "SELL":
             if current_price <= tp:
-                history_mgr.update_signal_status(s["id"], "win", round((entry - tp) / entry * 100, 4))
+                history_mgr.update_signal_status(s["id"], "win", round((entry - current_price) / entry * 100, 4))
             elif current_price >= sl:
                 history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
 def start_signal_monitoring(app):
