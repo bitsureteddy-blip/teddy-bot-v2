@@ -416,6 +416,22 @@ TEXTS = {
         "unknown_option": "Option non reconnue.",
         "unsupported_command": "Commande non supportée : /{command}",
 
+        # ----- Backtest -----
+        "backtest_start": "🚀 Lancement du backtest (peut prendre quelques instants)...",
+        "backtest_no_data": "⚠️ Pas de données pour {symbol}",
+        "backtest_no_trades": "ℹ️ {symbol}: Aucun trade.",
+        "backtest_title": "📊 {symbol} – Résultats du backtest",
+        "separator_line": "━━━━━━━━━━━━━━━━━━━━━━━━",
+        "backtest_trades": "🔢 Trades        : {total}",
+        "backtest_wins": "✅ Gagnants      : {wins} ({win_rate:.1f}%)",
+        "backtest_losses": "❌ Perdants      : {losses}",
+        "backtest_avg_gain": "📈 Gain moyen    : {avg_pnl:.4f}%",
+        "backtest_total_gain": "💰 Gain total    : {total_pnl:.2f}%",
+        "backtest_best": "🏆 Meilleur      : {best:.4f}%",
+        "backtest_worst": "📉 Pire          : {worst:.4f}%",
+        "backtest_drawdown": "📊 Max drawdown  : {max_drawdown:.2f}%",
+        "backtest_avg_duration": "⏳ Durée moyenne : {avg_bars:.0f} bougies",
+
         # ----- Sélection de symboles -----
         "select_symbol": "Sélectionnez un symbole :",
         "category_crypto": "🪙 Cryptos",
@@ -851,6 +867,22 @@ TEXTS = {
         "unknown_command": "Unknown command: /{cmd}",
         "unknown_option": "Unknown option.",
         "unsupported_command": "Unsupported command: /{command}",
+
+        # ----- Backtest -----
+        "backtest_start": "🚀 Starting backtest (this may take a few moments)...",
+        "backtest_no_data": "⚠️ No data available for {symbol}",
+        "backtest_no_trades": "ℹ️ {symbol}: No trades.",
+        "backtest_title": "📊 {symbol} – Backtest Results",
+        "separator_line": "━━━━━━━━━━━━━━━━━━━━━━━━",
+        "backtest_trades": "🔢 Trades        : {total}",
+        "backtest_wins": "✅ Winners       : {wins} ({win_rate:.1f}%)",
+        "backtest_losses": "❌ Losers        : {losses}",
+        "backtest_avg_gain": "📈 Average gain  : {avg_pnl:.4f}%",
+        "backtest_total_gain": "💰 Total gain    : {total_pnl:.2f}%",
+        "backtest_best": "🏆 Best          : {best:.4f}%",
+        "backtest_worst": "📉 Worst         : {worst:.4f}%",
+        "backtest_drawdown": "📊 Max drawdown  : {max_drawdown:.2f}%",
+        "backtest_avg_duration": "⏳ Avg duration  : {avg_bars:.0f} candles",
 
         # ----- Symbol Selection -----
         "select_symbol": "Select a symbol:",
