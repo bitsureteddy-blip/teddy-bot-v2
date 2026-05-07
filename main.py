@@ -17,7 +17,7 @@ from bot_handlers import (
     support, challenge, snapshot, verify, historique,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
     sentiment, compare, top, fav, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring,
-    handle_pending_alert_input
+    handle_pending_alert_input, paper
 )
 from data_fetcher import DataFetcher
 from user_manager import UserManager
@@ -45,6 +45,7 @@ def main():
     # Commandes
     handlers = [
         ("start", start), ("help", help_command), ("menu", menu_command),
+        ("paper", paper),
         ("analyse", analyse), ("price", price),
         ("alert", alert), ("alerts", alerts), ("delalert", delalert), ("clearalerts", clearalerts),
         ("trend", trend), ("volatility", volatility), ("correlation", correlation), ("levels", levels),
