@@ -185,8 +185,10 @@ async def handle_pending_alert_input(update: Update, context: ContextTypes.DEFAU
     except ValueError:
         await update.message.reply_text(get_text(lang, "alert_price_invalid_retry"))
         return True
-    alert_id = alert_mgr.add_alert(update.effective_user.id, pending_symbol, pending_cond, price)
-    await update.message.reply_text(get_text(lang, "alert_created", id=alert_id, symbol=pending_symbol, cond=pending_cond, price=price))
+    symbol = normalize_symbol(pending_symbol)
+    cond_label = get_text(lang, "cond_above") if pending_cond == "above" else get_text(lang, "cond_below")
+    alert_id = alert_mgr.add_alert(update.effective_user.id, symbol, pending_cond, price)
+    await update.message.reply_text(get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond_label, price=price))
     context.user_data.pop("pending_alert_symbol", None)
     context.user_data.pop("pending_alert_cond", None)
     return True
@@ -896,7 +898,7 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 3:
         await update.message.reply_text(get_text(lang, "alert_usage"))
         return
-    symbol = context.args[0]
+    symbol = normalize_symbol(context.args[0])
     cond = context.args[1].lower()
     try:
         price = float(context.args[2])
@@ -906,9 +908,10 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if cond not in ("above", "below"):
         await update.message.reply_text(get_text(lang, "alert_invalid_cond"))
         return
+    cond_label = get_text(lang, "cond_above") if cond == "above" else get_text(lang, "cond_below")
     alert_id = alert_mgr.add_alert(update.effective_user.id, symbol, cond, price)
     await update.message.reply_text(
-        get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond, price=price)
+        get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond_label, price=price)
     )
 @check_limit
 async def alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1464,14 +1467,14 @@ async def check_signal_outcomes(bot):
         direction = s["direction"]
         if direction == "BUY":
             if current_price >= tp:
-                history_mgr.update_signal_status(s["id"], "win", round((tp - entry) / entry * 100, 4))
+                history_mgr.update_signal_status(s["id"], "win", round((current_price - entry) / entry * 100, 4))
             elif current_price <= sl:
-                history_mgr.update_signal_status(s["id"], "loss", round((sl - entry) / entry * 100, 4))
+                history_mgr.update_signal_status(s["id"], "loss", round((current_price - entry) / entry * 100, 4))
         elif direction == "SELL":
             if current_price <= tp:
-                history_mgr.update_signal_status(s["id"], "win", round((entry - tp) / entry * 100, 4))
+                history_mgr.update_signal_status(s["id"], "win", round((entry - current_price) / entry * 100, 4))
             elif current_price >= sl:
-                history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
+                history_mgr.update_signal_status(s["id"], "loss", round((entry - current_price) / entry * 100, 4))
 def start_signal_monitoring(app):
     global signal_scheduler
     if signal_scheduler is not None:
