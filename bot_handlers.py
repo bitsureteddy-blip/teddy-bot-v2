@@ -1295,7 +1295,6 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-
 @check_limit
 async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
