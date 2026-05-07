@@ -26,6 +26,7 @@ from challenge_manager import ChallengeManager
 from utils import format_number, is_valid_symbol, normalize_symbol
 from i18n import get_text
 from payments import generate_binance_payment
+from paper_trader import PaperTrader
 logger = logging.getLogger(__name__)
 fetcher = DataFetcher.get_instance()
 user_mgr = UserManager.get_instance()
@@ -33,6 +34,7 @@ alert_mgr = AlertManager.get_instance()
 history_mgr = HistoryManager.get_instance()
 challenge_mgr = ChallengeManager.get_instance()
 weekly_scheduler = None
+paper_trader = PaperTrader()
 # 15 symboles PRO
 SYMBOLS_12 = [
     "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
@@ -334,6 +336,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_levels"), callback_data="cmd_levels")],
             [InlineKeyboardButton(get_text(lang, "btn_symbolinfo"), callback_data="cmd_symbolinfo")],
             [InlineKeyboardButton(get_text(lang, "btn_check"), callback_data="cmd_check")],
+            [InlineKeyboardButton(get_text(lang, "btn_paper"), callback_data="cmd_paper")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -419,7 +422,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cmd.startswith("delalert_"):
             context.args=[cmd.split("_",1)[1]]
             await delalert(update, context); return
-        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "alert", "addwatch", "removewatch", "check"]:
+        if cmd in ["analyse", "price", "trend", "volatility", "levels", "symbolinfo", "alert", "addwatch", "removewatch", "check", "paper"]:
             await symbol_selection(update, context, cmd)
         elif cmd == "alerts":
             alerts_list = alert_mgr.get_alerts(user_id)
@@ -586,6 +589,9 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await removewatch(update, context)
             elif command == "check":
                 await check(update, context, from_callback=True)
+            elif command == "paper":
+                context.args = ["buy", symbol]
+                await paper(update, context)
         return
     elif data == "noop":
         return
@@ -1289,6 +1295,83 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+@check_limit
+async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await handle_pending_alert_input(update, context):
+        return
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+    if not update.message:
+        if update.callback_query:
+            update.message = update.callback_query.message
+        else:
+            return
+    if not context.args:
+        await update.message.reply_text(get_text(lang, "paper_usage"))
+        return
+    action = context.args[0].lower()
+    if action == "start":
+        paper_trader.init_capital(user_id)
+        await update.message.reply_text(get_text(lang, "paper_started", capital=10000))
+    elif action == "status":
+        stats = paper_trader.get_stats(user_id)
+        positions = paper_trader.get_positions(user_id)
+        msg = get_text(lang, "paper_status", capital=stats["capital"], equity=stats["equity"], open_positions=stats["open_positions"], total_pnl=stats["total_pnl"])
+        for pos in positions:
+            msg += f"\n{pos['symbol']} @ {pos['entry_price']:.2f} | SL: {pos['sl']:.2f} | TP: {pos['tp']:.2f} | PnL: {pos['pnl_usdt']:.2f}$"
+        await update.message.reply_text(msg)
+    elif action == "buy":
+        if len(context.args) < 2:
+            await update.message.reply_text(get_text(lang, "paper_buy_usage"))
+            return
+        symbol = normalize_symbol(context.args[1].upper())
+        df = await fetcher.get_historical_data(symbol)
+        if df is None or df.empty:
+            await update.message.reply_text(get_text(lang, "data_unavailable"))
+            return
+        result = SignalEngine.analyze(df, lang, symbol=symbol)
+        if result["signal"] == "WAIT":
+            await update.message.reply_text(get_text(lang, "paper_no_signal"))
+            return
+        capital = paper_trader.get_capital(user_id)
+        price = float(result["indicators"]["price"])
+        qty = capital / price
+        sl = float(result["sl"])
+        tp = float(result.get("tp") or result.get("tp1") or 0)
+        paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
+        await update.message.reply_text(get_text(lang, "paper_opened", symbol=symbol, price=price, sl=sl, tp=tp))
+    elif action == "sell":
+        if len(context.args) < 2:
+            await update.message.reply_text(get_text(lang, "paper_sell_usage"))
+            return
+        symbol = normalize_symbol(context.args[1].upper())
+        closed_any = False
+        for pos in paper_trader.get_positions(user_id):
+            if pos["symbol"] == symbol:
+                price_data = await fetcher.get_realtime_price(symbol)
+                exit_price = float(price_data["price"]) if price_data else float(pos["current_price"])
+                paper_trader.close_position(user_id, pos["id"], exit_price)
+                closed_any = True
+        if closed_any:
+            await update.message.reply_text(get_text(lang, "paper_closed", symbol=symbol))
+        else:
+            await update.message.reply_text(get_text(lang, "paper_no_open_position", symbol=symbol))
+    elif action == "history":
+        closed = paper_trader.get_closed_positions(user_id)
+        if not closed:
+            await update.message.reply_text(get_text(lang, "paper_history_empty"))
+            return
+        msg = get_text(lang, "paper_history_title")
+        for pos in closed[-10:]:
+            emoji = "🟢" if pos.get("pnl_usdt", 0) > 0 else "🔴"
+            msg += f"\n{emoji} {pos['symbol']} @ {pos['entry_price']:.2f} -> {pos.get('exit_reason', '?')} ({pos.get('pnl_usdt', 0):.2f}$)"
+        await update.message.reply_text(msg)
+    elif action == "stats":
+        stats = paper_trader.get_stats(user_id)
+        await update.message.reply_text(get_text(lang, "paper_stats", capital=stats["capital"], equity=stats["equity"], total_pnl=stats["total_pnl"], total_trades=stats["total_trades"], wins=stats["wins"], losses=stats["losses"], win_rate=stats["win_rate"]))
+    else:
+        await update.message.reply_text(get_text(lang, "paper_usage"))
+
 @check_limit
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
     lang = get_user_lang(update)
