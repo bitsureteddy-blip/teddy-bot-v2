@@ -454,7 +454,6 @@ TEXTS = {
         "paper_history_empty": "Aucun trade fermé.",
         "paper_history_title": "📋 HISTORIQUE PAPER TRADING",
         "paper_stats": "📊 STATS PAPER TRADING\n💰 Capital: {capital}$\n📈 Équité: {equity}$\n💵 PnL: {total_pnl}$\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
-
         # ----- Sélection de symboles -----
         "select_symbol": "Sélectionnez un symbole :",
         "category_crypto": "🪙 Cryptos",
@@ -929,7 +928,6 @@ TEXTS = {
         "paper_history_empty": "No closed trades.",
         "paper_history_title": "📋 PAPER TRADING HISTORY",
         "paper_stats": "📊 PAPER TRADING STATS\n💰 Capital: ${capital}\n📈 Equity: ${equity}\n💵 PnL: ${total_pnl}\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
-
         # ----- Symbol Selection -----
         "select_symbol": "Select a symbol:",
         "category_crypto": "🪙 Crypto",
