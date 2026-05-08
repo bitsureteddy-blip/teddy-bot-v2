@@ -389,10 +389,6 @@ TEXTS = {
         "btn_symbolinfo": "ℹ️ Symbole",
         "btn_check": "✅ Check trade",
         "btn_paper": "📈 Paper Trading",
-        "btn_paper_buy": "🟢 Buy / Sell",
-        "btn_paper_status": "📊 Open Positions",
-        "btn_paper_history": "📋 History",
-        "btn_paper_stats": "📈 Statistics",
         "btn_paper_buy": "🟢 Acheter / Vendre",
         "btn_paper_status": "📊 Positions ouvertes",
         "btn_paper_history": "📋 Historique",
@@ -465,7 +461,6 @@ TEXTS = {
         "paper_choose_direction": "📈 {symbol} – Choisis la direction :",
         "paper_no_open_positions": "Aucune position ouverte.",
         "paper_stats": "📊 STATS PAPER TRADING\n💰 Capital: {capital}$\n📈 Équité: {equity}$\n💵 PnL: {total_pnl}$\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
-
         # ----- Sélection de symboles -----
         "select_symbol": "Sélectionnez un symbole :",
         "category_crypto": "🪙 Cryptos",
@@ -869,10 +864,6 @@ TEXTS = {
         "btn_paper_status": "📊 Open Positions",
         "btn_paper_history": "📋 History",
         "btn_paper_stats": "📈 Statistics",
-        "btn_paper_buy": "🟢 Acheter / Vendre",
-        "btn_paper_status": "📊 Positions ouvertes",
-        "btn_paper_history": "📋 Historique",
-        "btn_paper_stats": "📈 Statistiques",
         "btn_tick": "🕒 Tick",
         "btn_spread": "↔️ Spread",
         "btn_alert": "➕ Alert",
@@ -951,7 +942,6 @@ TEXTS = {
         "paper_choose_direction": "📈 {symbol} – Choose direction:",
         "paper_no_open_positions": "No open positions.",
         "paper_stats": "📊 PAPER TRADING STATS\n💰 Capital: ${capital}\n📈 Equity: ${equity}\n💵 PnL: ${total_pnl}\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
-
         # ----- Symbol Selection -----
         "select_symbol": "Select a symbol:",
         "category_crypto": "🪙 Crypto",
