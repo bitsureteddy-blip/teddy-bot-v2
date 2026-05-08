@@ -16,8 +16,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("backtest")
 
 SYMBOLS = [
-    "BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD",
-    "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
+    "BTCUSD", "ETHUSD",
+    "AUDUSD",
     "XAUUSD",
     "AAPL", "TSLA", "NVDA"
 ]
