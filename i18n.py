@@ -45,6 +45,14 @@ TEXTS = {
         "history_advice_high": "Continue, mais garde une gestion de risque stricte.",
         "history_advice_low": "Réduis le risque et privilégie les scores élevés.",
         "channel_required": "⚠️ Tu dois rejoindre le canal T's World pour utiliser Bitsure Teddy.\n\n👉 https://t.me/+c_xPX-20JAo0MTE0\n\nReviens après avoir rejoint !",
+        "channel_required_message": (
+            "📢 Avant de continuer...\n\n"
+            "Rejoins T's World pour voir :\n"
+            "📊 Les backtests publics chaque semaine\n"
+            "📈 Les signaux en direct\n"
+            "💡 Les analyses de marché\n\n"
+            "C'est gratuit et ça t'aide à mieux utiliser Bitsure Teddy."
+        ),
         "channel_verified": "✅ Abonnement vérifié. Bienvenue !",
         "channel_not_joined": "❌ Tu n'as pas encore rejoint le canal. Rejoins-le d'abord.",
         "check_subscription": "✅ J'ai rejoint",
@@ -359,6 +367,7 @@ TEXTS = {
         # ----- Menu interactif -----
         "menu_title": "🧸 *MENU PRINCIPAL*\nSélectionnez une catégorie :",
         "menu_analyse": "📊 Analyse",
+        "menu_paper": "📈 Paper Trading",
         "menu_scalping": "⚡ Scalping",
         "menu_alertes": "🚨 Alertes",
         "menu_watchlist": "📋 Watchlist",
@@ -379,6 +388,15 @@ TEXTS = {
         "btn_levels": "📍 Niveaux",
         "btn_symbolinfo": "ℹ️ Symbole",
         "btn_check": "✅ Check trade",
+        "btn_paper": "📈 Paper Trading",
+        "btn_paper_buy": "🟢 Buy / Sell",
+        "btn_paper_status": "📊 Open Positions",
+        "btn_paper_history": "📋 History",
+        "btn_paper_stats": "📈 Statistics",
+        "btn_paper_buy": "🟢 Acheter / Vendre",
+        "btn_paper_status": "📊 Positions ouvertes",
+        "btn_paper_history": "📋 Historique",
+        "btn_paper_stats": "📈 Statistiques",
         "btn_tick": "🕒 Tick",
         "btn_spread": "↔️ Spread",
         "btn_alert": "➕ Alerte",
@@ -415,6 +433,38 @@ TEXTS = {
         "unknown_command": "Commande non reconnue : /{cmd}",
         "unknown_option": "Option non reconnue.",
         "unsupported_command": "Commande non supportée : /{command}",
+
+        # ----- Backtest -----
+        "backtest_start": "🚀 Lancement du backtest (peut prendre quelques instants)...",
+        "backtest_no_data": "⚠️ Pas de données pour {symbol}",
+        "backtest_no_trades": "ℹ️ {symbol}: Aucun trade.",
+        "backtest_title": "📊 {symbol} – Résultats du backtest",
+        "separator_line": "━━━━━━━━━━━━━━━━━━━━━━━━",
+        "backtest_trades": "🔢 Trades        : {total}",
+        "backtest_wins": "✅ Gagnants      : {wins} ({win_rate:.1f}%)",
+        "backtest_losses": "❌ Perdants      : {losses}",
+        "backtest_avg_gain": "📈 Gain moyen    : {avg_pnl:.4f}%",
+        "backtest_total_gain": "💰 Gain total    : {total_pnl:.2f}%",
+        "backtest_best": "🏆 Meilleur      : {best:.4f}%",
+        "backtest_worst": "📉 Pire          : {worst:.4f}%",
+        "backtest_drawdown": "📊 Max drawdown  : {max_drawdown:.2f}%",
+        "backtest_avg_duration": "⏳ Durée moyenne : {avg_bars:.0f} bougies",
+
+        # ----- Paper Trading -----
+        "paper_usage": "Usage: /paper start|buy <symbole>|sell <symbole>|status|history|stats",
+        "paper_started": "✅ Paper trading activé avec {capital}$ virtuels.",
+        "paper_status": "📊 CAPITAL: {capital}$ | ÉQUITÉ: {equity}$ | PnL: {total_pnl}$ | Ouvertes: {open_positions}",
+        "paper_buy_usage": "Usage: /paper buy <symbole>",
+        "paper_no_signal": "Aucun signal actif pour ce symbole.",
+        "paper_opened": "✅ Position ouverte sur {symbol} à {price}$ | SL: {sl}$ | TP: {tp}$",
+        "paper_sell_usage": "Usage: /paper sell <symbole>",
+        "paper_closed": "✅ Position fermée sur {symbol}.",
+        "paper_no_open_position": "Aucune position ouverte sur {symbol}.",
+        "paper_history_empty": "Aucun trade fermé.",
+        "paper_history_title": "📋 HISTORIQUE PAPER TRADING",
+        "paper_choose_direction": "📈 {symbol} – Choisis la direction :",
+        "paper_no_open_positions": "Aucune position ouverte.",
+        "paper_stats": "📊 STATS PAPER TRADING\n💰 Capital: {capital}$\n📈 Équité: {equity}$\n💵 PnL: {total_pnl}$\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
 
         # ----- Sélection de symboles -----
         "select_symbol": "Sélectionnez un symbole :",
@@ -471,6 +521,14 @@ TEXTS = {
         "history_advice_high": "Keep going, but maintain strict risk management.",
         "history_advice_low": "Reduce risk and favor higher scores.",
         "channel_required": "⚠️ You must join T's World channel to use Bitsure Teddy.\n\n👉 https://t.me/+c_xPX-20JAo0MTE0\n\nCome back after joining!",
+        "channel_required_message": (
+            "📢 Before you continue...\n\n"
+            "Join T's World to see:\n"
+            "📊 Public backtests every week\n"
+            "📈 Live signals\n"
+            "💡 Market analysis\n\n"
+            "It's free and helps you get the most out of Bitsure Teddy."
+        ),
         "channel_verified": "✅ Subscription verified. Welcome!",
         "channel_not_joined": "❌ You haven't joined the channel yet. Join it first.",
         "check_subscription": "✅ I joined",
@@ -785,6 +843,7 @@ TEXTS = {
         # ----- Interactive Menu -----
         "menu_title": "🧸 *MAIN MENU*\nSelect a category:",
         "menu_analyse": "📊 Analysis",
+        "menu_paper": "📈 Paper Trading",
         "menu_scalping": "⚡ Scalping",
         "menu_alertes": "🚨 Alerts",
         "menu_watchlist": "📋 Watchlist",
@@ -805,6 +864,15 @@ TEXTS = {
         "btn_levels": "📍 Levels",
         "btn_symbolinfo": "ℹ️ Symbol",
         "btn_check": "✅ Trade check",
+        "btn_paper": "📈 Paper Trading",
+        "btn_paper_buy": "🟢 Buy / Sell",
+        "btn_paper_status": "📊 Open Positions",
+        "btn_paper_history": "📋 History",
+        "btn_paper_stats": "📈 Statistics",
+        "btn_paper_buy": "🟢 Acheter / Vendre",
+        "btn_paper_status": "📊 Positions ouvertes",
+        "btn_paper_history": "📋 Historique",
+        "btn_paper_stats": "📈 Statistiques",
         "btn_tick": "🕒 Tick",
         "btn_spread": "↔️ Spread",
         "btn_alert": "➕ Alert",
@@ -851,6 +919,38 @@ TEXTS = {
         "unknown_command": "Unknown command: /{cmd}",
         "unknown_option": "Unknown option.",
         "unsupported_command": "Unsupported command: /{command}",
+
+        # ----- Backtest -----
+        "backtest_start": "🚀 Starting backtest (this may take a few moments)...",
+        "backtest_no_data": "⚠️ No data available for {symbol}",
+        "backtest_no_trades": "ℹ️ {symbol}: No trades.",
+        "backtest_title": "📊 {symbol} – Backtest Results",
+        "separator_line": "━━━━━━━━━━━━━━━━━━━━━━━━",
+        "backtest_trades": "🔢 Trades        : {total}",
+        "backtest_wins": "✅ Winners       : {wins} ({win_rate:.1f}%)",
+        "backtest_losses": "❌ Losers        : {losses}",
+        "backtest_avg_gain": "📈 Average gain  : {avg_pnl:.4f}%",
+        "backtest_total_gain": "💰 Total gain    : {total_pnl:.2f}%",
+        "backtest_best": "🏆 Best          : {best:.4f}%",
+        "backtest_worst": "📉 Worst         : {worst:.4f}%",
+        "backtest_drawdown": "📊 Max drawdown  : {max_drawdown:.2f}%",
+        "backtest_avg_duration": "⏳ Avg duration  : {avg_bars:.0f} candles",
+
+        # ----- Paper Trading -----
+        "paper_usage": "Usage: /paper start|buy <symbol>|sell <symbol>|status|history|stats",
+        "paper_started": "✅ Paper trading activated with ${capital} virtual.",
+        "paper_status": "📊 CAPITAL: ${capital} | EQUITY: ${equity} | PnL: ${total_pnl} | Open: {open_positions}",
+        "paper_buy_usage": "Usage: /paper buy <symbol>",
+        "paper_no_signal": "No active signal for this symbol.",
+        "paper_opened": "✅ Position opened on {symbol} at ${price} | SL: ${sl} | TP: ${tp}",
+        "paper_sell_usage": "Usage: /paper sell <symbol>",
+        "paper_closed": "✅ Position closed on {symbol}.",
+        "paper_no_open_position": "No open position on {symbol}.",
+        "paper_history_empty": "No closed trades.",
+        "paper_history_title": "📋 PAPER TRADING HISTORY",
+        "paper_choose_direction": "📈 {symbol} – Choose direction:",
+        "paper_no_open_positions": "No open positions.",
+        "paper_stats": "📊 PAPER TRADING STATS\n💰 Capital: ${capital}\n📈 Equity: ${equity}\n💵 PnL: ${total_pnl}\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
 
         # ----- Symbol Selection -----
         "select_symbol": "Select a symbol:",
