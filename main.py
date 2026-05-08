@@ -63,7 +63,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_pending_alert_input))
 
     # Callbacks
-    app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_|checkdir_|check_subscription)"))
+    app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_|checkdir_|paperdir_|check_subscription)"))
     app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^(symcat_|sympage_|symsel_|noop)"))
     app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))

@@ -301,6 +301,7 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
         [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
+        [InlineKeyboardButton(get_text(lang, "menu_paper"), callback_data="menu_paper")],
         [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
         [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
         [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
@@ -342,6 +343,15 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
+    elif data == "menu_paper":
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "btn_paper_buy"), callback_data="cmd_paper")],
+            [InlineKeyboardButton(get_text(lang, "btn_paper_status"), callback_data="cmd_paper_status")],
+            [InlineKeyboardButton(get_text(lang, "btn_paper_history"), callback_data="cmd_paper_history")],
+            [InlineKeyboardButton(get_text(lang, "btn_paper_stats"), callback_data="cmd_paper_stats")],
+            [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
+        ]
+        await safe_edit(f"*{get_text(lang, 'menu_paper')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
     elif data == "menu_alertes":
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "btn_alert"), callback_data="cmd_alert")],
@@ -381,6 +391,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "menu_back":
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
+            [InlineKeyboardButton(get_text(lang, "menu_paper"), callback_data="menu_paper")],
                 [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
             [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
             [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
@@ -410,6 +421,14 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
+        if cmd.startswith("paperdir_"):
+            parts = cmd.split("_")
+            if len(parts) >= 3:
+                symbol = parts[1]
+                direction = parts[2]
+                context.args = ["buy", symbol]
+                await paper(update, context)
+            return
         if cmd.startswith("alertcond_"):
             _,symbol,cond=cmd.split("_")
             context.user_data["pending_alert_symbol"]=symbol
@@ -501,6 +520,15 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await message.reply_text(get_text(lang, "usage_unlimited"))
             else:
                 await message.reply_text(get_text(lang, "usage_requests_remaining", rem=rem))
+        elif cmd == "paper_status":
+            context.args = ["status"]
+            await paper(update, context)
+        elif cmd == "paper_history":
+            context.args = ["history"]
+            await paper(update, context)
+        elif cmd == "paper_stats":
+            context.args = ["stats"]
+            await paper(update, context)
         elif cmd == "support":
             await message.reply_text(get_text(lang, "support"))
         elif cmd == "upgrade":
@@ -592,8 +620,14 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif command == "check":
                 await check(update, context, from_callback=True)
             elif command == "paper":
-                context.args = ["buy", symbol]
-                await paper(update, context)
+                kb = [
+                    [InlineKeyboardButton("BUY 🟢", callback_data=f"paperdir_{symbol}_BUY"),
+                     InlineKeyboardButton("SELL 🔴", callback_data=f"paperdir_{symbol}_SELL")]
+                ]
+                await query.message.reply_text(
+                    get_text(lang, "paper_choose_direction", symbol=symbol),
+                    reply_markup=InlineKeyboardMarkup(kb)
+                )
         return
     elif data == "noop":
         return
@@ -1541,6 +1575,95 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for p in closed[-10:]:
             emoji = "🟢" if p.get("pnl_usdt", 0) > 0 else "🔴"
             msg += f"\n{emoji} {p['symbol']} @ {p['entry_price']:.2f} -> {p.get('exit_reason', '?')} ({p.get('pnl_usdt', 0):.2f}$)"
+        await respond(update, msg)
+
+    elif action == "stats":
+        stats = paper_trader.get_stats(user_id)
+        await respond(update, get_text(lang, "paper_stats",
+            capital=stats["capital"], equity=stats["equity"], total_pnl=stats["total_pnl"],
+            total_trades=stats["total_trades"], wins=stats["wins"], losses=stats["losses"],
+            win_rate=stats["win_rate"]))
+
+    else:
+        await respond(update, get_text(lang, "paper_usage"))
+
+@check_limit
+async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await handle_pending_alert_input(update, context):
+        return
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+
+    if not context.args:
+        await respond(update, get_text(lang, "paper_usage"))
+        return
+
+    action = context.args[0].lower()
+
+    if action == "start":
+        paper_trader.init_capital(user_id)
+        await respond(update, get_text(lang, "paper_started", capital=10000))
+
+    elif action == "status":
+        stats = paper_trader.get_stats(user_id)
+        positions = paper_trader.get_positions(user_id)
+        msg = get_text(lang, "paper_status", capital=round(stats["capital"], 4), equity=round(stats["equity"], 4),
+                       open_positions=stats["open_positions"], total_pnl=round(stats["total_pnl"], 4))
+        if positions:
+            for p in positions:
+                msg += f"\n{p['symbol']} @ {p['entry_price']:.4f} | SL: {p['sl']:.4f} | TP: {p['tp']:.4f} | PnL: {p['pnl_usdt']:.4f}$"
+        else:
+            msg += "\n" + get_text(lang, "paper_no_open_positions")
+        await respond(update, msg)
+
+    elif action == "buy":
+        if len(context.args) < 2:
+            await respond(update, get_text(lang, "paper_buy_usage"))
+            return
+        symbol = normalize_symbol(context.args[1].upper())
+        df = await fetcher.get_historical_data(symbol)
+        if df is None or df.empty:
+            await respond(update, get_text(lang, "data_unavailable"))
+            return
+        result = SignalEngine.analyze(df, lang, symbol=symbol)
+        if result["signal"] not in ("BUY", "SELL"):
+            await respond(update, get_text(lang, "paper_no_signal"))
+            return
+        price = float(result["indicators"]["price"])
+        sl = float(result["sl"]) if result["sl"] else price * 0.98
+        tp = float(result["tp"]) if result["tp"] else price * 1.04
+        capital = paper_trader.get_capital(user_id)
+        qty = capital / price if price > 0 else 1
+        paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
+        await respond(update, get_text(lang, "paper_opened", symbol=symbol, price=round(price, 4), sl=round(sl, 4), tp=round(tp, 4)))
+
+    elif action == "sell":
+        if len(context.args) < 2:
+            await respond(update, get_text(lang, "paper_sell_usage"))
+            return
+        symbol = normalize_symbol(context.args[1].upper())
+        positions = paper_trader.get_positions(user_id)
+        closed = False
+        for pos in positions:
+            if pos["symbol"] == symbol:
+                price_data = await fetcher.get_realtime_price(symbol)
+                exit_price = float(price_data["price"]) if price_data else float(pos["current_price"])
+                paper_trader.close_position(user_id, pos["id"], exit_price)
+                closed = True
+        if closed:
+            await respond(update, get_text(lang, "paper_closed", symbol=symbol))
+        else:
+            await respond(update, get_text(lang, "paper_no_open_position", symbol=symbol))
+
+    elif action == "history":
+        closed = paper_trader.get_closed_positions(user_id)
+        if not closed:
+            await respond(update, get_text(lang, "paper_history_empty"))
+            return
+        msg = get_text(lang, "paper_history_title")
+        for p in closed[-10:]:
+            emoji = "🟢" if p.get("pnl_usdt", 0) > 0 else "🔴"
+            msg += f"\n{emoji} {p['symbol']} @ {p['entry_price']:.4f} -> {p.get('exit_reason', '?')} ({p.get('pnl_usdt', 0):.4f}$)"
         await respond(update, msg)
 
     elif action == "stats":
