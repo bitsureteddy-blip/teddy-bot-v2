@@ -422,7 +422,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parts = data.split("_")
         if len(parts) >= 3:
             symbol = parts[1]
-            context.args = ["buy", symbol]
+            context.args = [direction.lower(), symbol]
             await paper(update, context)
         return
     elif data.startswith("cmd_"):
