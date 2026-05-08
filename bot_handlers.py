@@ -616,7 +616,14 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.args=[symbol]
                 await removewatch(update, context)
             elif command == "check":
-                await check(update, context, from_callback=True)
+                kb = [
+                    [InlineKeyboardButton("BUY 🟢", callback_data=f"checkdir_{symbol}_BUY"),
+                     InlineKeyboardButton("SELL 🔴", callback_data=f"checkdir_{symbol}_SELL")]
+                ]
+                await query.message.reply_text(
+                    get_text(lang, "check_choose_direction", symbol=symbol),
+                    reply_markup=InlineKeyboardMarkup(kb)
+                )
             elif command == "paper":
                 kb = [
                     [InlineKeyboardButton("BUY 🟢", callback_data=f"paperdir_{symbol}_BUY"),
