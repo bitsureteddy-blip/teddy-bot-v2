@@ -193,12 +193,22 @@ TEXTS = {
             "🛑 SL        : {sl}\n"
             "🎯 TP        : {tp} (RR: {rr_ratio})\n"
             "📊 RSI       : {rsi:.1f}\n"
+            "   État RSI  : {rsi_state}\n"
+            "📏 ADX       : {adx:.1f} ({adx_state})\n"
             "📉 SMA20/50  : {sma20} / {sma50}\n"
-            "📏 ADX       : {adx:.1f}\n"
             "💡 Raison    : {reason}\n"
             "⚠️ Conseil   : {risk_advice}\n"
             "━━━━━━━━━━━━━━━━━━━"
         ),
+        "rsi_overbought": "Surachat",
+        "rsi_oversold": "Survente",
+        "rsi_bullish": "Haussier",
+        "rsi_bearish": "Baissier",
+        "rsi_neutral": "Neutre",
+        "adx_very_strong": "Très forte",
+        "adx_strong": "Forte",
+        "adx_moderate": "Modérée",
+        "adx_weak": "Faible",
         "price_usage": "Usage: /price SYMBOLE",
         "price_error": "❌ Prix non disponible pour {symbol}.",
         "price_format": "💵 *{symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Prix : {price}\n📉 Bid  : {bid}\n📈 Ask  : {ask}",
@@ -663,12 +673,22 @@ TEXTS = {
             "🛑 SL        : {sl}\n"
             "🎯 TP        : {tp} (RR: {rr_ratio})\n"
             "📊 RSI       : {rsi:.1f}\n"
+            "   RSI state : {rsi_state}\n"
+            "📏 ADX       : {adx:.1f} ({adx_state})\n"
             "📉 SMA20/50  : {sma20} / {sma50}\n"
-            "📏 ADX       : {adx:.1f}\n"
             "💡 Reason    : {reason}\n"
             "⚠️ Advice    : {risk_advice}\n"
             "━━━━━━━━━━━━━━━━━━━"
         ),
+        "rsi_overbought": "Overbought",
+        "rsi_oversold": "Oversold",
+        "rsi_bullish": "Bullish",
+        "rsi_bearish": "Bearish",
+        "rsi_neutral": "Neutral",
+        "adx_very_strong": "Very Strong",
+        "adx_strong": "Strong",
+        "adx_moderate": "Moderate",
+        "adx_weak": "Weak",
         "price_usage": "Usage: /price SYMBOL",
         "price_error": "❌ Price not available for {symbol}.",
         "price_format": "💵 *{symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Price : {price}\n📉 Bid   : {bid}\n📈 Ask   : {ask}",

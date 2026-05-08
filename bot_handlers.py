@@ -825,6 +825,31 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
         return
     result = SignalEngine.analyze(df, lang, symbol=symbol)
     ind = result['indicators']
+    # Sous-scores et descriptions
+    rsi_val = ind.get('rsi', 50)
+    adx_val = ind.get('adx', 20)
+
+    # Description RSI
+    if rsi_val >= 70:
+        rsi_state = get_text(lang, "rsi_overbought")
+    elif rsi_val <= 30:
+        rsi_state = get_text(lang, "rsi_oversold")
+    elif rsi_val >= 55:
+        rsi_state = get_text(lang, "rsi_bullish")
+    elif rsi_val <= 45:
+        rsi_state = get_text(lang, "rsi_bearish")
+    else:
+        rsi_state = get_text(lang, "rsi_neutral")
+
+    # Description ADX
+    if adx_val >= 40:
+        adx_state = get_text(lang, "adx_very_strong")
+    elif adx_val >= 25:
+        adx_state = get_text(lang, "adx_strong")
+    elif adx_val >= 20:
+        adx_state = get_text(lang, "adx_moderate")
+    else:
+        adx_state = get_text(lang, "adx_weak")
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(df.index, df['Close'], color='white', linewidth=1, label='Prix')
@@ -881,9 +906,11 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
                        reason=result['reason'],
                        risk_advice=result['risk_advice'],
                        rsi=ind['rsi'],
+                       rsi_state=rsi_state,
                        stoch_k=ind.get('stoch_k', 0),
                        stoch_d=ind.get('stoch_d', 0),
                        adx=ind.get('adx') if pd.notna(ind.get('adx')) else 0.0,
+                       adx_state=adx_state,
                        sma20=format_number(ind['sma20']),
                        sma50=format_number(ind['sma50']),
                        teddy_score=result['teddy_score'])
