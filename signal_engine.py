@@ -46,7 +46,7 @@ class SignalEngine:
         if not SignalEngine._valid_df(df):
             return SignalEngine._wait(lang)
 
-        cfg = SYMBOL_CONFIGS.get(symbol, SYMBOL_CONFIGS["EURUSD"])
+        cfg = SYMBOL_CONFIGS.get(symbol, SYMBOL_CONFIGS["BTCUSD"])
 
         close, high, low = df["Close"], df["High"], df["Low"]
         last_price = float(close.iloc[-1])
