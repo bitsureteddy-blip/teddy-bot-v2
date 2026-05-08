@@ -5,9 +5,9 @@ TEXTS = {
         # ----- Accueil / Statuts -----
         "start": (
             "🐻 *Bitsure Teddy* – Votre assistant trading intelligent\n\n"
-            "📊 Analyses techniques avancées (crypto, forex, actions, matières premières)\n"
-            "⚡ Signaux scalping en temps réel\n"
-            "🚨 Alertes de prix personnalisées\n"
+            "📊 Analyse technique avec score Teddy\n"
+            "🧪 Paper trading intégré\n"
+            "📊 Backtest public vérifiable\n"
             "*Statut actuel :* {status}\n\n"
             "🔹 /menu – Menu principal\n"
             "🔹 /upgrade – Passer à PRO\n\n"
@@ -66,9 +66,9 @@ TEXTS = {
             "/menu – Menu principal interactif\n"
             "/analyse SYMBOLE – Analyse complète\n"
             "/price SYMBOLE – Prix actuel\n"
-            "/scalp SYMBOLE DURÉE – Scalping (Premium)\n"
-            "/tick SYMBOLE – Dernier tick\n"
-            "/spread SYMBOLE – Spread bid/ask\n"
+            "/check SYMBOLE BUY|SELL – Validation par score Teddy\n"
+            "/paper start – Paper trading intégré\n"
+            "/backtest SYMBOLE – Backtest public vérifiable\n"
             "/alert SYMBOLE above/below PRIX – Créer alerte\n"
             "/alerts – Lister alertes\n"
             "/delalert ID – Supprimer alerte\n"
@@ -98,7 +98,7 @@ TEXTS = {
             "/upgrade – Offre PRO\n"
             "/support – Contacter admin\n"
             "/symboles – Symboles populaires\n"
-            "/challenge – Défi scalping (5 trades)\n"
+            "/challenge – Défi d'entraînement (5 trades)\n"
             "/historique – Historique des signaux\n"
             "/snapshot – Image pour partage\n"
             "/verify ID – Vérifier un signal\n"
@@ -110,10 +110,10 @@ TEXTS = {
         "support": "📞 Besoin d'aide ?\n\nContactez l'administrateur : @btsr_teddy09",
         "upgrade_title": (
             "💳 *Passez à Bitsure Teddy PRO*\n\n"
-            "• Analyses illimitées\n"
-            "• Scalping temps réel\n"
-            "• Watchlist étendue\n"
-            "• Support prioritaire\n\n"
+            "• Analyses illimitées avec score Teddy\n"
+            "• Paper trading intégré\n"
+            "• Backtests publics vérifiables\n"
+            "• Watchlist étendue et support prioritaire\n\n"
             "*Choisissez votre mode de paiement :*"
         ),
         "button_pro_stars": "⭐ PRO 19,99€/mois (Telegram Stars)",
@@ -171,7 +171,7 @@ TEXTS = {
         "symboles_list": (
             "📊 *SYMBOLES POPULAIRES*\n\n"
             "🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n"
-            "💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Livre/Dollar\nUSDJPY – Dollar/Yen\n\n"
+            "💱 *Devises*\nEURUSD – Euro/Dollar\nGBPUSD – Livre/Dollar\nUSDJPY – Dollar/Yen\n\n"
             "✨ *Matières premières*\nXAUUSD – Or\nXAGUSD – Argent\n\n"
             "📈 *Actions*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n"
             "💡 Exemple : /analyse BTCUSD"
@@ -193,36 +193,45 @@ TEXTS = {
             "🛑 SL        : {sl}\n"
             "🎯 TP        : {tp} (RR: {rr_ratio})\n"
             "📊 RSI       : {rsi:.1f}\n"
+            "   État RSI  : {rsi_state}\n"
+            "📏 ADX       : {adx:.1f} ({adx_state})\n"
             "📉 SMA20/50  : {sma20} / {sma50}\n"
-            "📏 ADX       : {adx:.1f}\n"
             "💡 Raison    : {reason}\n"
             "⚠️ Conseil   : {risk_advice}\n"
             "━━━━━━━━━━━━━━━━━━━"
         ),
+        "rsi_overbought": "Surachat",
+        "rsi_oversold": "Survente",
+        "rsi_bullish": "Haussier",
+        "rsi_bearish": "Baissier",
+        "rsi_neutral": "Neutre",
+        "adx_very_strong": "Très forte",
+        "adx_strong": "Forte",
+        "adx_moderate": "Modérée",
+        "adx_weak": "Faible",
         "price_usage": "Usage: /price SYMBOLE",
         "price_error": "❌ Prix non disponible pour {symbol}.",
         "price_format": "💵 *{symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Prix : {price}\n📉 Bid  : {bid}\n📈 Ask  : {ask}",
         "price_label": "Prix",
 
-        # ----- Scalping -----
-        "tick_usage": "Usage: /tick SYMBOLE",
-        "tick_none": "❌ Aucun tick récent.",
-        "tick_current": "🕒 *TICK {symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Prix : {price}",
-        "spread_usage": "Usage: /spread SYMBOLE",
-        "spread_format": "📏 *SPREAD {symbol}*\n━━━━━━━━━━━━━━━━━━━\n📉 Bid    : {bid}\n📈 Ask    : {ask}\n📊 Spread : {spread}",
-        "spread_unavailable": "❌ Spread non disponible.",
-        "scalp_usage": "Usage: /scalp SYMBOLE DURÉE (3,5,10,20)",
+        # ----- Analyse rapide -----
+        "tick_usage": "Utilisez /price SYMBOLE pour consulter le dernier prix disponible.",
+        "tick_none": "❌ Aucun prix récent disponible.",
+        "tick_current": "🕒 *Prix récent {symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Prix : {price}",
+        "spread_usage": "Utilisez /price SYMBOLE pour consulter les données de marché disponibles.",
+        "spread_format": "📏 *Données de marché {symbol}*\n━━━━━━━━━━━━━━━━━━━\n📊 Données disponibles",
+        "spread_unavailable": "❌ Donnée de marché non disponible.",
+        "scalp_usage": "Utilisez /check SYMBOLE BUY|SELL pour obtenir une validation par score Teddy.",
         "scalp_invalid_duration": "Durée invalide. Choisissez 3, 5, 10 ou 20 secondes.",
         "scalp_signal_buy": "ACHETER",
         "scalp_signal_sell": "VENDRE",
         "scalp_signal_wait": "ATTENDRE",
         "scalp_result": (
-            "⚡ *SCALPING {symbol} · {duration}s*\n"
+            "⚡ *Analyse rapide {symbol} · {duration}s*\n"
             "━━━━━━━━━━━━━━━━━━━\n"
             "📊 Signal : {signal_emoji} {signal}\n"
             "💰 Prix    : {price}\n"
-            "📉 Bid/Ask : {bid} / {ask}\n"
-            "📏 Spread  : {spread} ({spread_pct}%)\n"
+            "📉 Achat/Vente : {bid} / {ask}\n"
             "📈 RSI     : {rsi:.1f}\n"
             "📋 Raison  : {reason}\n"
             "━━━━━━━━━━━━━━━━━━━"
@@ -273,7 +282,7 @@ TEXTS = {
         "data_unavailable": "Données indisponibles.",
 
         # ----- Learn -----
-        "learn_usage": "Usage: /learn [terme]\nTermes disponibles: rsi, macd, sma, support, resistance, fibonacci, atr, adx, stochastic, spread",
+        "learn_usage": "Usage: /learn [terme]\nTermes disponibles: rsi, macd, sma, support, resistance, fibonacci, atr, adx, stochastic",
         "learn_rsi": "*RSI*\nIndicateur de momentum mesurant vitesse et ampleur des mouvements de prix. >70 surachat, <30 survente.",
         "learn_macd": "*MACD*\nConvergence/divergence de moyennes mobiles. Croisements utilisés pour signaux d'achat/vente.",
         "learn_sma": "*SMA*\nMoyenne mobile simple. SMA20 et SMA50 sont des références courantes de tendance.",
@@ -283,7 +292,7 @@ TEXTS = {
         "learn_atr": "*ATR*\nMesure de la volatilité moyenne. Utilisé pour placer des stop-loss.",
         "learn_adx": "*ADX*\nMesure la force d'une tendance (>25 = tendance forte).",
         "learn_stochastic": "*Stochastic*\nCompare le prix de clôture à la fourchette de prix. >80 surachat, <20 survente.",
-        "learn_spread": "*Spread*\nDifférence entre prix acheteur (bid) et vendeur (ask).",
+        "learn_spread": "*Écart de prix*\nDifférence entre prix acheteur et vendeur.",
 
         # ----- Paramètres -----
         "settings_info": "⚙️ *Paramètres*\nTimeframe: {tf}\nRisque: {risk}\nLangue: {lang_name}\nRôle: {role}\nPremium: {prem}",
@@ -331,7 +340,7 @@ TEXTS = {
         "gift_notification": "🎁 Vous avez reçu un accès {role} gratuit pour {days} jours !",
 
         # ----- Challenge / Snapshot / Verify -----
-        "challenge_start": "🔥 *DÉFI SCALPING LANCÉ* 🔥\nAnalyse de 5 trades consécutifs sur EURUSD...",
+        "challenge_start": "🔥 *DÉFI D'ENTRAÎNEMENT LANCÉ* 🔥\nAnalyse de 5 trades consécutifs sur EURUSD...",
         "challenge_trade": "📊 *Trade {n}/5* – {signal} à {price}\nRésultat : {result} ({pips} pips)",
         "challenge_score": "🏆 *SCORE FINAL* : {wins}/5 gagnés\n{summary}",
         "win": "Gagné",
@@ -368,7 +377,7 @@ TEXTS = {
         "menu_title": "🧸 *MENU PRINCIPAL*\nSélectionnez une catégorie :",
         "menu_analyse": "📊 Analyse",
         "menu_paper": "📈 Paper Trading",
-        "menu_scalping": "⚡ Scalping",
+        "menu_scalping": "⚡ Analyse rapide",
         "menu_alertes": "🚨 Alertes",
         "menu_watchlist": "📋 Watchlist",
         "menu_parametres": "⚙️ Paramètres",
@@ -377,7 +386,7 @@ TEXTS = {
         "menu_upgrade": "💎 Upgrade",
         "btn_analyse": "📊 Analyse",
         "btn_price": "💰 Prix",
-        "btn_scalp": "⚡ Scalping",
+        "btn_scalp": "⚡ Score Teddy",
         "btn_watchlist": "📋 Watchlist",
         "btn_settings": "⚙️ Paramètres",
         "btn_upgrade": "💎 Upgrade",
@@ -393,8 +402,8 @@ TEXTS = {
         "btn_paper_status": "📊 Positions ouvertes",
         "btn_paper_history": "📋 Historique",
         "btn_paper_stats": "📈 Statistiques",
-        "btn_tick": "🕒 Tick",
-        "btn_spread": "↔️ Spread",
+        "btn_tick": "🕒 Prix récent",
+        "btn_spread": "↔️ Données marché",
         "btn_alert": "➕ Alerte",
         "btn_alerts": "📑 Alertes",
         "btn_delalert": "➖ Supprimer alerte",
@@ -405,7 +414,7 @@ TEXTS = {
         "btn_settimeframe": "⏱ Timeframe",
         "btn_setlanguage": "🌐 Langue",
         "btn_usage": "📊 Usage",
-        "help_redirect": "Utilisez /menu pour accéder au menu interactif.",
+        "help_redirect": "Utilisez /menu pour accéder au menu interactif. Fonctionnalités clés : analyse technique avec score Teddy, paper trading intégré et backtest public vérifiable.",
         "trial_days_left": "Essai gratuit : {days} jours restants",
         "btn_upgrade_stars": "Telegram Stars (19,99€/mois)",
         "btn_upgrade_binance": "Binance Junior (USDC)",
@@ -464,7 +473,7 @@ TEXTS = {
         # ----- Sélection de symboles -----
         "select_symbol": "Sélectionnez un symbole :",
         "category_crypto": "🪙 Cryptos",
-        "category_forex": "💱 Forex",
+        "category_forex": "💱 Devises",
         "category_commodities": "✨ Matières premières",
         "category_stocks": "📈 Actions",
         "category_fav": "⭐ Favoris",
@@ -476,9 +485,9 @@ TEXTS = {
         # ----- Welcome / Status -----
         "start": (
             "🐻 *Bitsure Teddy* – Your smart trading assistant\n\n"
-            "📊 Advanced technical analysis (crypto, forex, stocks, commodities)\n"
-            "⚡ Real‑time scalping signals\n"
-            "🚨 Custom price alerts\n"
+            "📊 Technical analysis with Teddy score\n"
+            "🧪 Integrated paper trading\n"
+            "📊 Verifiable public backtest\n"
             "*Current status:* {status}\n\n"
             "🔹 /menu – Main menu\n"
             "🔹 /upgrade – Upgrade to PRO\n\n"
@@ -537,9 +546,9 @@ TEXTS = {
             "/menu – Interactive main menu\n"
             "/analyse SYMBOL – Full analysis\n"
             "/price SYMBOL – Current price\n"
-            "/scalp SYMBOL DURATION – Scalping (Premium)\n"
-            "/tick SYMBOL – Latest tick\n"
-            "/spread SYMBOL – Bid/ask spread\n"
+            "/check SYMBOL BUY|SELL – Teddy score validation\n"
+            "/paper start – Integrated paper trading\n"
+            "/backtest SYMBOL – Verifiable public backtest\n"
             "/alert SYMBOL above/below PRICE – Create price alert\n"
             "/alerts – List your alerts\n"
             "/delalert ID – Delete an alert\n"
@@ -569,7 +578,7 @@ TEXTS = {
             "/upgrade – PRO offer\n"
             "/support – Contact admin\n"
             "/symboles – Popular symbols\n"
-            "/challenge – Scalping challenge (5 trades)\n"
+            "/challenge – Training challenge (5 trades)\n"
             "/historique – Signal history\n"
             "/snapshot – Instagram‑ready image\n"
             "/verify ID – Verify a signal\n"
@@ -581,10 +590,10 @@ TEXTS = {
         "support": "📞 Need help?\n\nContact admin: @btsr_teddy09",
         "upgrade_title": (
             "💳 *Upgrade to Bitsure Teddy PRO*\n\n"
-            "• Unlimited analyses\n"
-            "• Real‑time scalping\n"
-            "• Extended watchlist\n"
-            "• Priority support\n\n"
+            "• Unlimited analyses with Teddy score\n"
+            "• Integrated paper trading\n"
+            "• Verifiable public backtests\n"
+            "• Extended watchlist and priority support\n\n"
             "*Choose your payment method:*"
         ),
         "button_pro_stars": "⭐ PRO €19.99/month (Telegram Stars)",
@@ -642,7 +651,7 @@ TEXTS = {
         "symboles_list": (
             "📊 *POPULAR SYMBOLS*\n\n"
             "🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n"
-            "💱 *Forex*\nEURUSD – Euro/Dollar\nGBPUSD – Pound/Dollar\nUSDJPY – Dollar/Yen\n\n"
+            "💱 *Currencies*\nEURUSD – Euro/Dollar\nGBPUSD – Pound/Dollar\nUSDJPY – Dollar/Yen\n\n"
             "✨ *Commodities*\nXAUUSD – Gold\nXAGUSD – Silver\n\n"
             "📈 *Stocks*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n"
             "💡 Example: /analyse BTCUSD"
@@ -664,36 +673,45 @@ TEXTS = {
             "🛑 SL        : {sl}\n"
             "🎯 TP        : {tp} (RR: {rr_ratio})\n"
             "📊 RSI       : {rsi:.1f}\n"
+            "   RSI state : {rsi_state}\n"
+            "📏 ADX       : {adx:.1f} ({adx_state})\n"
             "📉 SMA20/50  : {sma20} / {sma50}\n"
-            "📏 ADX       : {adx:.1f}\n"
             "💡 Reason    : {reason}\n"
             "⚠️ Advice    : {risk_advice}\n"
             "━━━━━━━━━━━━━━━━━━━"
         ),
+        "rsi_overbought": "Overbought",
+        "rsi_oversold": "Oversold",
+        "rsi_bullish": "Bullish",
+        "rsi_bearish": "Bearish",
+        "rsi_neutral": "Neutral",
+        "adx_very_strong": "Very Strong",
+        "adx_strong": "Strong",
+        "adx_moderate": "Moderate",
+        "adx_weak": "Weak",
         "price_usage": "Usage: /price SYMBOL",
         "price_error": "❌ Price not available for {symbol}.",
         "price_format": "💵 *{symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Price : {price}\n📉 Bid   : {bid}\n📈 Ask   : {ask}",
         "price_label": "Price",
 
-        # ----- Scalping -----
-        "tick_usage": "Usage: /tick SYMBOL",
-        "tick_none": "❌ No recent tick.",
-        "tick_current": "🕒 Last tick {symbol}: {price}",
-        "spread_usage": "Usage: /spread SYMBOL",
-        "spread_format": "📏 *SPREAD {symbol}*\n━━━━━━━━━━━━━━━━━━━\n📉 Bid    : {bid}\n📈 Ask    : {ask}\n📊 Spread : {spread}",
-        "spread_unavailable": "❌ Spread unavailable.",
-        "scalp_usage": "Usage: /scalp SYMBOL DURATION (3,5,10,20)",
+        # ----- Analyse rapide -----
+        "tick_usage": "Use /price SYMBOL to view the latest available price.",
+        "tick_none": "❌ No recent price available.",
+        "tick_current": "🕒 Recent price {symbol}: {price}",
+        "spread_usage": "Use /price SYMBOL to view available market data.",
+        "spread_format": "📏 *Market data {symbol}*\n━━━━━━━━━━━━━━━━━━━\n📊 Data available",
+        "spread_unavailable": "❌ Market data unavailable.",
+        "scalp_usage": "Use /check SYMBOL BUY|SELL to get a Teddy score validation.",
         "scalp_invalid_duration": "Invalid duration. Choose 3, 5, 10 or 20 seconds.",
         "scalp_signal_buy": "BUY",
         "scalp_signal_sell": "SELL",
         "scalp_signal_wait": "WAIT",
         "scalp_result": (
-            "⚡ *SCALPING {symbol} · {duration}s*\n"
+            "⚡ *Quick analysis {symbol} · {duration}s*\n"
             "━━━━━━━━━━━━━━━━━━━\n"
             "📊 Signal : {signal_emoji} {signal}\n"
             "💰 Price   : {price}\n"
-            "📉 Bid/Ask : {bid} / {ask}\n"
-            "📏 Spread  : {spread} ({spread_pct}%)\n"
+            "📉 Buy/Sell : {bid} / {ask}\n"
             "📈 RSI     : {rsi:.1f}\n"
             "📋 Reason  : {reason}\n"
             "━━━━━━━━━━━━━━━━━━━"
@@ -744,7 +762,7 @@ TEXTS = {
         "data_unavailable": "Data unavailable.",
 
         # ----- Learn -----
-        "learn_usage": "Usage: /learn [term]\nAvailable terms: rsi, macd, sma, support, resistance, fibonacci, atr, adx, stochastic, spread",
+        "learn_usage": "Usage: /learn [term]\nAvailable terms: rsi, macd, sma, support, resistance, fibonacci, atr, adx, stochastic",
         "learn_rsi": "*RSI*\nMomentum indicator measuring speed and magnitude of price moves. >70 overbought, <30 oversold.",
         "learn_macd": "*MACD*\nMoving Average Convergence Divergence. Crossovers used for buy/sell signals.",
         "learn_sma": "*SMA*\nSimple Moving Average. SMA20 and SMA50 are common trend references.",
@@ -754,7 +772,7 @@ TEXTS = {
         "learn_atr": "*ATR*\nAverage True Range. Measures volatility, used for stop-losses.",
         "learn_adx": "*ADX*\nAverage Directional Index. Measures trend strength (>25 = strong trend).",
         "learn_stochastic": "*Stochastic*\nCompares closing price to price range. >80 overbought, <20 oversold.",
-        "learn_spread": "*Spread*\nDifference between bid and ask price.",
+        "learn_spread": "*Price gap*\nDifference between buyer and seller prices.",
 
         # ----- Settings -----
         "settings_info": "⚙️ *Settings*\nTimeframe: {tf}\nRisk: {risk}\nLanguage: {lang_name}\nRole: {role}\nPremium: {prem}",
@@ -802,7 +820,7 @@ TEXTS = {
         "gift_notification": "🎁 You have been granted free {role} access for {days} days! Enjoy!",
 
         # ----- Challenge / Snapshot / Verify -----
-        "challenge_start": "🔥 *SCALPING CHALLENGE STARTED* 🔥\nAnalyzing 5 consecutive trades on EURUSD...",
+        "challenge_start": "🔥 *TRAINING CHALLENGE STARTED* 🔥\nAnalyzing 5 consecutive trades on EURUSD...",
         "challenge_trade": "📊 *Trade {n}/5* – {signal} at {price}\nResult: {result} ({pips} pips)",
         "challenge_score": "🏆 *FINAL SCORE*: {wins}/5 won\n{summary}",
         "win": "Win",
@@ -839,7 +857,7 @@ TEXTS = {
         "menu_title": "🧸 *MAIN MENU*\nSelect a category:",
         "menu_analyse": "📊 Analysis",
         "menu_paper": "📈 Paper Trading",
-        "menu_scalping": "⚡ Scalping",
+        "menu_scalping": "⚡ Quick analysis",
         "menu_alertes": "🚨 Alerts",
         "menu_watchlist": "📋 Watchlist",
         "menu_parametres": "⚙️ Settings",
@@ -848,7 +866,7 @@ TEXTS = {
         "menu_upgrade": "💎 Upgrade",
         "btn_analyse": "📊 Analysis",
         "btn_price": "💰 Price",
-        "btn_scalp": "⚡ Scalping",
+        "btn_scalp": "⚡ Teddy score",
         "btn_watchlist": "📋 Watchlist",
         "btn_settings": "⚙️ Settings",
         "btn_upgrade": "💎 Upgrade",
@@ -864,8 +882,8 @@ TEXTS = {
         "btn_paper_status": "📊 Open Positions",
         "btn_paper_history": "📋 History",
         "btn_paper_stats": "📈 Statistics",
-        "btn_tick": "🕒 Tick",
-        "btn_spread": "↔️ Spread",
+        "btn_tick": "🕒 Recent price",
+        "btn_spread": "↔️ Market data",
         "btn_alert": "➕ Alert",
         "btn_alerts": "📑 Alerts",
         "btn_delalert": "➖ Delete alert",
@@ -876,7 +894,7 @@ TEXTS = {
         "btn_settimeframe": "⏱ Timeframe",
         "btn_setlanguage": "🌐 Language",
         "btn_usage": "📊 Usage",
-        "help_redirect": "Use /menu to access the interactive menu.",
+        "help_redirect": "Use /menu to access the interactive menu. Key features: technical analysis with Teddy score, integrated paper trading, and verifiable public backtest.",
         "trial_days_left": "Free trial: {days} days remaining",
         "btn_upgrade_stars": "Telegram Stars (19.99€/month)",
         "btn_upgrade_binance": "Binance Junior (USDC)",
@@ -945,7 +963,7 @@ TEXTS = {
         # ----- Symbol Selection -----
         "select_symbol": "Select a symbol:",
         "category_crypto": "🪙 Crypto",
-        "category_forex": "💱 Forex",
+        "category_forex": "💱 Currencies",
         "category_commodities": "✨ Commodities",
         "category_stocks": "📈 Stocks",
         "category_fav": "⭐ Favorites",
