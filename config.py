@@ -74,7 +74,7 @@ SYMBOL_CONFIGS = {
         "rsi_buy_low": 25, "rsi_buy_high": 55,
         "rsi_sell_low": 48, "rsi_sell_high": 75,
         "atr_max_pct": 5.0,
-        "min_cond": 5,
+        "min_cond": 4,
         "weights": {"trend": 20, "rsi": 15, "macd": 25, "adx": 25, "atr": 15}
     },
     "XAUUSD": {
