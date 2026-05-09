@@ -68,22 +68,24 @@ async def respond(update: Update, text: str, **kwargs):
 async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
-    lang = get_user_lang(update)
+       lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "backtest_start"))
     engine = SignalEngine()
     for symbol in BACKTEST_SYMBOLS:
         logger.info(f"=== BACKTEST {symbol} ===")
-        df = await fetcher.get_historical_data(symbol, timeframe=BACKTEST_TIMEFRAME, period=HISTORY_PERIOD)
-        if df is None or df.empty:
+        filename = f"data/{symbol}_{BACKTEST_TIMEFRAME}.csv"
+        if not os.path.exists(filename):
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
+        df = pd.read_csv(filename, parse_dates=["Date"], index_col="Date")
+        df = df.sort_index()
         trades = []
         for i in range(BACKTEST_MIN_BARS, len(df), BACKTEST_STEP):
             window = df.iloc[:i]
             result = engine.analyze(window, symbol=symbol)
             if result["signal"] not in ("BUY", "SELL"):
                 continue
-            entry_price = float(df["Close"].iloc[i])
+            entry_price = float(df["Open"].iloc[i + 1]))
             sl = float(result["sl"])
             tp = float(result["tp1"])
             if sl is None or tp is None or sl == entry_price:
