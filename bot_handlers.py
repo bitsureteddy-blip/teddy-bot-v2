@@ -409,7 +409,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer(get_text(lang, "channel_not_joined"), show_alert=True)
         except Exception:
             await query.answer("Erreur. Réessaie.", show_alert=True)
-    # --- Exécution réelle des commandes ---
+        # --- Exécution réelle des commandes ---
     if data.startswith("checkdir_"):
         parts = data.split("_")
         if len(parts) >= 3:
@@ -418,7 +418,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.args = [symbol, direction.lower()]
             await check(update, context, from_callback=True)
         return
-        elif data.startswith("paperdir_"):
+    elif data.startswith("paperdir_"):
         parts = data.split("_")
         if len(parts) >= 3:
             symbol = parts[1]
@@ -426,7 +426,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.args = [direction.lower(), symbol]
             await paper(update, context)
         return
-       elif data.startswith("cmd_"):
+    elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
         if cmd.startswith("paperdir_"):
             parts = cmd.split("_")
