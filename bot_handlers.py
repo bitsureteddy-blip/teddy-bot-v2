@@ -122,8 +122,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if df.empty:
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
-            await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
-            continue
 
         logger.info(f"{len(df)} bougies chargées.")
         trades = []
