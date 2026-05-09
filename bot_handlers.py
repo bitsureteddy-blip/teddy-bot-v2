@@ -15,7 +15,7 @@ from types import SimpleNamespace
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes, CallbackContext
 from telegram.constants import ParseMode
-from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD, SYMBOL_CONFIGS
+from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD, SYMBOL_CONFIGS, ATR_MULTIPLIER_SL, RR_RATIO_TARGET
 from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
 from indicators import atr
@@ -339,7 +339,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_levels"), callback_data="cmd_levels")],
             [InlineKeyboardButton(get_text(lang, "btn_symbolinfo"), callback_data="cmd_symbolinfo")],
             [InlineKeyboardButton(get_text(lang, "btn_check"), callback_data="cmd_check")],
-            [InlineKeyboardButton(get_text(lang, "btn_paper"), callback_data="cmd_paper")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -419,11 +418,14 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.args = [symbol, direction.lower()]
             await check(update, context, from_callback=True)
         return
-    if data.startswith("paperdir_"):
+    elif data.startswith("paperdir_"):
         parts = data.split("_")
         if len(parts) >= 3:
             symbol = parts[1]
             direction = parts[2]
+            context.args = [direction.lower(), symbol]
+            await paper(update, context)
+        return
             context.args = [direction.lower(), symbol]
             await paper(update, context)
         return
@@ -1421,14 +1423,13 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await respond(update, get_text(lang, "data_unavailable"))
             return
         result = SignalEngine.analyze(df, lang, symbol=symbol)
-        indicators = result.get("indicators", {})
-        price = float(indicators.get("price") or df["Close"].iloc[-1])
-        atr_val = float(indicators.get("atr") or 0)
-        sl = price - (atr_val * 2) if atr_val > 0 else price * 0.98
-        tp = price + (atr_val * 3) if atr_val > 0 else price * 1.04
+        price = float(result["indicators"]["price"])
+        atr_val = float(result["indicators"].get("atr", price * 0.01))
+        sl = price - ATR_MULTIPLIER_SL * atr_val
+        tp = price + RR_RATIO_TARGET * atr_val
         capital = paper_trader.get_capital(user_id)
         qty = capital / price if price > 0 else 1
-        paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
+        pos = paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
         await respond(update, get_text(lang, "paper_opened", symbol=symbol, price=round(price, 4), sl=round(sl, 4), tp=round(tp, 4)))
 
     elif action == "sell":
