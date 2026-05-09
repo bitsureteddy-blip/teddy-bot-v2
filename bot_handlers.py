@@ -77,6 +77,58 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not os.path.exists(filename):
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
+
+        try:
+            # Lire le CSV et normaliser les formats locaux
+            df = pd.read_csv(filename)
+            if df.empty:
+                await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+                continue
+
+            # Certains CSV actions ont 3 lignes d'en-tête : Price / Ticker / Datetime.
+            if str(df.columns[0]).lower() == "price":
+                header_probe = pd.read_csv(filename, header=None, nrows=3)
+                date_label = str(header_probe.iloc[2, 0]) if len(header_probe) >= 3 else "Date"
+                if date_label.lower() not in ["date", "datetime", "time", "timestamp"]:
+                    date_label = "Date"
+                df = pd.read_csv(filename, skiprows=[1, 2])
+                df.rename(columns={df.columns[0]: date_label}, inplace=True)
+
+            # Trouver la colonne de date.
+            date_col = None
+            for col in df.columns:
+                if str(col).lower() in ["date", "datetime", "time", "timestamp"]:
+                    date_col = col
+                    break
+            if date_col is None:
+                date_col = df.columns[0]
+
+            df[date_col] = pd.to_datetime(df[date_col], errors="coerce", utc=True)
+            df.dropna(subset=[date_col], inplace=True)
+            df.set_index(date_col, inplace=True)
+            df = df.sort_index()
+
+            # Normaliser les noms de colonnes OHLC et convertir les prix en numérique.
+            rename = {}
+            for col in df.columns:
+                col_norm = str(col).strip().lower()
+                if col_norm in ["open", "high", "low", "close"]:
+                    rename[col] = col_norm.capitalize()
+            df.rename(columns=rename, inplace=True)
+            required_cols = ["Open", "High", "Low", "Close"]
+            if not set(required_cols).issubset(df.columns):
+                await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+                continue
+            for col in required_cols:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            df.dropna(subset=required_cols, inplace=True)
+            if df.empty:
+                await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+                continue
+        except Exception as exc:
+            logger.exception("Backtest CSV read failed for %s: %s", symbol, exc)
+            await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+            continue
         df = pd.read_csv(filename, skiprows=1)
         date_col = "Date" if "Date" in df.columns else "Datetime"
         df[date_col] = pd.to_datetime(df[date_col])
