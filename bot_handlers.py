@@ -85,7 +85,7 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = engine.analyze(window, symbol=symbol)
             if result["signal"] not in ("BUY", "SELL"):
                 continue
-            entry_price = float(df["Open"].iloc[i + 1]))
+            entry_price = float(df["Open"].iloc[i + 1])
             sl = float(result["sl"])
             tp = float(result["tp1"])
             if sl is None or tp is None or sl == entry_price:
