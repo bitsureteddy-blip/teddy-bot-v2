@@ -416,8 +416,16 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(parts) >= 3:
             symbol = parts[1]
             direction = parts[2]
-            context.args = [symbol, direction]
+            context.args = [symbol, direction.lower()]
             await check(update, context, from_callback=True)
+        return
+    if data.startswith("paperdir_"):
+        parts = data.split("_")
+        if len(parts) >= 3:
+            symbol = parts[1]
+            direction = parts[2]
+            context.args = [direction.lower(), symbol]
+            await paper(update, context)
         return
     elif data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
@@ -426,8 +434,16 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if len(parts) >= 3:
                 symbol = parts[1]
                 direction = parts[2]
-                context.args = ["buy", symbol]
+                context.args = [direction.lower(), symbol]
                 await paper(update, context)
+            return
+        if cmd.startswith("checkdir_"):
+            parts = cmd.split("_")
+            if len(parts) >= 3:
+                symbol = parts[1]
+                direction = parts[2]
+                context.args = [symbol, direction.lower()]
+                await check(update, context, from_callback=True)
             return
         if cmd.startswith("alertcond_"):
             _,symbol,cond=cmd.split("_")
@@ -618,7 +634,14 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.args=[symbol]
                 await removewatch(update, context)
             elif command == "check":
-                await check(update, context, from_callback=True)
+                kb = [
+                    [InlineKeyboardButton("BUY 🟢", callback_data=f"checkdir_{symbol}_BUY"),
+                     InlineKeyboardButton("SELL 🔴", callback_data=f"checkdir_{symbol}_SELL")]
+                ]
+                await query.message.reply_text(
+                    get_text(lang, "check_choose_direction", symbol=symbol),
+                    reply_markup=InlineKeyboardMarkup(kb)
+                )
             elif command == "paper":
                 kb = [
                     [InlineKeyboardButton("BUY 🟢", callback_data=f"paperdir_{symbol}_BUY"),
@@ -827,6 +850,31 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
         return
     result = SignalEngine.analyze(df, lang, symbol=symbol)
     ind = result['indicators']
+    # Sous-scores et descriptions
+    rsi_val = ind.get('rsi', 50)
+    adx_val = ind.get('adx', 20)
+
+    # Description RSI
+    if rsi_val >= 70:
+        rsi_state = get_text(lang, "rsi_overbought")
+    elif rsi_val <= 30:
+        rsi_state = get_text(lang, "rsi_oversold")
+    elif rsi_val >= 55:
+        rsi_state = get_text(lang, "rsi_bullish")
+    elif rsi_val <= 45:
+        rsi_state = get_text(lang, "rsi_bearish")
+    else:
+        rsi_state = get_text(lang, "rsi_neutral")
+
+    # Description ADX
+    if adx_val >= 40:
+        adx_state = get_text(lang, "adx_very_strong")
+    elif adx_val >= 25:
+        adx_state = get_text(lang, "adx_strong")
+    elif adx_val >= 20:
+        adx_state = get_text(lang, "adx_moderate")
+    else:
+        adx_state = get_text(lang, "adx_weak")
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(df.index, df['Close'], color='white', linewidth=1, label='Prix')
@@ -883,9 +931,11 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
                        reason=result['reason'],
                        risk_advice=result['risk_advice'],
                        rsi=ind['rsi'],
+                       rsi_state=rsi_state,
                        stoch_k=ind.get('stoch_k', 0),
                        stoch_d=ind.get('stoch_d', 0),
                        adx=ind.get('adx') if pd.notna(ind.get('adx')) else 0.0,
+                       adx_state=adx_state,
                        sma20=format_number(ind['sma20']),
                        sma50=format_number(ind['sma50']),
                        teddy_score=result['teddy_score'])
@@ -1371,12 +1421,11 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await respond(update, get_text(lang, "data_unavailable"))
             return
         result = SignalEngine.analyze(df, lang, symbol=symbol)
-        if result["signal"] not in ("BUY", "SELL"):
-            await respond(update, get_text(lang, "paper_no_signal"))
-            return
-        price = float(result["indicators"]["price"])
-        sl = float(result["sl"]) if result["sl"] else price * 0.98
-        tp = float(result["tp"]) if result["tp"] else price * 1.04
+        indicators = result.get("indicators", {})
+        price = float(indicators.get("price") or df["Close"].iloc[-1])
+        atr_val = float(indicators.get("atr") or 0)
+        sl = price - (atr_val * 2) if atr_val > 0 else price * 0.98
+        tp = price + (atr_val * 3) if atr_val > 0 else price * 1.04
         capital = paper_trader.get_capital(user_id)
         qty = capital / price if price > 0 else 1
         paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
@@ -1389,7 +1438,7 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         symbol = normalize_symbol(context.args[1].upper())
         positions = paper_trader.get_positions(user_id)
         closed = False
-        for pos in positions:
+        for pos in list(positions):
             if pos["symbol"] == symbol:
                 price_data = await fetcher.get_realtime_price(symbol)
                 exit_price = float(price_data["price"]) if price_data else float(pos["current_price"])
@@ -1425,16 +1474,16 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
     lang = get_user_lang(update)
     if len(context.args) < 2:
-        await update.message.reply_text(get_text(lang, "check_usage"))
+        await respond(update, get_text(lang, "check_usage"))
         return
     symbol = normalize_symbol(context.args[0].upper())
     side = context.args[1].upper()
     if side not in ("BUY", "SELL"):
-        await update.message.reply_text(get_text(lang, "check_usage"))
+        await respond(update, get_text(lang, "check_usage"))
         return
     df = await fetcher.get_historical_data(symbol)
     if df is None or df.empty:
-        await update.message.reply_text(get_text(lang, "data_unavailable"))
+        await respond(update, get_text(lang, "data_unavailable"))
         return
     result = SignalEngine.analyze(df, lang, symbol=symbol)
     ind = result.get("indicators", {})
@@ -1453,7 +1502,7 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
         sl=format_number(result.get('sl')) if result.get('sl') else "N/A",
         tp=format_number(result.get('tp')) if result.get('tp') else "N/A"
     )
-    await update.message.reply_text(msg)
+    await respond(update, msg)
 async def send_weekly_reports(bot):
     pro_users = [int(uid) for uid, u in user_mgr.users.items() if u.get("role") == "pro"]
     signals = history_mgr.get_recent_signals(50)
