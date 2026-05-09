@@ -77,7 +77,7 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not os.path.exists(filename):
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
-        df = pd.read_csv(filename)
+        df = pd.read_csv(filename, skiprows=1)
         date_col = "Date" if "Date" in df.columns else "Datetime"
         df[date_col] = pd.to_datetime(df[date_col])
         df.set_index(date_col, inplace=True)
