@@ -54,22 +54,30 @@ SYMBOL_CONFIGS = {
         "weights": {"trend": 25, "rsi": 20, "macd": 20, "adx": 20, "atr": 15}
     },
     "ETHUSD": {
-        "adx_min": 20,
-        "rsi_buy_low": 28, "rsi_buy_high": 56,
-        "rsi_sell_low": 44, "rsi_sell_high": 72,
-        "atr_max_pct": 5.0,
-        "min_cond": 4,
-        "weights": {"trend": 20, "rsi": 20, "macd": 25, "adx": 20, "atr": 15}
-    },
-    "AUDUSD": {
-        "adx_min": 20,
-        "rsi_buy_low": 30, "rsi_buy_high": 55,
-        "rsi_sell_low": 45, "rsi_sell_high": 70,
-        "atr_max_pct": 3.0,
-        "min_cond": 3,
-        "weights": {"trend": 30, "rsi": 20, "macd": 15, "adx": 20, "atr": 15}
-    },
-    "XAUUSD": {
+    "adx_min": 22,
+    "rsi_buy_low": 30, "rsi_buy_high": 54,
+    "rsi_sell_low": 46, "rsi_sell_high": 70,
+    "atr_max_pct": 5.0,
+    "min_cond": 5,
+    "weights": {"trend": 20, "rsi": 20, "macd": 25, "adx": 20, "atr": 15}
+   },
+   "AUDUSD": {
+    "adx_min": 20,
+    "rsi_buy_low": 30, "rsi_buy_high": 55,
+    "rsi_sell_low": 45, "rsi_sell_high": 70,
+    "atr_max_pct": 2.5,
+    "min_cond": 4,
+    "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 25, "atr": 15}
+   },
+  "TSLA": {
+    "adx_min": 22,
+    "rsi_buy_low": 28, "rsi_buy_high": 58,
+    "rsi_sell_low": 42, "rsi_sell_high": 72,
+    "atr_max_pct": 5.0,
+    "min_cond": 4,
+    "weights": {"trend": 20, "rsi": 15, "macd": 25, "adx": 25, "atr": 15}
+   },
+   "XAUUSD": {
         "adx_min": 20,
         "rsi_buy_low": 28, "rsi_buy_high": 54,
         "rsi_sell_low": 46, "rsi_sell_high": 72,
@@ -84,14 +92,6 @@ SYMBOL_CONFIGS = {
         "atr_max_pct": 6.0,
         "min_cond": 3,
         "weights": {"trend": 25, "rsi": 20, "macd": 20, "adx": 20, "atr": 15}
-    },
-    "TSLA": {
-        "adx_min": 15,
-        "rsi_buy_low": 30, "rsi_buy_high": 55,
-        "rsi_sell_low": 45, "rsi_sell_high": 70,
-        "atr_max_pct": 6.5,
-        "min_cond": 3,
-        "weights": {"trend": 20, "rsi": 15, "macd": 25, "adx": 25, "atr": 15}
     },
     "NVDA": {
         "adx_min": 15,
