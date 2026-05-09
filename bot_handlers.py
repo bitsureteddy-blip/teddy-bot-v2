@@ -190,8 +190,8 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             trades.append({
                 "date": str(df.index[i + 1]),
                 "symbol": symbol,
-                "signal": signal,
-                "score": score,
+                "signal": result["signal"],
+                "score": result["teddy_score"],
                 "entry": round(entry_price, 5),
                 "exit": round(exit_price, 5),
                 "sl": round(sl, 5),
