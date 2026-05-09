@@ -77,7 +77,10 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not os.path.exists(filename):
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
-        df = pd.read_csv(filename, parse_dates=["Date"], index_col="Date")
+        df = pd.read_csv(filename)
+        date_col = "Date" if "Date" in df.columns else "Datetime"
+        df[date_col] = pd.to_datetime(df[date_col])
+        df.set_index(date_col, inplace=True)
         df = df.sort_index()
         trades = []
         for i in range(BACKTEST_MIN_BARS, len(df), BACKTEST_STEP):
