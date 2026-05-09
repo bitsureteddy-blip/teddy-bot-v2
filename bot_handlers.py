@@ -15,7 +15,7 @@ from types import SimpleNamespace
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes, CallbackContext
 from telegram.constants import ParseMode
-from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD, SYMBOL_CONFIGS
+from config import ADMIN_ID, DEFAULT_TIMEFRAME, HISTORY_PERIOD, SYMBOL_CONFIGS, ATR_MULTIPLIER_SL, RR_RATIO_TARGET
 from data_fetcher import DataFetcher
 from signal_engine import SignalEngine
 from indicators import atr
@@ -75,7 +75,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for symbol in BACKTEST_SYMBOLS:
         logger.info(f"=== BACKTEST {symbol} ===")
         filename = f"data/{symbol}_{BACKTEST_TIMEFRAME}.csv"
-
         if not os.path.exists(filename):
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
@@ -86,7 +85,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Gestion des formats Yahoo Finance (multi-en-têtes)
         first_col = str(df.columns[0]).lower()
         if first_col == "price":
-            # Conserver la ligne Price comme en-tête et retirer les lignes Ticker/Date.
             df = pd.read_csv(filename, skiprows=[1, 2])
             df.rename(columns={df.columns[0]: "Date"}, inplace=True)
 
@@ -122,6 +120,8 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             df[col] = pd.to_numeric(df[col], errors="coerce")
         df.dropna(subset=["Open", "High", "Low", "Close"], inplace=True)
         if df.empty:
+            await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+            continue
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
 
@@ -192,8 +192,8 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             trades.append({
                 "date": str(df.index[i + 1]),
                 "symbol": symbol,
-                "signal": result["signal"],
-                "score": result["teddy_score"],
+                "signal": signal,
+                "score": score,
                 "entry": round(entry_price, 5),
                 "exit": round(exit_price, 5),
                 "sl": round(sl, 5),
@@ -404,7 +404,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_levels"), callback_data="cmd_levels")],
             [InlineKeyboardButton(get_text(lang, "btn_symbolinfo"), callback_data="cmd_symbolinfo")],
             [InlineKeyboardButton(get_text(lang, "btn_check"), callback_data="cmd_check")],
-            [InlineKeyboardButton(get_text(lang, "btn_paper"), callback_data="cmd_paper")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -475,7 +474,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer(get_text(lang, "channel_not_joined"), show_alert=True)
         except Exception:
             await query.answer("Erreur. Réessaie.", show_alert=True)
-    # --- Exécution réelle des commandes ---
+        # --- Exécution réelle des commandes ---
     if data.startswith("checkdir_"):
         parts = data.split("_")
         if len(parts) >= 3:
@@ -484,7 +483,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.args = [symbol, direction.lower()]
             await check(update, context, from_callback=True)
         return
-    if data.startswith("paperdir_"):
+    elif data.startswith("paperdir_"):
         parts = data.split("_")
         if len(parts) >= 3:
             symbol = parts[1]
@@ -1486,14 +1485,13 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await respond(update, get_text(lang, "data_unavailable"))
             return
         result = SignalEngine.analyze(df, lang, symbol=symbol)
-        indicators = result.get("indicators", {})
-        price = float(indicators.get("price") or df["Close"].iloc[-1])
-        atr_val = float(indicators.get("atr") or 0)
-        sl = price - (atr_val * 2) if atr_val > 0 else price * 0.98
-        tp = price + (atr_val * 3) if atr_val > 0 else price * 1.04
+        price = float(result["indicators"]["price"])
+        atr_val = float(result["indicators"].get("atr", price * 0.01))
+        sl = price - ATR_MULTIPLIER_SL * atr_val
+        tp = price + RR_RATIO_TARGET * atr_val
         capital = paper_trader.get_capital(user_id)
         qty = capital / price if price > 0 else 1
-        paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
+        pos = paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
         await respond(update, get_text(lang, "paper_opened", symbol=symbol, price=round(price, 4), sl=round(sl, 4), tp=round(tp, 4)))
 
     elif action == "sell":
