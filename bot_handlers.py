@@ -71,6 +71,7 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "backtest_start"))
     engine = SignalEngine()
+
     for symbol in BACKTEST_SYMBOLS:
         logger.info(f"=== BACKTEST {symbol} ===")
         filename = f"data/{symbol}_{BACKTEST_TIMEFRAME}.csv"
@@ -78,75 +79,81 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
 
-        try:
-            # Lire le CSV et normaliser les formats locaux (API simple ou export yfinance multi-en-têtes)
-            df = pd.read_csv(filename)
-            if df.empty:
-                await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
-                continue
+        # Lecture du CSV
+        df = pd.read_csv(filename)
 
-            # Certains CSV actions ont 3 lignes d'en-tête : Price / Ticker / Datetime.
-            if str(df.columns[0]).lower() == "price":
-                header_probe = pd.read_csv(filename, header=None, nrows=3)
-                date_label = str(header_probe.iloc[2, 0]) if len(header_probe) >= 3 else "Date"
-                if date_label.lower() not in ["date", "datetime", "time", "timestamp"]:
-                    date_label = "Date"
-                df = pd.read_csv(filename, skiprows=[1, 2])
-                df.rename(columns={df.columns[0]: date_label}, inplace=True)
+        # Gestion des formats Yahoo Finance (multi-en-têtes)
+        first_col = str(df.columns[0]).lower()
+        if first_col == "price":
+            df = pd.read_csv(filename, skiprows=[1, 2])
+            df.rename(columns={df.columns[0]: "Date"}, inplace=True)
 
-            # Trouver la colonne de date.
-            date_col = None
-            for col in df.columns:
-                if str(col).lower() in ["date", "datetime", "time", "timestamp"]:
-                    date_col = col
-                    break
-            if date_col is None:
-                date_col = df.columns[0]
+        # Trouver la colonne de date
+        date_col = None
+        for col in df.columns:
+            if str(col).lower() in ["date", "datetime"]:
+                date_col = col
+                break
+        if date_col is None:
+            date_col = df.columns[0]
 
-            df[date_col] = pd.to_datetime(df[date_col], errors="coerce", utc=True)
-            df.dropna(subset=[date_col], inplace=True)
-            df.set_index(date_col, inplace=True)
-            df = df.sort_index()
+        df[date_col] = pd.to_datetime(df[date_col])
+        df.set_index(date_col, inplace=True)
+        df = df.sort_index()
 
-            # Normaliser les noms de colonnes OHLC et convertir les prix en numérique.
-            rename = {}
-            for col in df.columns:
-                col_norm = str(col).strip().lower()
-                if col_norm in ["open", "high", "low", "close"]:
-                    rename[col] = col_norm.capitalize()
-            df.rename(columns=rename, inplace=True)
-            required_cols = ["Open", "High", "Low", "Close"]
-            if not set(required_cols).issubset(df.columns):
-                await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
-                continue
-            for col in required_cols:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-            df.dropna(subset=required_cols, inplace=True)
-            if df.empty:
-                await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
-                continue
-        except Exception as exc:
-            logger.exception("Backtest CSV read failed for %s: %s", symbol, exc)
+        # Normaliser les colonnes OHLC
+        for col in df.columns:
+            if str(col).lower() == "open":
+                df.rename(columns={col: "Open"}, inplace=True)
+            elif str(col).lower() == "high":
+                df.rename(columns={col: "High"}, inplace=True)
+            elif str(col).lower() == "low":
+                df.rename(columns={col: "Low"}, inplace=True)
+            elif str(col).lower() == "close":
+                df.rename(columns={col: "Close"}, inplace=True)
+
+        if not {"Open", "High", "Low", "Close"}.issubset(df.columns):
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
+
+        for col in ["Open", "High", "Low", "Close"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+        df.dropna(subset=["Open", "High", "Low", "Close"], inplace=True)
+        if df.empty:
+            await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+            continue
+            await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+            continue
+
+        logger.info(f"{len(df)} bougies chargées.")
         trades = []
-        for i in range(BACKTEST_MIN_BARS, len(df), BACKTEST_STEP):
+
+        for i in range(BACKTEST_MIN_BARS, len(df) - 1, BACKTEST_STEP):
             window = df.iloc[:i]
             result = engine.analyze(window, symbol=symbol)
+
             if result["signal"] not in ("BUY", "SELL"):
                 continue
+
+            if result["sl"] is None or result["tp1"] is None:
+                continue
+
             entry_price = float(df["Open"].iloc[i + 1])
             sl = float(result["sl"])
             tp = float(result["tp1"])
-            if sl is None or tp is None or sl == entry_price:
+
+            if sl == entry_price:
                 continue
-            is_buy = signal == "BUY"
+
+            is_buy = result["signal"] == "BUY"
             outcome = None
             exit_price = None
-            exit_idx = i
+            exit_idx = i + 1
+
             for j in range(i + 1, len(df)):
                 low_j = float(df["Low"].iloc[j])
                 high_j = float(df["High"].iloc[j])
+
                 if is_buy:
                     if low_j <= sl:
                         outcome = "LOSS"
@@ -169,6 +176,7 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         exit_price = tp
                         exit_idx = j
                         break
+
             if outcome is None:
                 exit_price = float(df["Close"].iloc[-1])
                 exit_idx = len(df) - 1
@@ -176,11 +184,13 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     outcome = "WIN" if exit_price > entry_price else "LOSS"
                 else:
                     outcome = "WIN" if exit_price < entry_price else "LOSS"
+
             pnl_pct = ((exit_price - entry_price) / entry_price * 100)
             if not is_buy:
                 pnl_pct = -pnl_pct
+
             trades.append({
-                "date": str(df.index[i]),
+                "date": str(df.index[i + 1]),
                 "symbol": symbol,
                 "signal": signal,
                 "score": score,
@@ -190,11 +200,13 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "tp": round(tp, 5),
                 "outcome": outcome,
                 "pnl_pct": round(pnl_pct, 4),
-                "bars_held": exit_idx - i,
+                "bars_held": exit_idx - (i + 1),
             })
+
         if not trades:
             await update.message.reply_text(get_text(lang, "backtest_no_trades", symbol=symbol))
             continue
+
         trades_df = pd.DataFrame(trades)
         total = len(trades_df)
         wins = (trades_df["outcome"] == "WIN").sum()
@@ -207,6 +219,7 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         avg_bars = trades_df["bars_held"].mean()
         cumul = trades_df["pnl_pct"].cumsum()
         max_drawdown = (cumul.cummax() - cumul).max()
+
         result_text = "\n".join([
             get_text(lang, "backtest_title", symbol=symbol),
             get_text(lang, "separator_line"),
