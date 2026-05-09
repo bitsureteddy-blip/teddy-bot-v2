@@ -129,11 +129,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.exception("Backtest CSV read failed for %s: %s", symbol, exc)
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
-        df = pd.read_csv(filename, skiprows=1)
-        date_col = "Date" if "Date" in df.columns else "Datetime"
-        df[date_col] = pd.to_datetime(df[date_col])
-        df.set_index(date_col, inplace=True)
-        df = df.sort_index()
         trades = []
         for i in range(BACKTEST_MIN_BARS, len(df), BACKTEST_STEP):
             window = df.iloc[:i]
