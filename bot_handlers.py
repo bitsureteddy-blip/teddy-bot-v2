@@ -68,7 +68,7 @@ async def respond(update: Update, text: str, **kwargs):
 async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
-       lang = get_user_lang(update)
+    lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "backtest_start"))
     engine = SignalEngine()
     for symbol in BACKTEST_SYMBOLS:
