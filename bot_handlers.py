@@ -79,7 +79,7 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             continue
 
         try:
-            # Lire le CSV et normaliser les formats locaux
+            # Lire le CSV et normaliser les formats locaux (API simple ou export yfinance multi-en-têtes)
             df = pd.read_csv(filename)
             if df.empty:
                 await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
@@ -145,7 +145,7 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             tp = float(result["tp1"])
             if sl is None or tp is None or sl == entry_price:
                 continue
-            is_buy = result["signal"] == "BUY"
+            is_buy = signal == "BUY"
             outcome = None
             exit_price = None
             exit_idx = i
@@ -187,8 +187,8 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             trades.append({
                 "date": str(df.index[i]),
                 "symbol": symbol,
-                "signal": result["signal"],
-                "score": result["teddy_score"],
+                "signal": signal,
+                "score": score,
                 "entry": round(entry_price, 5),
                 "exit": round(exit_price, 5),
                 "sl": round(sl, 5),
