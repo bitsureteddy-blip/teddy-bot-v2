@@ -13,7 +13,7 @@ class UserManager:
     _instance = None
 
     def __init__(self):
-        self.users = load_json(USERS_FILE)
+        self._load_users()
         self.usage = load_json(USAGE_FILE)
         self.settings = load_json(SETTINGS_FILE)
         self.watchlists = load_json(WATCHLISTS_FILE)
@@ -25,7 +25,31 @@ class UserManager:
         return cls._instance
 
     def _load_users(self):
-        self.users = load_json(USERS_FILE)
+        from database import get_db
+        conn = get_db()
+        rows = conn.execute("SELECT * FROM users").fetchall()
+        if rows:
+            self.users = {}
+            for r in rows:
+                self.users[str(r["user_id"])] = {
+                    "role": r["role"],
+                    "lang": r["lang"],
+                    "timeframe": r["timeframe"],
+                    "risk": r["risk"],
+                    "terms_accepted": bool(r["terms_accepted"]),
+                    "trial_start": r["trial_start"],
+                    "created_at": r["created_at"],
+                }
+        else:
+            self.users = load_json(USERS_FILE)
+            if self.users:
+                for uid, data in self.users.items():
+                    conn.execute(
+                        "INSERT OR IGNORE INTO users (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at) VALUES (?,?,?,?,?,?,?,?)",
+                        (int(uid), data.get("role","free"), data.get("lang","en"), data.get("timeframe","1h"), data.get("risk","medium"), int(data.get("terms_accepted",False)), data.get("trial_start"), data.get("created_at"))
+                    )
+                conn.commit()
+        conn.close()
 
     def get_user(self, user_id: int) -> Dict:
         user_id = str(user_id)
@@ -34,7 +58,7 @@ class UserManager:
                 "username": "",
                 "role": "free",
                 "joined": time.time(),
-                "used_promo_codes": []   # suivi des codes promo utilisés
+                "used_promo_codes": []
             }
             self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "en"}
             self.watchlists[user_id] = []
@@ -55,7 +79,7 @@ class UserManager:
         self.users[user_id]["role"] = role
         if "premium_expiry" in self.users[user_id]:
             del self.users[user_id]["premium_expiry"]
-        save_json(USERS_FILE, self.users)
+        self._save()
 
     def set_role_temp(self, user_id: int, role: str, days: int):
         user_id = str(user_id)
@@ -64,7 +88,7 @@ class UserManager:
         self.users[user_id]["role"] = role
         expiry = time.time() + (days * 24 * 3600)
         self.users[user_id]["premium_expiry"] = expiry
-        save_json(USERS_FILE, self.users)
+        self._save()
 
     def check_premium_expiry(self, user_id: int) -> bool:
         user_id = str(user_id)
@@ -73,7 +97,7 @@ class UserManager:
             if time.time() > user["premium_expiry"]:
                 user["role"] = "free"
                 del user["premium_expiry"]
-                save_json(USERS_FILE, self.users)
+                self._save()
                 return True
         return False
 
@@ -91,7 +115,6 @@ class UserManager:
         return time.time() < trial_end
 
     def can_use_premium_feature(self, user_id: int) -> bool:
-        # Combine trial et premium
         if self.is_premium(user_id):
             return True
         return self.is_trial_valid(user_id)
@@ -215,7 +238,6 @@ class UserManager:
             self._save()
             return True, get_text(lang, "redeem_success", message=f"{promo['days']} jours")
         return False, get_text(lang, "redeem_invalid")
-
 
     def add_pending_binance(self, user_id: int, ident: str):
         user = self.get_user(user_id)
