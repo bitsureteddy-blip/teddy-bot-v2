@@ -269,7 +269,7 @@ def check_limit(func):
                 return
         except Exception:
             pass
-        if func.__name__ != "start" and not user_mgr.has_accepted_terms(user_id):
+        if func.__name__ != "start" and not user_mgr.has_accepted_terms(user_id) and not user_mgr.is_admin(user_id):
             if update.callback_query:
                 await update.callback_query.answer(get_text(lang, "terms_must_accept"), show_alert=True)
                 return
@@ -286,6 +286,18 @@ def check_limit(func):
         user_mgr.increment_usage(user_id)
         return await func(update, context, *args, **kwargs)
     return wrapper
+@check_limit
+async def teddy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /teddy <user_id>")
+        return
+    uid = int(context.args[0])
+    if user_mgr.confirm_binance_payment(uid):
+        await update.message.reply_text(f"✅ Paiement confirmé pour {uid}")
+    else:
+        await update.message.reply_text(f"❌ Aucun paiement en attente pour {uid}")
 @check_limit
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)

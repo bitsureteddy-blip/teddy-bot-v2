@@ -16,7 +16,7 @@ from bot_handlers import (
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, challenge, snapshot, verify, historique,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
-    sentiment, compare, top, fav, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring,
+    sentiment, compare, top, fav, teddy, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring,
     handle_pending_alert_input, paper
 )
 from data_fetcher import DataFetcher
@@ -56,7 +56,7 @@ def main():
         ("support", support), ("pay_binance", pay_binance), ("confirm_payment", confirm_payment),
         ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
         ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn), ("check", check), ("ask", ask),
-        ("backtest", backtest)
+        ("backtest", backtest), ("teddy", teddy)
     ]
     for cmd, func in handlers:
         app.add_handler(CommandHandler(cmd, func))
