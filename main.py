@@ -22,6 +22,7 @@ from bot_handlers import (
 from data_fetcher import DataFetcher
 from user_manager import UserManager
 from alert_manager import AlertManager
+from database import init_db
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -36,7 +37,7 @@ def main():
     DataFetcher.get_instance()
     UserManager.get_instance()
     AlertManager.get_instance()
-
+    init_db()
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     AlertManager.get_instance().start_monitoring(app)
     start_weekly_report_scheduler(app)
