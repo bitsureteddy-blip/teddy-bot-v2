@@ -1519,7 +1519,7 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         closed = False
         for pos in list(positions):
             if pos["symbol"] == symbol:
-                price_data = await fetcher.get_realtime_price(symbol)
+                price_data = fetcher.get_cached_price(symbol)
                 exit_price = float(price_data["price"]) if price_data else float(pos["current_price"])
                 paper_trader.close_position(user_id, pos["id"], exit_price)
                 closed = True

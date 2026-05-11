@@ -92,6 +92,13 @@ class DataFetcher:
         symbol = normalize_symbol(symbol)
         return list(self.tick_history.get(symbol, []))
 
+    def get_cached_price(self, symbol: str) -> Optional[Dict]:
+        symbol = normalize_symbol(symbol)
+        if symbol in self.price_cache:
+            if time.time() - self.price_cache[symbol]["timestamp"] < PRICE_CACHE_TTL:
+                return self.price_cache[symbol]
+        return None
+
     async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
         if symbol in self.price_cache and time.time() - self.price_cache[symbol]["timestamp"] < PRICE_CACHE_TTL:
