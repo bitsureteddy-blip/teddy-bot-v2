@@ -47,42 +47,58 @@ RR_RATIO_TARGET = 2.0
 SYMBOL_CONFIGS = {
     "BTCUSD": {
         "adx_min": 25,
-        "rsi_buy_low": 30, "rsi_buy_high": 50,
-        "rsi_sell_low": 50, "rsi_sell_high": 70,
+        "rsi_buy_low": 28, "rsi_buy_high": 55,
+        "rsi_sell_low": 48, "rsi_sell_high": 70,
         "atr_max_pct": 4.5,
         "min_cond": 4,
-        "weights": {"trend": 25, "rsi": 20, "macd": 20, "adx": 20, "atr": 15}
+        "weights": {"trend": 25, "rsi": 20, "macd": 25, "adx": 20, "atr": 10}
     },
     "ETHUSD": {
         "adx_min": 25,
         "rsi_buy_low": 30, "rsi_buy_high": 52,
         "rsi_sell_low": 48, "rsi_sell_high": 70,
-        "atr_max_pct": 5.5,
+        "atr_max_pct": 5.0,
         "min_cond": 4,
         "weights": {"trend": 20, "rsi": 20, "macd": 25, "adx": 20, "atr": 15}
     },
-    "AUDUSD": {
-        "adx_min": 22,
-        "rsi_buy_low": 30, "rsi_buy_high": 55,
-        "rsi_sell_low": 45, "rsi_sell_high": 70,
-        "atr_max_pct": 2.5,
+    "EURUSD": {
+        "adx_min": 20,
+        "rsi_buy_low": 44, "rsi_buy_high": 58,
+        "rsi_sell_low": 42, "rsi_sell_high": 56,
+        "atr_max_pct": 1.3,
         "min_cond": 4,
-        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 25, "atr": 15}
+        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
     },
-    "TSLA": {
-        "adx_min": 25,
-        "rsi_buy_low": 25, "rsi_buy_high": 55,
-        "rsi_sell_low": 48, "rsi_sell_high": 75,
-        "atr_max_pct": 5.0,
+    "GBPUSD": {
+        "adx_min": 22,
+        "rsi_buy_low": 43, "rsi_buy_high": 57,
+        "rsi_sell_low": 43, "rsi_sell_high": 57,
+        "atr_max_pct": 1.7,
         "min_cond": 4,
-        "weights": {"trend": 20, "rsi": 15, "macd": 25, "adx": 25, "atr": 15}
+        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
+    },
+    "USDJPY": {
+        "adx_min": 21,
+        "rsi_buy_low": 44, "rsi_buy_high": 58,
+        "rsi_sell_low": 42, "rsi_sell_high": 56,
+        "atr_max_pct": 1.6,
+        "min_cond": 4,
+        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
+    },
+    "AUDUSD": {
+        "adx_min": 19,
+        "rsi_buy_low": 46, "rsi_buy_high": 58,
+        "rsi_sell_low": 42, "rsi_sell_high": 54,
+        "atr_max_pct": 1.2,
+        "min_cond": 3,
+        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
     },
     "XAUUSD": {
         "adx_min": 25,
         "rsi_buy_low": 30, "rsi_buy_high": 50,
         "rsi_sell_low": 50, "rsi_sell_high": 70,
         "atr_max_pct": 4.0,
-        "min_cond": 3,
+        "min_cond": 4,
         "weights": {"trend": 30, "rsi": 20, "macd": 15, "adx": 20, "atr": 15}
     },
     "AAPL": {
@@ -93,40 +109,23 @@ SYMBOL_CONFIGS = {
         "min_cond": 3,
         "weights": {"trend": 25, "rsi": 20, "macd": 20, "adx": 20, "atr": 15}
     },
+    "TSLA": {
+        "adx_min": 25,
+        "rsi_buy_low": 25, "rsi_buy_high": 55,
+        "rsi_sell_low": 48, "rsi_sell_high": 70,
+        "atr_max_pct": 5.0,
+        "min_cond": 4,
+        "weights": {"trend": 20, "rsi": 15, "macd": 25, "adx": 20, "atr": 20}
+    },
     "NVDA": {
         "adx_min": 20,
         "rsi_buy_low": 30, "rsi_buy_high": 54,
         "rsi_sell_low": 46, "rsi_sell_high": 70,
         "atr_max_pct": 7.0,
         "min_cond": 3,
-        "weights": {"trend": 25, "rsi": 20, "macd": 20, "adx": 20, "atr": 15}
-    },
-    "EURUSD": {
-        "adx_min": 20,
-        "rsi_buy_low": 45, "rsi_buy_high": 58,
-        "rsi_sell_low": 42, "rsi_sell_high": 55,
-        "atr_max_pct": 1.3,
-        "min_cond": 4,
-        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
-    },
-    "GBPUSD": {
-        "adx_min": 22,
-        "rsi_buy_low": 43, "rsi_buy_high": 56,
-        "rsi_sell_low": 44, "rsi_sell_high": 58,
-        "atr_max_pct": 1.7,
-        "min_cond": 4,
-        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
-    },
-    "USDJPY": {
-        "adx_min": 21,
-        "rsi_buy_low": 44, "rsi_buy_high": 57,
-        "rsi_sell_low": 43, "rsi_sell_high": 57,
-        "atr_max_pct": 1.6,
-        "min_cond": 4,
-        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
+        "weights": {"trend": 25, "rsi": 15, "macd": 20, "adx": 20, "atr": 20}
     },
 }
-
 # --- Fichiers de données ---
 DATA_DIR = "data"
 USERS_FILE = f"{DATA_DIR}/users.json"
