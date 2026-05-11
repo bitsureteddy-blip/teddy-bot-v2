@@ -37,13 +37,13 @@ weekly_scheduler = None
 paper_trader = PaperTrader()
 # 15 symboles PRO
 SYMBOLS_12 = [
-    "BTCUSD", "ETHUSD",
+    "BTCUSD", "ETHUSD", "EURUSD", "GBPUSD", "USDJPY",
     "AUDUSD",
     "XAUUSD",
     "AAPL", "TSLA", "NVDA"
 ]
 BACKTEST_SYMBOLS = [
-    "BTCUSD", "ETHUSD",
+    "BTCUSD", "ETHUSD", "EURUSD", "GBPUSD", "USDJPY",
     "AUDUSD",
     "XAUUSD",
     "AAPL", "TSLA", "NVDA"
