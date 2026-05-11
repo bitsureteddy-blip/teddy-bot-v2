@@ -101,6 +101,30 @@ SYMBOL_CONFIGS = {
         "min_cond": 3,
         "weights": {"trend": 25, "rsi": 20, "macd": 20, "adx": 20, "atr": 15}
     },
+    "EURUSD": {
+        "adx_min": 20,
+        "rsi_buy_low": 45, "rsi_buy_high": 58,
+        "rsi_sell_low": 42, "rsi_sell_high": 55,
+        "atr_max_pct": 1.3,
+        "min_cond": 4,
+        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
+    },
+    "GBPUSD": {
+        "adx_min": 22,
+        "rsi_buy_low": 43, "rsi_buy_high": 56,
+        "rsi_sell_low": 44, "rsi_sell_high": 58,
+        "atr_max_pct": 1.7,
+        "min_cond": 4,
+        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
+    },
+    "USDJPY": {
+        "adx_min": 21,
+        "rsi_buy_low": 44, "rsi_buy_high": 57,
+        "rsi_sell_low": 43, "rsi_sell_high": 57,
+        "atr_max_pct": 1.6,
+        "min_cond": 4,
+        "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
+    },
 }
 
 # --- Fichiers de données ---
