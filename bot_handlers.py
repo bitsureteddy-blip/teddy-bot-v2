@@ -1735,7 +1735,7 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = get_text(lang, "history_stats_header", total=len(signals), wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, avg=f"{avg_gain:+.2f}", worst=f"{worst:+.1f}", best=f"{best:+.1f}", advice=advice)
     for s in signals:
         status = "✅" if s['status'] == 'win' else "❌" if s['status'] == 'loss' else "⏳"
-        text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:10]})\n"
+        text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:16]})\n"
     await target_message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 @check_limit
 async def find_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
