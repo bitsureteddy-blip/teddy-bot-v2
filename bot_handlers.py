@@ -472,6 +472,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_setlanguage"), callback_data="cmd_setlanguage")],
             [InlineKeyboardButton(get_text(lang, "btn_usage"), callback_data="cmd_usage")],
             [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique")],
+            [InlineKeyboardButton(get_text(lang, "btn_clearhistory"), callback_data="cmd_clearhistory")],
             [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
@@ -505,6 +506,11 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer(get_text(lang, "channel_not_joined"), show_alert=True)
         except Exception:
             await query.answer("Erreur. Réessaie.", show_alert=True)
+    elif data == "clearhistory_confirm":
+        history_mgr.clear_all_signals()
+        await query.edit_message_text(get_text(lang, "clearhistory_done"))
+    elif data == "clearhistory_cancel":
+        await query.edit_message_text(get_text(lang, "action_cancelled"))
 
     # --- Exécution réelle des commandes ---
     if data.startswith("cmd_"):
@@ -557,6 +563,15 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton(get_text(lang, "confirm_no"), callback_data="clearalerts_cancel")]
             ]
             await message.reply_text(get_text(lang, "clearalerts_confirm"), reply_markup=InlineKeyboardMarkup(keyboard))
+        elif cmd == "clearhistory":
+            keyboard = [
+                [InlineKeyboardButton(get_text(lang, "confirm_yes"), callback_data="clearhistory_confirm")],
+                [InlineKeyboardButton(get_text(lang, "confirm_no"), callback_data="clearhistory_cancel")]
+            ]
+            await query.message.reply_text(
+                get_text(lang, "clearhistory_confirm"),
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
         elif cmd == "watchlist":
             wl = user_mgr.get_watchlist(user_id)
             if not wl:
@@ -1719,24 +1734,48 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
     if target_message is None:
         return
-    signals = history_mgr.get_recent_signals(20)
+    signals = history_mgr.get_recent_signals(10)
     if not signals:
         await target_message.reply_text(get_text(lang, "history_empty"))
         return
-    completed = [s for s in signals if s.get("status") in ("win", "loss")]
-    wins = sum(1 for s in completed if s.get("status") == "win")
-    losses = sum(1 for s in completed if s.get("status") == "loss")
-    win_rate = (wins / len(completed) * 100) if completed else 0
-    pcts = [float(s.get("result_pct") or 0) for s in completed]
-    avg_gain = (sum(pcts) / len(pcts)) if pcts else 0
-    worst = min(pcts) if pcts else 0
-    best = max(pcts) if pcts else 0
-    advice = get_text(lang, "history_advice_high") if win_rate >= 55 else get_text(lang, "history_advice_low")
-    text = get_text(lang, "history_stats_header", total=len(signals), wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, avg=f"{avg_gain:+.2f}", worst=f"{worst:+.1f}", best=f"{best:+.1f}", advice=advice)
+
+    total = len(signals)
+    wins = sum(1 for s in signals if s.get("status") == "win")
+    win_rate = (wins / total * 100) if total else 0
+
+    total_pnl_value = 0.0
     for s in signals:
-        status = "✅" if s['status'] == 'win' else "❌" if s['status'] == 'loss' else "⏳"
-        text += f"{status} {s['id']} {s['symbol']} {s['direction']} @ {format_number(s['entry_price'])} ({s['timestamp'][:16]})\n"
-    await target_message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+        try:
+            total_pnl_value += float(s.get("result_pct") or 0)
+        except (TypeError, ValueError):
+            continue
+
+    lines = []
+    for s in signals:
+        status = s.get("status")
+        emoji = "✅" if status == "win" else "❌" if status == "loss" else "⏳"
+        timestamp = str(s.get("timestamp") or "")
+        time_hhmm = timestamp[11:16] if len(timestamp) >= 16 else "--:--"
+        symbol = s.get("symbol", "?")
+        direction = s.get("direction", "?")
+        price = format_number(s.get("entry_price", 0))
+        lines.append(f"{emoji} {time_hhmm} {symbol} {direction} @ {price}")
+
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    text = "\n".join([
+        f"📋 HISTORIQUE — {today_str}",
+        "━━━━━━━━━━━━━━━━━━━━━",
+        *lines,
+        "━━━━━━━━━━━━━━━━━━━━━",
+        f"📊 {total} signaux · {wins} gagnés ({win_rate:.0f}%) · {total_pnl_value:+.2f}%",
+    ])
+    await target_message.reply_text(text)
+@check_limit
+async def clearhistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    history_mgr.clear_all_signals()
+    await update.message.reply_text(get_text(lang, "clearhistory_done"))
+
 @check_limit
 async def find_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
