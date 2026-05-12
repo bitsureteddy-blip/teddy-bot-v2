@@ -14,7 +14,7 @@ from bot_handlers import (
     settings, settimeframe, setrisk, setlanguage, usage,
     status, about, symbolinfo, myid, broadcast, reload_cmd, stats, find_memo,
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
-    support, challenge, snapshot, verify, historique,
+    support, challenge, snapshot, verify, historique, clearhistory,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
     sentiment, compare, top, fav, teddy, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring,
     handle_pending_alert_input, paper
@@ -54,7 +54,7 @@ def main():
         ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("find_memo", find_memo), ("upgrade", upgrade),
         ("support", support), ("pay_binance", pay_binance), ("confirm_payment", confirm_payment),
-        ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique),
+        ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique), ("clearhistory", clearhistory),
         ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn), ("check", check), ("ask", ask),
         ("backtest", backtest), ("teddy", teddy)
     ]
@@ -64,7 +64,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_pending_alert_input))
 
     # Callbacks
-    app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_|checkdir_|paperdir_|check_subscription)"))
+    app.add_handler(CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_|checkdir_|paperdir_|check_subscription|clearhistory_)"))
     app.add_handler(CallbackQueryHandler(symbol_callback, pattern="^(symcat_|sympage_|symsel_|noop)"))
     app.add_handler(CallbackQueryHandler(clearalerts_callback, pattern="^clearalerts_"))
     app.add_handler(CallbackQueryHandler(plan_callback, pattern="^plan_"))
