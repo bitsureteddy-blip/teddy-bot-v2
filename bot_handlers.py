@@ -259,8 +259,6 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
-        if update.message and await handle_pending_alert_input(update, context):
-            return
         try:
             member = await context.bot.get_chat_member("@t_sworld", user_id)
             if member.status not in ("member", "administrator", "creator"):
@@ -425,6 +423,14 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await paper(update, context)
         return
 
+    if data == "clearhistory_confirm":
+        history_mgr.clear_all_signals()
+        await query.edit_message_text(get_text(lang, "clearhistory_done"))
+        return
+    elif data == "clearhistory_cancel":
+        await query.edit_message_text(get_text(lang, "action_cancelled"))
+        return
+
     # --- Sous-menus ---
     if data == "menu_analyse":
         keyboard = [
@@ -506,12 +512,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer(get_text(lang, "channel_not_joined"), show_alert=True)
         except Exception:
             await query.answer("Erreur. Réessaie.", show_alert=True)
-    elif data == "clearhistory_confirm":
-        history_mgr.clear_all_signals()
-        await query.edit_message_text(get_text(lang, "clearhistory_done"))
-    elif data == "clearhistory_cancel":
-        await query.edit_message_text(get_text(lang, "action_cancelled"))
-
     # --- Exécution réelle des commandes ---
     if data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
@@ -1730,7 +1730,7 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------- HISTORIQUE ----------
 @check_limit
 async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
+    lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
     target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
     if target_message is None:
         return
@@ -1740,11 +1740,13 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     total = len(signals)
-    wins = sum(1 for s in signals if s.get("status") == "win")
-    win_rate = (wins / total * 100) if total else 0
+    completed = [s for s in signals if s.get("status") in ("win", "loss")]
+    wins = sum(1 for s in completed if s.get("status") == "win")
+    losses = sum(1 for s in completed if s.get("status") == "loss")
+    win_rate = (wins / len(completed) * 100) if completed else 0
 
     total_pnl_value = 0.0
-    for s in signals:
+    for s in completed:
         try:
             total_pnl_value += float(s.get("result_pct") or 0)
         except (TypeError, ValueError):
@@ -1759,15 +1761,15 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         symbol = s.get("symbol", "?")
         direction = s.get("direction", "?")
         price = format_number(s.get("entry_price", 0))
-        lines.append(f"{emoji} {time_hhmm} {symbol} {direction} @ {price}")
+        lines.append(f"{emoji} {time_hhmm} UTC {symbol} {direction} @ {price}")
 
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
-        f"📋 HISTORIQUE — {today_str}",
+        f"📋 HISTORY — {today_str}",
         "━━━━━━━━━━━━━━━━━━━━━",
         *lines,
         "━━━━━━━━━━━━━━━━━━━━━",
-        f"📊 {total} signaux · {wins} gagnés ({win_rate:.0f}%) · {total_pnl_value:+.2f}%",
+        f"📊 {total} signals · {wins} wins ({win_rate:.0f}%) · {losses} losses · {total_pnl_value:+.2f}%",
     ])
     await target_message.reply_text(text)
 @check_limit
