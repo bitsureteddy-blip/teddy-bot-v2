@@ -34,10 +34,11 @@ def main():
     if not TELEGRAM_TOKEN:
         raise ValueError("TELEGRAM_TOKEN manquant dans l'environnement")
 
+    init_db()
     DataFetcher.get_instance()
     UserManager.get_instance()
     AlertManager.get_instance()
-    init_db()
+
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     AlertManager.get_instance().start_monitoring(app)
     start_weekly_report_scheduler(app)
