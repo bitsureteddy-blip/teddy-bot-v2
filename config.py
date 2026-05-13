@@ -65,27 +65,27 @@ SYMBOL_CONFIGS = {
 
     # ========== FOREX ==========
     "EURUSD": {
-        "adx_min": 25,
-        "rsi_buy_low": 35, "rsi_buy_high": 55,
-        "rsi_sell_low": 45, "rsi_sell_high": 65,
-        "atr_max_pct": 1.5,
-        "min_cond": 2,
+        "adx_min": 28,
+        "rsi_buy_low": 38, "rsi_buy_high": 52,
+        "rsi_sell_low": 48, "rsi_sell_high": 62,
+        "atr_max_pct": 1.2,
+        "min_cond": 3,
         "weights": {"trend": 35, "rsi": 15, "macd": 0, "adx": 35, "atr": 15}
     },
     "GBPUSD": {
-        "adx_min": 25,
-        "rsi_buy_low": 35, "rsi_buy_high": 55,
-        "rsi_sell_low": 45, "rsi_sell_high": 65,
-        "atr_max_pct": 2.0,
-        "min_cond": 2,
+        "adx_min": 28,
+        "rsi_buy_low": 38, "rsi_buy_high": 52,
+        "rsi_sell_low": 48, "rsi_sell_high": 62,
+        "atr_max_pct": 1.5,
+        "min_cond": 3,
         "weights": {"trend": 40, "rsi": 15, "macd": 0, "adx": 30, "atr": 15}
     },
     "USDJPY": {
-        "adx_min": 25,
-        "rsi_buy_low": 35, "rsi_buy_high": 55,
-        "rsi_sell_low": 45, "rsi_sell_high": 65,
-        "atr_max_pct": 1.5,
-        "min_cond": 2,
+        "adx_min": 28,
+        "rsi_buy_low": 38, "rsi_buy_high": 52,
+        "rsi_sell_low": 48, "rsi_sell_high": 62,
+        "atr_max_pct": 1.2,
+        "min_cond": 3,
         "weights": {"trend": 40, "rsi": 15, "macd": 0, "adx": 30, "atr": 15}
     },
     "AUDUSD": {
@@ -125,12 +125,12 @@ SYMBOL_CONFIGS = {
         "weights": {"trend": 40, "rsi": 20, "macd": 0, "adx": 15, "atr": 25}
     },
     "NVDA": {
-        "adx_min": 20,
-        "rsi_buy_low": 30, "rsi_buy_high": 45,
-        "rsi_sell_low": 55, "rsi_sell_high": 70,
-        "atr_max_pct": 4.0,
-        "min_cond": 3,
-        "weights": {"trend": 40, "rsi": 25, "macd": 0, "adx": 20, "atr": 15}
+        "adx_min": 25,
+        "rsi_buy_low": 32, "rsi_buy_high": 45,
+        "rsi_sell_low": 55, "rsi_sell_high": 68,
+        "atr_max_pct": 3.0,
+        "min_cond": 4,
+        "weights": {"trend": 40, "rsi": 20, "macd": 0, "adx": 25, "atr": 15}
     },
 }
 # --- Fichiers de données ---
