@@ -76,8 +76,14 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"=== BACKTEST {symbol} ===")
         filename = f"data/{symbol}_{BACKTEST_TIMEFRAME}.csv"
         if not os.path.exists(filename):
-            await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
-            continue
+            await update.message.reply_text(get_text(lang, "backtest_downloading", symbol=symbol))
+            df = await fetcher.get_historical_data(symbol, timeframe=BACKTEST_TIMEFRAME, period="1y")
+            if df is not None and not df.empty:
+                os.makedirs("data", exist_ok=True)
+                df.to_csv(filename)
+            else:
+                await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+                continue
 
         # Lecture du CSV
         df = pd.read_csv(filename)
@@ -281,7 +287,8 @@ def check_limit(func):
             else:
                 await update.message.reply_text(get_text(lang, "limit_reached"))
                 return
-        user_mgr.increment_usage(user_id)
+        if not user_mgr.is_admin(user_id):
+            user_mgr.increment_usage(user_id)
         return await func(update, context, *args, **kwargs)
     return wrapper
 @check_limit
@@ -424,7 +431,15 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "clearhistory_confirm":
-        history_mgr.clear_all_signals()
+        if hasattr(history_mgr, "clear_all_signals"):
+            history_mgr.clear_all_signals()
+        else:
+            history_mgr.signals = []
+            from database import get_db
+            conn = get_db()
+            conn.execute("DELETE FROM signals")
+            conn.commit()
+            conn.close()
         await query.edit_message_text(get_text(lang, "clearhistory_done"))
         return
     elif data == "clearhistory_cancel":

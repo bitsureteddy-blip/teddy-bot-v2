@@ -356,7 +356,7 @@ TEXTS = {
         "history_title": "📜 *Historique des signaux*\n",
         "history_empty": "Aucun signal enregistré.",
         "history_list_header": "📋 HISTORIQUE — {date}",
-        "history_list_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {total_pnl}",
+        "history_summary": "📊 {total} signaux · {wins} gagnés ({win_rate}%) · {losses} perdus · {total_pnl}",
         "no_recent_analysis": "Aucune analyse récente.",
 
         # ----- Signal Engine -----
@@ -446,6 +446,7 @@ TEXTS = {
 
         # ----- Backtest -----
         "backtest_start": "🚀 Lancement du backtest (peut prendre quelques instants)...",
+        "backtest_downloading": "⬇️ Téléchargement des données pour {symbol}...",
         "backtest_no_data": "⚠️ Pas de données pour {symbol}",
         "backtest_no_trades": "ℹ️ {symbol}: Aucun trade.",
         "backtest_title": "📊 {symbol} – Résultats du backtest",
@@ -841,7 +842,7 @@ TEXTS = {
         "history_title": "📜 *Signal History*\n",
         "history_empty": "No signals recorded.",
         "history_list_header": "📋 HISTORY — {date}",
-        "history_list_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {total_pnl}",
+        "history_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {total_pnl}",
         "no_recent_analysis": "No recent analysis.",
 
         # ----- Signal Engine -----
@@ -941,6 +942,7 @@ TEXTS = {
 
         # ----- Backtest -----
         "backtest_start": "🚀 Starting backtest (this may take a few moments)...",
+        "backtest_downloading": "⬇️ Downloading data for {symbol}...",
         "backtest_no_data": "⚠️ No data available for {symbol}",
         "backtest_no_trades": "ℹ️ {symbol}: No trades.",
         "backtest_title": "📊 {symbol} – Backtest Results",
