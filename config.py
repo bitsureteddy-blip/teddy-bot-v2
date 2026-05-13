@@ -59,7 +59,7 @@ SYMBOL_CONFIGS = {
         "rsi_buy_low": 28, "rsi_buy_high": 42,
         "rsi_sell_low": 58, "rsi_sell_high": 72,
         "atr_max_pct": 5.0,
-        "min_cond": 5,
+        "min_cond": 4,
         "weights": {"trend": 20, "rsi": 20, "macd": 25, "adx": 20, "atr": 15}
     },
 
@@ -103,7 +103,7 @@ SYMBOL_CONFIGS = {
         "rsi_buy_low": 32, "rsi_buy_high": 55,
         "rsi_sell_low": 45, "rsi_sell_high": 68,
         "atr_max_pct": 1.2,
-        "min_cond": 6,
+        "min_cond": 5,
         "weights": {"trend": 30, "rsi": 20, "macd": 15, "adx": 20, "atr": 15}
     },
 
@@ -113,7 +113,7 @@ SYMBOL_CONFIGS = {
         "rsi_buy_low": 30, "rsi_buy_high": 45,
         "rsi_sell_low": 55, "rsi_sell_high": 70,
         "atr_max_pct": 3.5,
-        "min_cond": 5,
+        "min_cond": 4,
         "weights": {"trend": 25, "rsi": 20, "macd": 20, "adx": 20, "atr": 15}
     },
     "TSLA": {
