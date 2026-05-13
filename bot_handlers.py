@@ -1765,11 +1765,11 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
-        f"📋 HISTORY — {today_str}",
+        get_text(lang, "history_title", date=today_str),
         "━━━━━━━━━━━━━━━━━━━━━",
         *lines,
         "━━━━━━━━━━━━━━━━━━━━━",
-        f"📊 {total} signals · {wins} wins ({win_rate:.0f}%) · {losses} losses · {total_pnl_value:+.2f}%",
+        get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
     ])
     await target_message.reply_text(text)
 @check_limit
