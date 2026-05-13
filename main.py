@@ -8,6 +8,14 @@ import os
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 from config import TELEGRAM_TOKEN
+from data_fetcher import DataFetcher
+from user_manager import UserManager
+from alert_manager import AlertManager
+from database import init_db
+
+# CRÉER LES TABLES AVANT D'IMPORTER BOT_HANDLERS (car il appelle UserManager au chargement)
+init_db()
+
 from bot_handlers import (
     start, help_command, analyse, price,
     alert, alerts, delalert, clearalerts, trend, volatility, correlation, levels,
@@ -19,10 +27,6 @@ from bot_handlers import (
     sentiment, compare, top, fav, teddy, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring,
     handle_pending_alert_input, paper
 )
-from data_fetcher import DataFetcher
-from user_manager import UserManager
-from alert_manager import AlertManager
-from database import init_db
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -34,7 +38,6 @@ def main():
     if not TELEGRAM_TOKEN:
         raise ValueError("TELEGRAM_TOKEN manquant dans l'environnement")
 
-    init_db()
     DataFetcher.get_instance()
     UserManager.get_instance()
     AlertManager.get_instance()
