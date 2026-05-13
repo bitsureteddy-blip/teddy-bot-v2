@@ -424,15 +424,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "clearhistory_confirm":
-        if hasattr(history_mgr, "clear_all_signals"):
-            history_mgr.clear_all_signals()
-        else:
-            history_mgr.signals = []
-            from database import get_db
-            conn = get_db()
-            conn.execute("DELETE FROM signals")
-            conn.commit()
-            conn.close()
+        history_mgr.clear_all_signals()
         await query.edit_message_text(get_text(lang, "clearhistory_done"))
         return
     elif data == "clearhistory_cancel":
@@ -1773,11 +1765,11 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
-        get_text(lang, "history_list_header", date=today_str),
+        get_text(lang, "history_title", date=today_str),
         "━━━━━━━━━━━━━━━━━━━━━",
         *lines,
         "━━━━━━━━━━━━━━━━━━━━━",
-        get_text(lang, "history_list_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
+        get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
     ])
     await target_message.reply_text(text)
 @check_limit
