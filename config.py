@@ -47,11 +47,11 @@ RR_RATIO_TARGET = 2.0
 SYMBOL_CONFIGS = {
     # --- Cryptos ---
     "BTCUSD": {
-        "adx_min": 22,
-        "rsi_buy_low": 30, "rsi_buy_high": 45,
-        "rsi_sell_low": 55, "rsi_sell_high": 70,
+        "adx_min": 18,
+        "rsi_buy_low": 28, "rsi_buy_high": 48,
+        "rsi_sell_low": 52, "rsi_sell_high": 72,
         "atr_max_pct": 4.5,
-        "min_cond": 5,
+        "min_cond": 4,
         "weights": {"trend": 25, "rsi": 20, "macd": 25, "adx": 20, "atr": 10}
     },
     "ETHUSD": {
@@ -81,9 +81,9 @@ SYMBOL_CONFIGS = {
         "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
     },
     "USDJPY": {
-        "adx_min": 22,
-        "rsi_buy_low": 40, "rsi_buy_high": 60,
-        "rsi_sell_low": 40, "rsi_sell_high": 60,
+        "adx_min": 18,
+        "rsi_buy_low": 35, "rsi_buy_high": 62,
+        "rsi_sell_low": 38, "rsi_sell_high": 65,
         "atr_max_pct": 0.8,
         "min_cond": 5,
         "weights": {"trend": 30, "rsi": 15, "macd": 15, "adx": 20, "atr": 20}
@@ -99,11 +99,11 @@ SYMBOL_CONFIGS = {
 
     # --- Matière première ---
     "XAUUSD": {
-        "adx_min": 25,
-        "rsi_buy_low": 35, "rsi_buy_high": 65,
-        "rsi_sell_low": 35, "rsi_sell_high": 65,
-        "atr_max_pct": 1.0,
-        "min_cond": 5,
+        "adx_min": 22,
+        "rsi_buy_low": 32, "rsi_buy_high": 55,
+        "rsi_sell_low": 45, "rsi_sell_high": 68,
+        "atr_max_pct": 1.2,
+        "min_cond": 6,
         "weights": {"trend": 30, "rsi": 20, "macd": 15, "adx": 20, "atr": 15}
     },
 
@@ -126,10 +126,10 @@ SYMBOL_CONFIGS = {
     },
     "NVDA": {
         "adx_min": 25,
-        "rsi_buy_low": 30, "rsi_buy_high": 70,
-        "rsi_sell_low": 30, "rsi_sell_high": 70,
-        "atr_max_pct": 5.0,
-        "min_cond": 4,
+        "rsi_buy_low": 30, "rsi_buy_high": 65,
+        "rsi_sell_low": 35, "rsi_sell_high": 70,
+        "atr_max_pct": 4.5,
+        "min_cond": 5,
         "weights": {"trend": 20, "rsi": 15, "macd": 25, "adx": 20, "atr": 20}
     },
 }
