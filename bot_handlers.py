@@ -259,8 +259,6 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
-        if update.message and await handle_pending_alert_input(update, context):
-            return
         try:
             member = await context.bot.get_chat_member("@t_sworld", user_id)
             if member.status not in ("member", "administrator", "creator"):
@@ -425,6 +423,14 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await paper(update, context)
         return
 
+    if data == "clearhistory_confirm":
+        history_mgr.clear_all_signals()
+        await query.edit_message_text(get_text(lang, "clearhistory_done"))
+        return
+    elif data == "clearhistory_cancel":
+        await query.edit_message_text(get_text(lang, "action_cancelled"))
+        return
+
     # --- Sous-menus ---
     if data == "menu_analyse":
         keyboard = [
@@ -506,12 +512,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer(get_text(lang, "channel_not_joined"), show_alert=True)
         except Exception:
             await query.answer("Erreur. Réessaie.", show_alert=True)
-    elif data == "clearhistory_confirm":
-        history_mgr.clear_all_signals()
-        await query.edit_message_text(get_text(lang, "clearhistory_done"))
-    elif data == "clearhistory_cancel":
-        await query.edit_message_text(get_text(lang, "action_cancelled"))
-
     # --- Exécution réelle des commandes ---
     if data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
