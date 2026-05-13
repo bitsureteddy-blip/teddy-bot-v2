@@ -52,7 +52,7 @@ SYMBOL_CONFIGS = {
         "rsi_sell_low": 50, "rsi_sell_high": 70,
         "atr_max_pct": 6.0,
         "min_cond": 3,
-        "weights": {"trend": 35, "rsi": 15, "macd": 0, "adx": 20, "atr": 15, "sma_gap": 15}
+        "weights": {"trend": 50, "rsi": 15, "macd": 0, "adx": 20, "atr": 15}
     },
     "ETHUSD": {
         "adx_min": 25,
@@ -60,7 +60,7 @@ SYMBOL_CONFIGS = {
         "rsi_sell_low": 50, "rsi_sell_high": 70,
         "atr_max_pct": 5.0,
         "min_cond": 3,
-        "weights": {"trend": 33, "rsi": 15, "macd": 0, "adx": 22, "atr": 15, "sma_gap": 15}
+        "weights": {"trend": 48, "rsi": 15, "macd": 0, "adx": 22, "atr": 15}
     },
 
     # ========== FOREX ==========
@@ -70,7 +70,7 @@ SYMBOL_CONFIGS = {
         "rsi_sell_low": 45, "rsi_sell_high": 65,
         "atr_max_pct": 1.5,
         "min_cond": 2,
-        "weights": {"trend": 30, "rsi": 15, "macd": 0, "adx": 35, "atr": 15, "sma_gap": 5}
+        "weights": {"trend": 35, "rsi": 15, "macd": 0, "adx": 35, "atr": 15}
     },
     "GBPUSD": {
         "adx_min": 25,
@@ -78,7 +78,7 @@ SYMBOL_CONFIGS = {
         "rsi_sell_low": 45, "rsi_sell_high": 65,
         "atr_max_pct": 2.0,
         "min_cond": 2,
-        "weights": {"trend": 30, "rsi": 15, "macd": 0, "adx": 30, "atr": 15, "sma_gap": 10}
+        "weights": {"trend": 40, "rsi": 15, "macd": 0, "adx": 30, "atr": 15}
     },
     "USDJPY": {
         "adx_min": 25,
@@ -86,7 +86,7 @@ SYMBOL_CONFIGS = {
         "rsi_sell_low": 45, "rsi_sell_high": 65,
         "atr_max_pct": 1.5,
         "min_cond": 2,
-        "weights": {"trend": 30, "rsi": 15, "macd": 0, "adx": 30, "atr": 15, "sma_gap": 10}
+        "weights": {"trend": 40, "rsi": 15, "macd": 0, "adx": 30, "atr": 15}
     },
     "AUDUSD": {
         "adx_min": 25,
@@ -94,17 +94,17 @@ SYMBOL_CONFIGS = {
         "rsi_sell_low": 45, "rsi_sell_high": 65,
         "atr_max_pct": 2.0,
         "min_cond": 2,
-        "weights": {"trend": 30, "rsi": 15, "macd": 0, "adx": 30, "atr": 15, "sma_gap": 10}
+        "weights": {"trend": 40, "rsi": 15, "macd": 0, "adx": 30, "atr": 15}
     },
 
-    # ========== MATIÈRE PREMIÈRE ==========
+    # ========== OR ==========
     "XAUUSD": {
         "adx_min": 25,
         "rsi_buy_low": 30, "rsi_buy_high": 50,
         "rsi_sell_low": 50, "rsi_sell_high": 70,
         "atr_max_pct": 3.0,
         "min_cond": 3,
-        "weights": {"trend": 35, "rsi": 15, "macd": 0, "adx": 25, "atr": 15, "sma_gap": 10}
+        "weights": {"trend": 45, "rsi": 15, "macd": 0, "adx": 25, "atr": 15}
     },
 
     # ========== ACTIONS TECH ==========
@@ -114,7 +114,7 @@ SYMBOL_CONFIGS = {
         "rsi_sell_low": 55, "rsi_sell_high": 70,
         "atr_max_pct": 3.0,
         "min_cond": 3,
-        "weights": {"trend": 30, "rsi": 25, "macd": 0, "adx": 15, "atr": 20, "sma_gap": 10}
+        "weights": {"trend": 40, "rsi": 25, "macd": 0, "adx": 15, "atr": 20}
     },
     "TSLA": {
         "adx_min": 20,
@@ -122,7 +122,7 @@ SYMBOL_CONFIGS = {
         "rsi_sell_low": 55, "rsi_sell_high": 70,
         "atr_max_pct": 6.0,
         "min_cond": 3,
-        "weights": {"trend": 25, "rsi": 20, "macd": 0, "adx": 15, "atr": 25, "sma_gap": 15}
+        "weights": {"trend": 40, "rsi": 20, "macd": 0, "adx": 15, "atr": 25}
     },
     "NVDA": {
         "adx_min": 20,
@@ -130,7 +130,7 @@ SYMBOL_CONFIGS = {
         "rsi_sell_low": 55, "rsi_sell_high": 70,
         "atr_max_pct": 4.0,
         "min_cond": 3,
-        "weights": {"trend": 30, "rsi": 25, "macd": 0, "adx": 20, "atr": 15, "sma_gap": 10}
+        "weights": {"trend": 40, "rsi": 25, "macd": 0, "adx": 20, "atr": 15}
     },
 }
 # --- Fichiers de données ---
