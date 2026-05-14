@@ -62,7 +62,12 @@ def main():
         ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn), ("check", check), ("ask", ask),
         ("backtest", backtest), ("teddy", teddy)
     ]
+    seen = set()
     for cmd, func in handlers:
+        if cmd in seen:
+            logger.warning(f"Duplicate command handler skipped: /{cmd}")
+            continue
+        seen.add(cmd)
         app.add_handler(CommandHandler(cmd, func))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_pending_alert_input))
