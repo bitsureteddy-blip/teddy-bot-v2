@@ -1780,7 +1780,7 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
-        get_text(lang, "history_list_header", date=today_str),
+        get_text(lang, "history_title", date=today_str),
         "━━━━━━━━━━━━━━━━━━━━━",
         *lines,
         "━━━━━━━━━━━━━━━━━━━━━",
