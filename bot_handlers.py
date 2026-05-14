@@ -462,7 +462,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             fetcher._start_real_ws()
         await query.edit_message_text(get_text(lang, "switchapi_switched", source=source), parse_mode=ParseMode.MARKDOWN)
         return
-
     # --- Sous-menus ---
     if data == "menu_analyse":
         keyboard = [
@@ -1842,7 +1841,7 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
-        get_text(lang, "history_list_header", date=today_str),
+        get_text(lang, "history_title", date=today_str),
         "━━━━━━━━━━━━━━━━━━━━━",
         *lines,
         "━━━━━━━━━━━━━━━━━━━━━",
