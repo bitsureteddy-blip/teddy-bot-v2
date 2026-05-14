@@ -1542,18 +1542,24 @@ async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     challenge_mgr = ChallengeManager.get_instance()
     await update.message.reply_text(get_text(lang, "reload_success"))
 @check_limit
+@check_limit
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text(get_text(user_mgr.get_setting(update.effective_user.id, "lang", "en"), "broadcast_admin_only"))
         return
     lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
-    user_mgr._load_users()
-    total = len(user_mgr.users)
-    free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
-    pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
+    from database import get_db
+    conn = get_db()
+    total_row = conn.execute("SELECT COUNT(*) as total FROM users").fetchone()
+    total = total_row["total"] if total_row else 0
+    free_row = conn.execute("SELECT COUNT(*) as c FROM users WHERE role='free'").fetchone()
+    free = free_row["c"] if free_row else 0
+    pro_row = conn.execute("SELECT COUNT(*) as c FROM users WHERE role='pro'").fetchone()
+    pro = pro_row["c"] if pro_row else 0
+    conn.close()
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-@check_limit
+check_limit
 async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
         return
