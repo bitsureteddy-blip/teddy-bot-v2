@@ -1360,6 +1360,43 @@ async def learn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(lang, "learn_usage"))
 # ---------- PARAMÈTRES ----------
+
+@check_limit
+async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permet à l'admin de switcher manuellement de source API."""
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "admin_only"))
+        return
+
+    fetcher = DataFetcher.get_instance()
+    current = fetcher.active_source or "none"
+
+    if not context.args:
+        await update.message.reply_text(
+            f"🔄 {get_text(lang, 'switchapi_current', source=current)}\n"
+            f"{get_text(lang, 'switchapi_usage')}\n"
+            f"Failure stats: {fetcher.source_failures}"
+        )
+        return
+
+    target = context.args[0].lower()
+    if target not in ("twelve", "fcs", "real"):
+        await update.message.reply_text(get_text(lang, "switchapi_usage"))
+        return
+
+    if fetcher.ws:
+        fetcher.ws.close()
+
+    if target == "twelve":
+        fetcher._start_twelve_ws()
+    elif target == "fcs":
+        fetcher._start_fcs_ws()
+    elif target == "real":
+        fetcher._start_real_ws()
+
+    await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
+
 @check_limit
 async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Permet à l'admin de switcher manuellement de source API."""
@@ -1515,18 +1552,24 @@ async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     challenge_mgr = ChallengeManager.get_instance()
     await update.message.reply_text(get_text(lang, "reload_success"))
 @check_limit
+@check_limit
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text(get_text(user_mgr.get_setting(update.effective_user.id, "lang", "en"), "broadcast_admin_only"))
         return
     lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
-    user_mgr._load_users()
-    total = len(user_mgr.users)
-    free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
-    pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
+    from database import get_db
+    conn = get_db()
+    total_row = conn.execute("SELECT COUNT(*) as total FROM users").fetchone()
+    total = total_row["total"] if total_row else 0
+    free_row = conn.execute("SELECT COUNT(*) as c FROM users WHERE role='free'").fetchone()
+    free = free_row["c"] if free_row else 0
+    pro_row = conn.execute("SELECT COUNT(*) as c FROM users WHERE role='pro'").fetchone()
+    pro = pro_row["c"] if pro_row else 0
+    conn.close()
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-@check_limit
+check_limit
 async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
         return
@@ -1800,7 +1843,7 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lines.append(f"{emoji} {time_hhmm} UTC {symbol} {direction} @ {price}")
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
-        get_text(lang, "history_list_header", date=today_str),
+        get_text(lang, "history_title", date=today_str),
         "━━━━━━━━━━━━━━━━━━━━━",
         *lines,
         "━━━━━━━━━━━━━━━━━━━━━",
