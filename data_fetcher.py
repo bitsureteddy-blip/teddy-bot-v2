@@ -9,9 +9,10 @@ import threading
 import pandas as pd
 
 from config import (
-    FCS_API_KEY, TWELVEDATA_API_KEY,
+    FCS_API_KEY, TWELVEDATA_API_KEY, REALMARKET_API_KEY,
     PRICE_CACHE_TTL, HISTORY_CACHE_TTL,
-    DEFAULT_TIMEFRAME, HISTORY_PERIOD
+    DEFAULT_TIMEFRAME, HISTORY_PERIOD,
+    TWELVEDATA_WS_URL, FCS_WS_URL, REALMARKET_WS_URL, FCS_WS_KEY
 )
 from utils import cache_key, normalize_symbol
 
@@ -25,9 +26,11 @@ class DataFetcher:
         self.price_cache = {}
         self.history_cache = {}
         self.tick_history = {}
-        self.subscribed_symbols = set(["BTCUSD", "ETHUSD", "SOLUSD", "XRPUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "AAPL", "TSLA", "NVDA"])
+        self.subscribed_symbols = set(["BTCUSD", "ETHUSD", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "AAPL", "TSLA", "NVDA"])
         self.ws = None
         self.ws_thread = None
+        self.active_source = None
+        self.source_failures = {"twelve": 0, "fcs": 0, "real": 0}
 
     @classmethod
     def get_instance(cls):
@@ -35,23 +38,50 @@ class DataFetcher:
             cls._instance = cls()
         return cls._instance
 
-    def start_websocket(self):
-        self.start_twelvedata_websocket()
+    def _close_active_ws(self):
+        if self.ws:
+            try:
+                self.ws.close()
+            except Exception:
+                pass
+        self.ws = None
+        self.ws_thread = None
 
-    def start_twelvedata_websocket(self):
-        if not TWELVEDATA_API_KEY or (self.ws_thread and self.ws_thread.is_alive()):
+    # ========== DÉMARRAGE PRINCIPAL ==========
+
+    def start_websocket(self):
+        """Démarre la source principale (Twelve Data) avec fallback automatique."""
+        self._start_twelve_ws()
+
+    # ========== TWELVE DATA ==========
+
+    def _start_twelve_ws(self):
+        self._close_active_ws()
+        if not TWELVEDATA_API_KEY:
+            logger.warning("Twelve Data: pas de clé API, bascule sur FCS")
+            self._start_fcs_ws()
             return
 
         def on_open(ws):
-            formatted_symbols = [self._format_symbol(s) for s in sorted(self.subscribed_symbols)]
-            ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(formatted_symbols)}}))
+            formatted = [self._format_symbol(s) for s in sorted(self.subscribed_symbols)]
+            ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(formatted)}}))
+            self.active_source = "twelve"
+            self.source_failures["twelve"] = 0
+            logger.info("✅ Twelve Data WebSocket actif")
+
+        def on_error(ws, err):
+            logger.error(f"Twelve WS error: {err}")
+            self.source_failures["twelve"] += 1
+            if self.source_failures["twelve"] >= 3:
+                logger.warning("⚠️ Bascule source: twelve -> fcs")
+                self._start_fcs_ws()
 
         self.ws = websocket.WebSocketApp(
-            f"wss://ws.twelvedata.com/v1/quotes/price?apikey={TWELVEDATA_API_KEY}",
+            f"{TWELVEDATA_WS_URL}?apikey={TWELVEDATA_API_KEY}",
             on_open=on_open,
             on_message=lambda ws, msg: self._on_twelve_message(msg),
-            on_error=lambda ws, err: logger.error(f"Twelve WS error: {err}"),
-            on_close=lambda ws, *args: logger.info("Twelve WS closed")
+            on_error=on_error,
+            on_close=lambda ws, *args: self._on_source_close("twelve")
         )
         self.ws_thread = threading.Thread(target=self.ws.run_forever, daemon=True)
         self.ws_thread.start()
@@ -75,13 +105,123 @@ class DataFetcher:
             self.price_cache[symbol] = {"price": price, "bid": bid, "ask": ask, "timestamp": time.time()}
             self.add_tick(symbol, price)
         except Exception as e:
-            logger.debug(f"WS parse error: {e}")
+            logger.debug(f"Twelve WS parse error: {e}")
+
+    # ========== FCS API ==========
+
+    def _start_fcs_ws(self):
+        self._close_active_ws()
+        if not FCS_WS_KEY:
+            logger.warning("FCS: pas de clé WebSocket, bascule sur RealMarket")
+            self._start_real_ws()
+            return
+
+        def on_open(ws):
+            ws.send(json.dumps({"type": "auth", "api_key": FCS_WS_KEY}))
+            logger.info("FCS: authentification envoyée")
+
+        def on_message(ws, message):
+            data = json.loads(message)
+            if data.get("type") == "auth" and data.get("status") == "ok":
+                self.active_source = "fcs"
+                self.source_failures["fcs"] = 0
+                logger.info("✅ FCS WebSocket actif")
+                formatted = [self._format_symbol_fcs(s) for s in sorted(self.subscribed_symbols)]
+                ws.send(json.dumps({"type": "subscribe", "symbol": ",".join(formatted)}))
+            elif data.get("type") == "price":
+                symbol = normalize_symbol(data.get("symbol", "").replace("FX:", "").replace("BINANCE:", ""))
+                prices = data.get("prices", {})
+                price = float(prices.get("c", 0))
+                bid = float(prices.get("b", price * 0.9995))
+                ask = float(prices.get("a", price * 1.0005))
+                self.price_cache[symbol] = {"price": price, "bid": bid, "ask": ask, "timestamp": time.time()}
+                self.add_tick(symbol, price)
+
+        def on_error(ws, err):
+            logger.error(f"FCS WS error: {err}")
+            self.source_failures["fcs"] += 1
+            if self.source_failures["fcs"] >= 3:
+                logger.warning("⚠️ Bascule source: fcs -> real")
+                self._start_real_ws()
+
+        self.ws = websocket.WebSocketApp(
+            FCS_WS_URL,
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=lambda ws, *args: self._on_source_close("fcs")
+        )
+        self.ws_thread = threading.Thread(target=self.ws.run_forever, daemon=True)
+        self.ws_thread.start()
+
+    def _format_symbol_fcs(self, symbol):
+        s = symbol.upper()
+        if s in ["BTCUSD", "ETHUSD"]:
+            return f"BINANCE:{s}"
+        elif s in ["AAPL", "TSLA", "NVDA"]:
+            return f"NASDAQ:{s}"
+        else:
+            return f"FX:{s}"
+
+    # ========== REALMARKET API ==========
+
+    def _start_real_ws(self):
+        self._close_active_ws()
+        if not REALMARKET_API_KEY:
+            logger.error("❌ Aucune source WebSocket disponible")
+            self.active_source = None
+            return
+
+        def on_open(ws):
+            self.active_source = "real"
+            self.source_failures["real"] = 0
+            logger.info("✅ RealMarket WebSocket actif")
+
+        def on_message(ws, message):
+            try:
+                data = json.loads(message)
+                symbol = normalize_symbol(data.get("SymbolCode", ""))
+                price = float(data.get("ClosePrice", 0))
+                bid = float(data.get("Bid", price * 0.9995))
+                ask = float(data.get("Ask", price * 1.0005))
+                self.price_cache[symbol] = {"price": price, "bid": bid, "ask": ask, "timestamp": time.time()}
+                self.add_tick(symbol, price)
+            except Exception as e:
+                logger.debug(f"RealMarket WS parse error: {e}")
+
+        def on_error(ws, err):
+            logger.error(f"RealMarket WS error: {err}")
+            self.source_failures["real"] += 1
+
+        self.ws = websocket.WebSocketApp(
+            f"{REALMARKET_WS_URL}?ApiKey={REALMARKET_API_KEY}",
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=lambda ws, *args: self._on_source_close("real")
+        )
+        self.ws_thread = threading.Thread(target=self.ws.run_forever, daemon=True)
+        self.ws_thread.start()
+
+    def _on_source_close(self, source):
+        logger.warning(f"⚠️ {source} WebSocket fermé")
+        if source == "twelve" and self.active_source == "twelve":
+            logger.warning("⚠️ Bascule source: twelve -> fcs")
+            self._start_fcs_ws()
+        elif source == "fcs" and self.active_source == "fcs":
+            logger.warning("⚠️ Bascule source: fcs -> real")
+            self._start_real_ws()
+        elif source == "real" and self.active_source == "real":
+            self.active_source = None
+            logger.error("❌ Toutes les sources WebSocket sont down; fallback REST actif")
 
     def subscribe_twelvedata(self, symbol: str):
         symbol = normalize_symbol(symbol)
         self.subscribed_symbols.add(symbol)
-        if self.ws and self.ws.sock and self.ws.sock.connected:
+        if self.active_source == "twelve" and self.ws and self.ws.sock and self.ws.sock.connected:
             self.ws.send(json.dumps({"action": "subscribe", "params": {"symbols": self._format_symbol(symbol)}}))
+        elif self.active_source == "fcs" and self.ws and self.ws.sock and self.ws.sock.connected:
+            self.ws.send(json.dumps({"type": "subscribe", "symbol": self._format_symbol_fcs(symbol)}))
 
     def add_tick(self, symbol: str, price: float):
         symbol = normalize_symbol(symbol)
@@ -132,20 +272,16 @@ class DataFetcher:
 
     def _format_symbol(self, symbol: str) -> str:
         s = symbol.upper()
-        # Forex (6 caractères = 3+3)
         if len(s) == 6:
             return f"{s[:3]}/{s[3:]}"
-        # Matières premières
         if s == "WTI":
             return "WTI/USD"
         if s == "XAGUSD":
             return "XAG/USD"
         if s == "XAUUSD":
             return "XAU/USD"
-        # Actions (pas de /USD, Twelve Data utilise le ticker seul)
         if s in ["AAPL", "TSLA", "NVDA"]:
             return s
-        # Indices
         if s == "SPX":
             return "SPX"
         if s == "NDX":

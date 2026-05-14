@@ -137,6 +137,16 @@ class HistoryManager:
         conn.commit()
         conn.close()
 
+
+    def clear_all_signals(self):
+        """Efface tous les signaux (SQLite + mémoire)."""
+        self.signals = []
+        from database import get_db
+        conn = get_db()
+        conn.execute("DELETE FROM signals")
+        conn.commit()
+        conn.close()
+
     def clear_old_signals(self, days: int = 30):
         cutoff = datetime.utcnow() - timedelta(days=days)
         self.signals = [s for s in self.signals if datetime.fromisoformat(s["timestamp"]) > cutoff]
