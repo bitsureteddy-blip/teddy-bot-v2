@@ -333,7 +333,7 @@ TEXTS = {
         "revoke_usage": "Usage: /revoke USER_ID",
         "revoke_success": "✅ Rôle de l'utilisateur {target_id} révoqué (free).",
         "revoke_confirm": "⚠️ Révoquer l'accès de {target_id} ?",
-        "action_cancelled": "Action annulée.",
+        "action_cancelled": "❌ Action annulée.",
         "redeem_usage": "Usage: /redeem CODE",
         "redeem_success": "✅ Code promo appliqué : {message}",
         "redeem_invalid": "❌ Code promo invalide ou expiré.",
@@ -355,6 +355,8 @@ TEXTS = {
         "verify_usage": "Usage: /verify SIGNAL_ID",
         "history_title": "📜 *Historique des signaux*\n",
         "history_empty": "Aucun signal enregistré.",
+        "history_list_header": "📋 HISTORIQUE — {date}",
+        "history_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {total_pnl}",
         "no_recent_analysis": "Aucune analyse récente.",
 
         # ----- Signal Engine -----
@@ -386,6 +388,9 @@ TEXTS = {
                         "back": "⬅️ Retour",
         "menu_choose_command": "Choisissez une commande :",
         "menu_upgrade": "💎 Upgrade",
+        "switchapi_usage": "Usage : /switchapi twelve|fcs|real",
+        "switchapi_current": "Source actuelle : {source}",
+        "switchapi_switched": "✅ Basculement vers {source} effectué.",
         "btn_analyse": "📊 Analyse",
         "btn_price": "💰 Prix",
         "btn_scalp": "⚡ Score Teddy",
@@ -444,6 +449,7 @@ TEXTS = {
 
         # ----- Backtest -----
         "backtest_start": "🚀 Lancement du backtest (peut prendre quelques instants)...",
+        "backtest_downloading": "⬇️ Téléchargement des données pour {symbol}...",
         "backtest_no_data": "⚠️ Pas de données pour {symbol}",
         "backtest_no_trades": "ℹ️ {symbol}: Aucun trade.",
         "backtest_title": "📊 {symbol} – Résultats du backtest",
@@ -816,7 +822,7 @@ TEXTS = {
         "revoke_usage": "Usage: /revoke USER_ID",
         "revoke_success": "✅ User {target_id} role revoked (free).",
         "revoke_confirm": "⚠️ Revoke access for {target_id}?",
-        "action_cancelled": "❌ Action annulée.",
+        "action_cancelled": "❌ Action cancelled.",
         "redeem_usage": "Usage: /redeem CODE",
         "redeem_success": "✅ Promo code applied: {message}",
         "redeem_invalid": "❌ Invalid or expired promo code.",
@@ -838,6 +844,8 @@ TEXTS = {
         "verify_usage": "Usage: /verify SIGNAL_ID",
         "history_title": "📜 *Signal History*\n",
         "history_empty": "No signals recorded.",
+        "history_list_header": "📋 HISTORY — {date}",
+        "history_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {total_pnl}",
         "no_recent_analysis": "No recent analysis.",
 
         # ----- Signal Engine -----
@@ -869,6 +877,9 @@ TEXTS = {
                         "back": "⬅️ Back",
         "menu_choose_command": "Choose a command:",
         "menu_upgrade": "💎 Upgrade",
+        "switchapi_usage": "Usage: /switchapi twelve|fcs|real",
+        "switchapi_current": "Current source: {source}",
+        "switchapi_switched": "✅ Switched to {source}.",
         "btn_analyse": "📊 Analysis",
         "btn_price": "💰 Price",
         "btn_scalp": "⚡ Teddy score",
@@ -937,6 +948,7 @@ TEXTS = {
 
         # ----- Backtest -----
         "backtest_start": "🚀 Starting backtest (this may take a few moments)...",
+        "backtest_downloading": "⬇️ Downloading data for {symbol}...",
         "backtest_no_data": "⚠️ No data available for {symbol}",
         "backtest_no_trades": "ℹ️ {symbol}: No trades.",
         "backtest_title": "📊 {symbol} – Backtest Results",

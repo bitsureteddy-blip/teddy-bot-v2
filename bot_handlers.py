@@ -76,8 +76,14 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"=== BACKTEST {symbol} ===")
         filename = f"data/{symbol}_{BACKTEST_TIMEFRAME}.csv"
         if not os.path.exists(filename):
-            await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
-            continue
+            await update.message.reply_text(get_text(lang, "backtest_downloading", symbol=symbol))
+            df = await fetcher.get_historical_data(symbol, timeframe=BACKTEST_TIMEFRAME, period="1y")
+            if df is not None and not df.empty:
+                os.makedirs("data", exist_ok=True)
+                df.to_csv(filename)
+            else:
+                await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+                continue
 
         # Lecture du CSV
         df = pd.read_csv(filename)
@@ -259,8 +265,6 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
-        if update.message and await handle_pending_alert_input(update, context):
-            return
         try:
             member = await context.bot.get_chat_member("@t_sworld", user_id)
             if member.status not in ("member", "administrator", "creator"):
@@ -283,7 +287,8 @@ def check_limit(func):
             else:
                 await update.message.reply_text(get_text(lang, "limit_reached"))
                 return
-        user_mgr.increment_usage(user_id)
+        if not user_mgr.is_admin(user_id):
+            user_mgr.increment_usage(user_id)
         return await func(update, context, *args, **kwargs)
     return wrapper
 @check_limit
@@ -425,6 +430,39 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await paper(update, context)
         return
 
+    if data == "clearhistory_confirm":
+        if hasattr(history_mgr, "clear_all_signals"):
+            history_mgr.clear_all_signals()
+        else:
+            history_mgr.signals = []
+            from database import get_db
+            conn = get_db()
+            conn.execute("DELETE FROM signals")
+            conn.commit()
+            conn.close()
+        await query.edit_message_text(get_text(lang, "clearhistory_done"))
+        return
+    elif data == "clearhistory_cancel":
+        await query.edit_message_text(get_text(lang, "action_cancelled"))
+        return
+
+    if data.startswith("switchapi_"):
+        source = data.replace("switchapi_", "")
+        if update.effective_user.id != ADMIN_ID:
+            await query.answer(get_text(lang, "admin_only"), show_alert=True)
+            return
+        fetcher = DataFetcher.get_instance()
+        if fetcher.ws:
+            fetcher.ws.close()
+        if source == "twelve":
+            fetcher._start_twelve_ws()
+        elif source == "fcs":
+            fetcher._start_fcs_ws()
+        elif source == "real":
+            fetcher._start_real_ws()
+        await query.edit_message_text(get_text(lang, "switchapi_switched", source=source), parse_mode=ParseMode.MARKDOWN)
+        return
+
     # --- Sous-menus ---
     if data == "menu_analyse":
         keyboard = [
@@ -474,6 +512,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique")],
             [InlineKeyboardButton(get_text(lang, "btn_clearhistory"), callback_data="cmd_clearhistory")],
             [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
+            [InlineKeyboardButton("🔄 Switch API", callback_data="cmd_switchapi")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_parametres')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -506,12 +545,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer(get_text(lang, "channel_not_joined"), show_alert=True)
         except Exception:
             await query.answer("Erreur. Réessaie.", show_alert=True)
-    elif data == "clearhistory_confirm":
-        history_mgr.clear_all_signals()
-        await query.edit_message_text(get_text(lang, "clearhistory_done"))
-    elif data == "clearhistory_cancel":
-        await query.edit_message_text(get_text(lang, "action_cancelled"))
-
     # --- Exécution réelle des commandes ---
     if data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
@@ -642,6 +675,13 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await paper(update, context)
         elif cmd == "support":
             await message.reply_text(get_text(lang, "support"))
+        elif cmd == "switchapi":
+            kb = [
+                [InlineKeyboardButton("Twelve Data", callback_data="switchapi_twelve")],
+                [InlineKeyboardButton("FCS API", callback_data="switchapi_fcs")],
+                [InlineKeyboardButton("RealMarket", callback_data="switchapi_real")],
+            ]
+            await query.message.reply_text("Choisis la source API :", reply_markup=InlineKeyboardMarkup(kb))
         elif cmd == "upgrade":
             keyboard = [
                 [InlineKeyboardButton(get_text(lang, "btn_upgrade_stars"), callback_data="plan_pro_stars")],
@@ -1340,6 +1380,43 @@ async def learn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(lang, "learn_usage"))
 # ---------- PARAMÈTRES ----------
+
+@check_limit
+async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permet à l'admin de switcher manuellement de source API."""
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "admin_only"))
+        return
+
+    fetcher = DataFetcher.get_instance()
+    current = fetcher.active_source or "none"
+
+    if not context.args:
+        await update.message.reply_text(
+            f"🔄 {get_text(lang, 'switchapi_current', source=current)}\n"
+            f"{get_text(lang, 'switchapi_usage')}\n"
+            f"Failure stats: {fetcher.source_failures}"
+        )
+        return
+
+    target = context.args[0].lower()
+    if target not in ("twelve", "fcs", "real"):
+        await update.message.reply_text(get_text(lang, "switchapi_usage"))
+        return
+
+    if fetcher.ws:
+        fetcher.ws.close()
+
+    if target == "twelve":
+        fetcher._start_twelve_ws()
+    elif target == "fcs":
+        fetcher._start_fcs_ws()
+    elif target == "real":
+        fetcher._start_real_ws()
+
+    await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
+
 @check_limit
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -1730,7 +1807,7 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------- HISTORIQUE ----------
 @check_limit
 async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
+    lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
     target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
     if target_message is None:
         return
@@ -1740,11 +1817,13 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     total = len(signals)
-    wins = sum(1 for s in signals if s.get("status") == "win")
-    win_rate = (wins / total * 100) if total else 0
+    completed = [s for s in signals if s.get("status") in ("win", "loss")]
+    wins = sum(1 for s in completed if s.get("status") == "win")
+    losses = sum(1 for s in completed if s.get("status") == "loss")
+    win_rate = (wins / len(completed) * 100) if completed else 0
 
     total_pnl_value = 0.0
-    for s in signals:
+    for s in completed:
         try:
             total_pnl_value += float(s.get("result_pct") or 0)
         except (TypeError, ValueError):
@@ -1759,15 +1838,15 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         symbol = s.get("symbol", "?")
         direction = s.get("direction", "?")
         price = format_number(s.get("entry_price", 0))
-        lines.append(f"{emoji} {time_hhmm} {symbol} {direction} @ {price}")
+        lines.append(f"{emoji} {time_hhmm} UTC {symbol} {direction} @ {price}")
 
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
-        f"📋 HISTORIQUE — {today_str}",
+        get_text(lang, "history_list_header", date=today_str),
         "━━━━━━━━━━━━━━━━━━━━━",
         *lines,
         "━━━━━━━━━━━━━━━━━━━━━",
-        f"📊 {total} signaux · {wins} gagnés ({win_rate:.0f}%) · {total_pnl_value:+.2f}%",
+        get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
     ])
     await target_message.reply_text(text)
 @check_limit
