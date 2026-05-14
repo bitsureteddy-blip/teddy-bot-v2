@@ -356,7 +356,7 @@ TEXTS = {
         "history_title": "📜 *Historique des signaux*\n",
         "history_empty": "Aucun signal enregistré.",
         "history_list_header": "📋 HISTORIQUE — {date}",
-        "history_summary": "📊 {total} signaux · {wins} gagnés ({win_rate}%) · {losses} perdus · {total_pnl}",
+        "history_summary": "📊 {total} signaux · {wins} gagnés ({win_rate}%) · {losses} perdus · {total_pnl}"
         "no_recent_analysis": "Aucune analyse récente.",
 
         # ----- Signal Engine -----
@@ -388,6 +388,9 @@ TEXTS = {
                         "back": "⬅️ Retour",
         "menu_choose_command": "Choisissez une commande :",
         "menu_upgrade": "💎 Upgrade",
+        "switchapi_usage": "Usage : /switchapi twelve|fcs|real",
+        "switchapi_current": "Source actuelle : {source}",
+        "switchapi_switched": "✅ Basculement vers {source} effectué.",
         "btn_analyse": "📊 Analyse",
         "btn_price": "💰 Prix",
         "btn_scalp": "⚡ Score Teddy",
@@ -874,6 +877,9 @@ TEXTS = {
                         "back": "⬅️ Back",
         "menu_choose_command": "Choose a command:",
         "menu_upgrade": "💎 Upgrade",
+        "switchapi_usage": "Usage: /switchapi twelve|fcs|real",
+        "switchapi_current": "Current source: {source}",
+        "switchapi_switched": "✅ Switched to {source}.",
         "btn_analyse": "📊 Analysis",
         "btn_price": "💰 Price",
         "btn_scalp": "⚡ Teddy score",

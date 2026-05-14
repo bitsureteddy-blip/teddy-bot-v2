@@ -446,6 +446,22 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(get_text(lang, "action_cancelled"))
         return
 
+    if data.startswith("switchapi_"):
+        source = data.replace("switchapi_", "")
+        if update.effective_user.id != ADMIN_ID:
+            await query.answer(get_text(lang, "admin_only"), show_alert=True)
+            return
+        fetcher = DataFetcher.get_instance()
+        if fetcher.ws:
+            fetcher.ws.close()
+        if source == "twelve":
+            fetcher._start_twelve_ws()
+        elif source == "fcs":
+            fetcher._start_fcs_ws()
+        elif source == "real":
+            fetcher._start_real_ws()
+        await query.edit_message_text(get_text(lang, "switchapi_switched", source=source), parse_mode=ParseMode.MARKDOWN)
+        return
     # --- Sous-menus ---
     if data == "menu_analyse":
         keyboard = [
@@ -495,6 +511,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique")],
             [InlineKeyboardButton(get_text(lang, "btn_clearhistory"), callback_data="cmd_clearhistory")],
             [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
+            [InlineKeyboardButton("🔄 Switch API", callback_data="cmd_switchapi")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_parametres')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -657,6 +674,13 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await paper(update, context)
         elif cmd == "support":
             await message.reply_text(get_text(lang, "support"))
+        elif cmd == "switchapi":
+            kb = [
+                [InlineKeyboardButton("Twelve Data", callback_data="switchapi_twelve")],
+                [InlineKeyboardButton("FCS API", callback_data="switchapi_fcs")],
+                [InlineKeyboardButton("RealMarket", callback_data="switchapi_real")],
+            ]
+            await query.message.reply_text("Choisis la source API :", reply_markup=InlineKeyboardMarkup(kb))
         elif cmd == "upgrade":
             keyboard = [
                 [InlineKeyboardButton(get_text(lang, "btn_upgrade_stars"), callback_data="plan_pro_stars")],
@@ -1355,6 +1379,43 @@ async def learn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(lang, "learn_usage"))
 # ---------- PARAMÈTRES ----------
+
+@check_limit
+async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permet à l'admin de switcher manuellement de source API."""
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "admin_only"))
+        return
+
+    fetcher = DataFetcher.get_instance()
+    current = fetcher.active_source or "none"
+
+    if not context.args:
+        await update.message.reply_text(
+            f"🔄 {get_text(lang, 'switchapi_current', source=current)}\n"
+            f"{get_text(lang, 'switchapi_usage')}\n"
+            f"Failure stats: {fetcher.source_failures}"
+        )
+        return
+
+    target = context.args[0].lower()
+    if target not in ("twelve", "fcs", "real"):
+        await update.message.reply_text(get_text(lang, "switchapi_usage"))
+        return
+
+    if fetcher.ws:
+        fetcher.ws.close()
+
+    if target == "twelve":
+        fetcher._start_twelve_ws()
+    elif target == "fcs":
+        fetcher._start_fcs_ws()
+    elif target == "real":
+        fetcher._start_real_ws()
+
+    await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
+
 @check_limit
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
