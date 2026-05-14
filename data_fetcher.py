@@ -142,7 +142,7 @@ class DataFetcher:
                 self._start_real_ws()
 
         self.ws = websocket.WebSocketApp(
-            f"{FCS_WS_URL}?api_key={FCS_WS_KEY}",
+            f"{FCS_WS_URL}?access_key={FCS_WS_KEY}"
             on_open=on_open,
             on_message=on_message,
             on_error=on_error,
