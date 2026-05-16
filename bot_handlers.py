@@ -71,23 +71,25 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "backtest_start"))
     engine = SignalEngine()
-
     for symbol in BACKTEST_SYMBOLS:
         logger.info(f"=== BACKTEST {symbol} ===")
         filename = f"data/{symbol}_{BACKTEST_TIMEFRAME}.csv"
         if not os.path.exists(filename):
-            await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
-            continue
-
+            await update.message.reply_text(get_text(lang, "backtest_downloading", symbol=symbol))
+            df = await fetcher.get_historical_data(symbol, timeframe=BACKTEST_TIMEFRAME, period="1y")
+            if df is not None and not df.empty:
+                os.makedirs("data", exist_ok=True)
+                df.to_csv(filename)
+            else:
+                await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
+                continue
         # Lecture du CSV
         df = pd.read_csv(filename)
-
         # Gestion des formats Yahoo Finance (multi-en-têtes)
         first_col = str(df.columns[0]).lower()
         if first_col == "price":
             df = pd.read_csv(filename, skiprows=[1, 2])
             df.rename(columns={df.columns[0]: "Date"}, inplace=True)
-
         # Trouver la colonne de date
         date_col = None
         for col in df.columns:
@@ -96,11 +98,9 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 break
         if date_col is None:
             date_col = df.columns[0]
-
         df[date_col] = pd.to_datetime(df[date_col])
         df.set_index(date_col, inplace=True)
         df = df.sort_index()
-
         # Normaliser les colonnes OHLC
         for col in df.columns:
             if str(col).lower() == "open":
@@ -111,47 +111,36 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 df.rename(columns={col: "Low"}, inplace=True)
             elif str(col).lower() == "close":
                 df.rename(columns={col: "Close"}, inplace=True)
-
         if not {"Open", "High", "Low", "Close"}.issubset(df.columns):
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
-
         for col in ["Open", "High", "Low", "Close"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
         df.dropna(subset=["Open", "High", "Low", "Close"], inplace=True)
         if df.empty:
             await update.message.reply_text(get_text(lang, "backtest_no_data", symbol=symbol))
             continue
-
         logger.info(f"{len(df)} bougies chargées.")
         trades = []
-
         for i in range(BACKTEST_MIN_BARS, len(df) - 1, BACKTEST_STEP):
             window = df.iloc[:i]
-            result = engine.analyze(window, symbol=symbol)
-
+            result = engine.analyze(window, lang=lang, symbol=symbol)
             if result["signal"] not in ("BUY", "SELL"):
                 continue
-
             if result["sl"] is None or result["tp1"] is None:
                 continue
-
             entry_price = float(df["Open"].iloc[i + 1])
             sl = float(result["sl"])
             tp = float(result["tp1"])
-
             if sl == entry_price:
                 continue
-
             is_buy = result["signal"] == "BUY"
             outcome = None
             exit_price = None
             exit_idx = i + 1
-
             for j in range(i + 1, len(df)):
                 low_j = float(df["Low"].iloc[j])
                 high_j = float(df["High"].iloc[j])
-
                 if is_buy:
                     if low_j <= sl:
                         outcome = "LOSS"
@@ -174,7 +163,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         exit_price = tp
                         exit_idx = j
                         break
-
             if outcome is None:
                 exit_price = float(df["Close"].iloc[-1])
                 exit_idx = len(df) - 1
@@ -182,11 +170,9 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     outcome = "WIN" if exit_price > entry_price else "LOSS"
                 else:
                     outcome = "WIN" if exit_price < entry_price else "LOSS"
-
             pnl_pct = ((exit_price - entry_price) / entry_price * 100)
             if not is_buy:
                 pnl_pct = -pnl_pct
-
             trades.append({
                 "date": str(df.index[i + 1]),
                 "symbol": symbol,
@@ -200,11 +186,9 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "pnl_pct": round(pnl_pct, 4),
                 "bars_held": exit_idx - (i + 1),
             })
-
         if not trades:
             await update.message.reply_text(get_text(lang, "backtest_no_trades", symbol=symbol))
             continue
-
         trades_df = pd.DataFrame(trades)
         total = len(trades_df)
         wins = (trades_df["outcome"] == "WIN").sum()
@@ -217,7 +201,6 @@ async def backtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         avg_bars = trades_df["bars_held"].mean()
         cumul = trades_df["pnl_pct"].cumsum()
         max_drawdown = (cumul.cummax() - cumul).max()
-
         result_text = "\n".join([
             get_text(lang, "backtest_title", symbol=symbol),
             get_text(lang, "separator_line"),
@@ -259,16 +242,15 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
-        if update.message and await handle_pending_alert_input(update, context):
-            return
-        try:
-            member = await context.bot.get_chat_member("@t_sworld", user_id)
-            if member.status not in ("member", "administrator", "creator"):
-                target = update.callback_query.message if update.callback_query else update.message
-                await target.reply_text(get_text(lang, "channel_required"))
-                return
-        except Exception:
-            pass
+        # Vérification d'abonnement désactivée pendant la phase de test publique
+        # try:
+        #     member = await context.bot.get_chat_member("@t_sworld", user_id)
+        #     if member.status not in ("member", "administrator", "creator"):
+        #         target = update.callback_query.message if update.callback_query else update.message
+        #         await target.reply_text(get_text(lang, "channel_required"))
+        #         return
+        # except Exception:
+        #     pass
         if func.__name__ != "start" and not user_mgr.has_accepted_terms(user_id) and not user_mgr.is_admin(user_id):
             if update.callback_query:
                 await update.callback_query.answer(get_text(lang, "terms_must_accept"), show_alert=True)
@@ -283,7 +265,8 @@ def check_limit(func):
             else:
                 await update.message.reply_text(get_text(lang, "limit_reached"))
                 return
-        user_mgr.increment_usage(user_id)
+        if not user_mgr.is_admin(user_id):
+            user_mgr.increment_usage(user_id)
         return await func(update, context, *args, **kwargs)
     return wrapper
 @check_limit
@@ -334,7 +317,7 @@ def premium_required(func):
                 await update.message.reply_text(get_text(lang, "terms_must_accept"))
                 return
         try:
-            member = await context.bot.get_chat_member("@Tsworld", user_id)
+            member = await context.bot.get_chat_member("@t_sworld", user_id)
             if member.status not in ("member", "administrator", "creator"):
                 target = update.callback_query.message if update.callback_query else update.message
                 await target.reply_text(get_text(lang, "channel_required"))
@@ -424,7 +407,37 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.args = [direction.lower(), symbol]
             await paper(update, context)
         return
-
+    if data == "clearhistory_confirm":
+        if hasattr(history_mgr, "clear_all_signals"):
+            history_mgr.clear_all_signals()
+        else:
+            history_mgr.signals = []
+            from database import get_db
+            conn = get_db()
+            conn.execute("DELETE FROM signals")
+            conn.commit()
+            conn.close()
+        await query.edit_message_text(get_text(lang, "clearhistory_done"))
+        return
+    elif data == "clearhistory_cancel":
+        await query.edit_message_text(get_text(lang, "action_cancelled"))
+        return
+    if data.startswith("switchapi_"):
+        source = data.replace("switchapi_", "")
+        if update.effective_user.id != ADMIN_ID:
+            await query.answer(get_text(lang, "admin_only"), show_alert=True)
+            return
+        fetcher = DataFetcher.get_instance()
+        if fetcher.ws:
+            fetcher.ws.close()
+        if source == "twelve":
+            fetcher._start_twelve_ws()
+        elif source == "fcs":
+            fetcher._start_fcs_ws()
+        elif source == "real":
+            fetcher._start_real_ws()
+        await query.edit_message_text(get_text(lang, "switchapi_switched", source=source), parse_mode=ParseMode.MARKDOWN)
+        return
     # --- Sous-menus ---
     if data == "menu_analyse":
         keyboard = [
@@ -433,8 +446,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_trend"), callback_data="cmd_trend")],
             [InlineKeyboardButton(get_text(lang, "btn_volatility"), callback_data="cmd_volatility")],
             [InlineKeyboardButton(get_text(lang, "btn_levels"), callback_data="cmd_levels")],
-            [InlineKeyboardButton(get_text(lang, "btn_symbolinfo"), callback_data="cmd_symbolinfo")],
-            [InlineKeyboardButton(get_text(lang, "btn_check"), callback_data="cmd_check")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -472,8 +483,10 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_setlanguage"), callback_data="cmd_setlanguage")],
             [InlineKeyboardButton(get_text(lang, "btn_usage"), callback_data="cmd_usage")],
             [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique")],
+            [InlineKeyboardButton("🔄 Refresh History", callback_data="cmd_refreshhistory")],
             [InlineKeyboardButton(get_text(lang, "btn_clearhistory"), callback_data="cmd_clearhistory")],
             [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
+            [InlineKeyboardButton("🔄 Switch API", callback_data="cmd_switchapi")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_parametres')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -496,7 +509,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_edit(get_text(lang, "menu_title"), keyboard)
     elif data == "check_subscription":
         try:
-            member = await context.bot.get_chat_member("@Tsworld", query.from_user.id)
+            member = await context.bot.get_chat_member("@t_sworld", query.from_user.id)
             if member.status in ("member", "administrator", "creator"):
                 await query.edit_message_text(get_text(lang, "channel_verified"))
                 # Relancer /start
@@ -506,12 +519,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer(get_text(lang, "channel_not_joined"), show_alert=True)
         except Exception:
             await query.answer("Erreur. Réessaie.", show_alert=True)
-    elif data == "clearhistory_confirm":
-        history_mgr.clear_all_signals()
-        await query.edit_message_text(get_text(lang, "clearhistory_done"))
-    elif data == "clearhistory_cancel":
-        await query.edit_message_text(get_text(lang, "action_cancelled"))
-
     # --- Exécution réelle des commandes ---
     if data.startswith("cmd_"):
         cmd = data.replace("cmd_", "")
@@ -642,6 +649,17 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await paper(update, context)
         elif cmd == "support":
             await message.reply_text(get_text(lang, "support"))
+        elif cmd == "refreshhistory":
+            await query.message.reply_text(get_text(lang, "refreshhistory_start"))
+            await check_signal_outcomes(context.bot)
+            await query.message.reply_text(get_text(lang, "refreshhistory_done"))
+        elif cmd == "switchapi":
+            kb = [
+                [InlineKeyboardButton("Twelve Data", callback_data="switchapi_twelve")],
+                [InlineKeyboardButton("FCS API", callback_data="switchapi_fcs")],
+                [InlineKeyboardButton("RealMarket", callback_data="switchapi_real")],
+            ]
+            await query.message.reply_text("Choisis la source API :", reply_markup=InlineKeyboardMarkup(kb))
         elif cmd == "upgrade":
             keyboard = [
                 [InlineKeyboardButton(get_text(lang, "btn_upgrade_stars"), callback_data="plan_pro_stars")],
@@ -773,21 +791,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     # Vérifier l'abonnement au canal
-    try:
-        member = await context.bot.get_chat_member("@t_sworld", user_id)
-        if member.status not in ("member", "administrator", "creator"):
-            keyboard = [
-                [InlineKeyboardButton("📢 Rejoindre T's World", url="https://t.me/+c_xPX-20JAo0MTE0")],
-                [InlineKeyboardButton(get_text(lang, "check_subscription"), callback_data="check_subscription")],
-            ]
-            await update.message.reply_text(
-                get_text(lang, "channel_required_message"),
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-    except Exception:
-        pass
+    # Vérification d'abonnement désactivée pendant la phase de test publique
+    # try:
+    #     member = await context.bot.get_chat_member("@t_sworld", user_id)
+    #     if member.status not in ("member", "administrator", "creator"):
+    #         keyboard = [
+    #             [InlineKeyboardButton("📢 Rejoindre T's World", url="https://t.me/+c_xPX-20JAo0MTE0")],
+    #             [InlineKeyboardButton(get_text(lang, "check_subscription"), callback_data="check_subscription")],
+    #         ]
+    #         await update.message.reply_text(
+    #             get_text(lang, "channel_required_message"),
+    #             reply_markup=InlineKeyboardMarkup(keyboard),
+    #             parse_mode=ParseMode.MARKDOWN
+    #         )
+    #         return
+    # except Exception:
+    #     pass
     # Utilisateur existant qui a déjà accepté → comportement normal
     role = user_mgr.get_role(user_id)
     if role == "free" and user_mgr.is_trial_valid(user_id):
@@ -825,6 +844,8 @@ async def terms_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             get_text(lang, "terms_accepted"),
             parse_mode=ParseMode.MARKDOWN
         )
+        context.args = []
+        await start(update, context)
     elif data == "terms_refuse":
         await query.edit_message_text(
             get_text(lang, "terms_refused_msg"),
@@ -835,7 +856,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     trial_msg = ""
     if user_mgr.get_role(update.effective_user.id) == "free" and user_mgr.is_trial_valid(update.effective_user.id):
-        trial_days = user_mgr.is_trial_valid(update.effective_user.id)
+        from datetime import datetime
+        from config import TRIAL_DAYS
+        user_id = update.effective_user.id
+        user = user_mgr.get_user(user_id)
+        trial_start = user.get("joined", time.time())
+        trial_end = trial_start + (TRIAL_DAYS * 24 * 3600)
+        trial_days = max(0, int((trial_end - time.time()) / 86400))
         trial_msg = "\n" + get_text(lang, "trial_days_left", days=trial_days)
     await update.message.reply_text(get_text(lang, "help_redirect") + trial_msg, parse_mode=ParseMode.MARKDOWN)
 @check_limit
@@ -948,7 +975,6 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     # Sous-scores et descriptions
     rsi_val = ind.get('rsi', 50)
     adx_val = ind.get('adx', 20)
-
     # Description RSI
     if rsi_val >= 70:
         rsi_state = get_text(lang, "rsi_overbought")
@@ -960,7 +986,6 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
         rsi_state = get_text(lang, "rsi_bearish")
     else:
         rsi_state = get_text(lang, "rsi_neutral")
-
     # Description ADX
     if adx_val >= 40:
         adx_state = get_text(lang, "adx_very_strong")
@@ -1276,8 +1301,8 @@ async def compare(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     res1 = SignalEngine.analyze(df1, lang, symbol=sym1)
     res2 = SignalEngine.analyze(df2, lang, symbol=sym2)
-    trend1 = get_text(lang, f"trend_{res1['indicators']['trend'].lower()}")
-    trend2 = get_text(lang, f"trend_{res2['indicators']['trend'].lower()}")
+    trend1 = get_text(lang, f"trend_{res1.get('indicators', {}).get('trend', 'neutral').lower()}")
+    trend2 = get_text(lang, f"trend_{res2.get('indicators', {}).get('trend', 'neutral').lower()}")
     text = get_text(lang, "compare_result", symbol1=sym1, symbol2=sym2, trend1=trend1, trend2=trend2)
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 @check_limit
@@ -1340,6 +1365,35 @@ async def learn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(lang, "learn_usage"))
 # ---------- PARAMÈTRES ----------
+@check_limit
+async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permet à l'admin de switcher manuellement de source API."""
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "admin_only"))
+        return
+    fetcher = DataFetcher.get_instance()
+    current = fetcher.active_source or "none"
+    if not context.args:
+        await update.message.reply_text(
+            f"🔄 {get_text(lang, 'switchapi_current', source=current)}\n"
+            f"{get_text(lang, 'switchapi_usage')}\n"
+            f"Failure stats: {fetcher.source_failures}"
+        )
+        return
+    target = context.args[0].lower()
+    if target not in ("twelve", "fcs", "real"):
+        await update.message.reply_text(get_text(lang, "switchapi_usage"))
+        return
+    if fetcher.ws:
+        fetcher.ws.close()
+    if target == "twelve":
+        fetcher._start_twelve_ws()
+    elif target == "fcs":
+        fetcher._start_fcs_ws()
+    elif target == "real":
+        fetcher._start_real_ws()
+    await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
 @check_limit
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -1471,213 +1525,18 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(get_text(user_mgr.get_setting(update.effective_user.id, "lang", "en"), "broadcast_admin_only"))
         return
     lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
-    user_mgr._load_users()
-    total = len(user_mgr.users)
-    free = sum(1 for u in user_mgr.users.values() if u.get("role") == "free")
-    pro = sum(1 for u in user_mgr.users.values() if u.get("role") == "pro")
+    from database import get_db
+    conn = get_db()
+    total_row = conn.execute("SELECT COUNT(*) as total FROM users").fetchone()
+    total = total_row["total"] if total_row else 0
+    free_row = conn.execute("SELECT COUNT(*) as c FROM users WHERE role='free'").fetchone()
+    free = free_row["c"] if free_row else 0
+    pro_row = conn.execute("SELECT COUNT(*) as c FROM users WHERE role='pro'").fetchone()
+    pro = pro_row["c"] if pro_row else 0
+    conn.close()
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-@check_limit
-async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await handle_pending_alert_input(update, context):
-        return
-    lang = get_user_lang(update)
-    user_id = update.effective_user.id
 
-    if not context.args:
-        await respond(update, get_text(lang, "paper_usage"))
-        return
-
-    action = context.args[0].lower()
-
-    if action == "start":
-        paper_trader.init_capital(user_id)
-        await respond(update, get_text(lang, "paper_started", capital=10000))
-
-    elif action == "status":
-        stats = paper_trader.get_stats(user_id)
-        positions = paper_trader.get_positions(user_id)
-        msg = get_text(lang, "paper_status", capital=round(stats["capital"], 4), equity=round(stats["equity"], 4),
-                       open_positions=stats["open_positions"], total_pnl=round(stats["total_pnl"], 4))
-        if positions:
-            for p in positions:
-                msg += f"\n{p['symbol']} @ {p['entry_price']:.4f} | SL: {p['sl']:.4f} | TP: {p['tp']:.4f} | PnL: {p['pnl_usdt']:.4f}$"
-        else:
-            msg += "\n" + get_text(lang, "paper_no_open_positions")
-        await respond(update, msg)
-
-    elif action == "buy":
-        if len(context.args) < 2:
-            await respond(update, get_text(lang, "paper_buy_usage"))
-            return
-        symbol = normalize_symbol(context.args[1].upper())
-        df = await fetcher.get_historical_data(symbol)
-        if df is None or df.empty:
-            await respond(update, get_text(lang, "data_unavailable"))
-            return
-        result = SignalEngine.analyze(df, lang, symbol=symbol)
-        price = float(result["indicators"]["price"])
-        atr_val = float(result["indicators"].get("atr", price * 0.01))
-        sl = price - ATR_MULTIPLIER_SL * atr_val
-        tp = price + RR_RATIO_TARGET * atr_val
-        capital = paper_trader.get_capital(user_id)
-        qty = capital / price if price > 0 else 1
-        pos = paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
-        await respond(update, get_text(lang, "paper_opened", symbol=symbol, price=round(price, 4), sl=round(sl, 4), tp=round(tp, 4)))
-
-    elif action == "sell":
-        if len(context.args) < 2:
-            await respond(update, get_text(lang, "paper_sell_usage"))
-            return
-        symbol = normalize_symbol(context.args[1].upper())
-        positions = paper_trader.get_positions(user_id)
-        closed = False
-        for pos in list(positions):
-            if pos["symbol"] == symbol:
-                price_data = fetcher.get_cached_price(symbol)
-                exit_price = float(price_data["price"]) if price_data else float(pos["current_price"])
-                paper_trader.close_position(user_id, pos["id"], exit_price)
-                closed = True
-        if closed:
-            await respond(update, get_text(lang, "paper_closed", symbol=symbol))
-        else:
-            await respond(update, get_text(lang, "paper_no_open_position", symbol=symbol))
-
-    elif action == "history":
-        closed = paper_trader.get_closed_positions(user_id)
-        if not closed:
-            await respond(update, get_text(lang, "paper_history_empty"))
-            return
-        msg = get_text(lang, "paper_history_title")
-        for p in closed[-10:]:
-            emoji = "🟢" if p.get("pnl_usdt", 0) > 0 else "🔴"
-            msg += f"\n{emoji} {p['symbol']} @ {p['entry_price']:.4f} -> {p.get('exit_reason', '?')} ({p.get('pnl_usdt', 0):.4f}$)"
-        await respond(update, msg)
-
-    elif action == "stats":
-        stats = paper_trader.get_stats(user_id)
-        await respond(update, get_text(lang, "paper_stats",
-            capital=stats["capital"], equity=stats["equity"], total_pnl=stats["total_pnl"],
-            total_trades=stats["total_trades"], wins=stats["wins"], losses=stats["losses"],
-            win_rate=stats["win_rate"]))
-
-    else:
-        await respond(update, get_text(lang, "paper_usage"))
-
-@check_limit
-async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
-    lang = get_user_lang(update)
-    if len(context.args) < 2:
-        await respond(update, get_text(lang, "check_usage"))
-        return
-    symbol = normalize_symbol(context.args[0].upper())
-    side = context.args[1].upper()
-    if side not in ("BUY", "SELL"):
-        await respond(update, get_text(lang, "check_usage"))
-        return
-    df = await fetcher.get_historical_data(symbol)
-    if df is None or df.empty:
-        await respond(update, get_text(lang, "data_unavailable"))
-        return
-    result = SignalEngine.analyze(df, lang, symbol=symbol)
-    ind = result.get("indicators", {})
-    trend = ind.get("trend", "NEUTRAL")
-    trend_txt = get_text(lang, f"trend_{trend.lower()}") if isinstance(trend, str) else "N/A"
-    cfg = SYMBOL_CONFIGS.get(symbol, SYMBOL_CONFIGS["EURUSD"])
-    score = int(result.get("teddy_score", cfg.get("weights", {}).get("trend", 0)))
-    color = get_text(lang, "check_green") if score >= 80 else get_text(lang, "check_orange") if score >= 60 else get_text(lang, "check_red")
-    atr_v = float(ind.get("atr") or 0)
-    price_v = float(ind.get("price") or 1)
-    vol_txt = get_text(lang, "check_vol_high") if price_v and (atr_v / price_v) > 0.03 else get_text(lang, "check_vol_normal")
-    msg = get_text(
-        lang, "check",
-        symbol=symbol, trend=trend_txt, rsi=f"{float(ind.get('rsi') or 0):.1f}",
-        volatility=vol_txt, score=score, light=color,
-        sl=format_number(result.get('sl')) if result.get('sl') else "N/A",
-        tp=format_number(result.get('tp')) if result.get('tp') else "N/A"
-    )
-    await respond(update, msg)
-async def send_weekly_reports(bot):
-    pro_users = [int(uid) for uid, u in user_mgr.users.items() if u.get("role") == "pro"]
-    signals = history_mgr.get_recent_signals(50)
-    completed = [s for s in signals if s.get("status") in ("win", "loss")]
-    total = len(completed)
-    wins = sum(1 for s in completed if s.get("status") == "win")
-    win_rate = (wins / total * 100) if total else 0
-    pcts = [float(s.get("result_pct") or 0) for s in completed]
-    best = max(pcts) if pcts else 0
-    worst = min(pcts) if pcts else 0
-    msg = (
-        "📊 RAPPORT HEBDOMADAIRE\n"
-        "━━━━━━━━━━━━━━━━━━━\n"
-        f"📈 Signaux reçus : {len(signals)}\n"
-        f"✅ Gagnés : {wins} ({win_rate:.0f}%)\n"
-        f"📉 Meilleur : {best:+.1f}%\n"
-        f"💸 Pire : {worst:+.1f}%\n"
-        "💡 Conseil : attends un score > 70"
-    )
-    for uid in pro_users:
-        try:
-            await bot.send_message(chat_id=uid, text=msg)
-        except Exception as e:
-            logger.warning(f"Weekly report failed for {uid}: {e}")
-def start_weekly_report_scheduler(app):
-    global weekly_scheduler
-    if weekly_scheduler is not None:
-        return
-    weekly_scheduler = AsyncIOScheduler(timezone="UTC")
-    weekly_scheduler.add_job(
-        send_weekly_reports,
-        "cron",
-        day_of_week="sun",
-        hour=18,
-        minute=0,
-        kwargs={"bot": app.bot},
-        id="weekly_report_job",
-        replace_existing=True,
-    )
-    weekly_scheduler.start()
-signal_scheduler = None
-async def check_signal_outcomes(bot):
-    signals = history_mgr.get_recent_signals(50)
-    for s in signals:
-        if s.get("status") not in (None, "pending"):
-            continue
-        symbol = s["symbol"]
-        entry = float(s["entry_price"])
-        sl = float(s.get("sl", 0) or 0)
-        tp = float(s.get("tp", 0) or 0)
-        if sl == 0 or tp == 0:
-            continue
-        price_data = await fetcher.get_realtime_price(symbol)
-        if not price_data:
-            continue
-        current_price = float(price_data["price"])
-        direction = s["direction"]
-        if direction == "BUY":
-            if current_price >= tp:
-                history_mgr.update_signal_status(s["id"], "win", round((current_price - entry) / entry * 100, 4))
-            elif current_price <= sl:
-                history_mgr.update_signal_status(s["id"], "loss", round((current_price - entry) / entry * 100, 4))
-        elif direction == "SELL":
-            if current_price <= tp:
-                history_mgr.update_signal_status(s["id"], "win", round((entry - current_price) / entry * 100, 4))
-            elif current_price >= sl:
-                history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
-def start_signal_monitoring(app):
-    global signal_scheduler
-    if signal_scheduler is not None:
-        return
-    signal_scheduler = AsyncIOScheduler(timezone="UTC")
-    signal_scheduler.add_job(
-        check_signal_outcomes,
-        "interval",
-        minutes=5,
-        kwargs={"bot": app.bot},
-        id="signal_monitor",
-        replace_existing=True,
-    )
-    signal_scheduler.start()
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
@@ -1730,7 +1589,7 @@ async def challenge(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------- HISTORIQUE ----------
 @check_limit
 async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
+    lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
     target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
     if target_message is None:
         return
@@ -1738,18 +1597,17 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not signals:
         await target_message.reply_text(get_text(lang, "history_empty"))
         return
-
     total = len(signals)
-    wins = sum(1 for s in signals if s.get("status") == "win")
-    win_rate = (wins / total * 100) if total else 0
-
+    completed = [s for s in signals if s.get("status") in ("win", "loss")]
+    wins = sum(1 for s in completed if s.get("status") == "win")
+    losses = sum(1 for s in completed if s.get("status") == "loss")
+    win_rate = (wins / len(completed) * 100) if completed else 0
     total_pnl_value = 0.0
-    for s in signals:
+    for s in completed:
         try:
             total_pnl_value += float(s.get("result_pct") or 0)
         except (TypeError, ValueError):
             continue
-
     lines = []
     for s in signals:
         status = s.get("status")
@@ -1759,23 +1617,76 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         symbol = s.get("symbol", "?")
         direction = s.get("direction", "?")
         price = format_number(s.get("entry_price", 0))
-        lines.append(f"{emoji} {time_hhmm} {symbol} {direction} @ {price}")
-
+        lines.append(f"{emoji} {time_hhmm} UTC {symbol} {direction} @ {price}")
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
-        f"📋 HISTORIQUE — {today_str}",
+        get_text(lang, "history_title", date=today_str),
         "━━━━━━━━━━━━━━━━━━━━━",
         *lines,
         "━━━━━━━━━━━━━━━━━━━━━",
-        f"📊 {total} signaux · {wins} gagnés ({win_rate:.0f}%) · {total_pnl_value:+.2f}%",
+        get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
     ])
     await target_message.reply_text(text)
+
+async def check_signal_outcomes(bot):
+    logger.info("🔄 check_signal_outcomes: DÉMARRAGE")
+    signals = history_mgr.get_recent_signals(50)
+    logger.info(f"🔄 check_signal_outcomes: {len(signals)} signaux récupérés")
+
+    pending_count = sum(1 for s in signals if s.get("status") in (None, "pending"))
+    logger.info(f"🔄 check_signal_outcomes: {pending_count} signaux pending à vérifier")
+
+    updated = 0
+    for s in signals:
+        if s.get("status") not in (None, "pending"):
+            continue
+        symbol = s["symbol"]
+        entry = float(s["entry_price"])
+        sl = float(s.get("sl", 0) or 0)
+        tp = float(s.get("tp", 0) or 0)
+        if sl == 0 or tp == 0:
+            continue
+        logger.info(f"🔍 Vérification signal {s['id']}: {symbol} {s['direction']} @ {entry}, SL={sl}, TP={tp}")
+        price_data = await fetcher.get_realtime_price(symbol)
+        if not price_data:
+            logger.warning(f"⚠️ Pas de prix pour {symbol}")
+            continue
+        current_price = float(price_data["price"])
+        logger.info(f"💰 Prix actuel {symbol}: {current_price}")
+        direction = s["direction"]
+        if direction == "BUY":
+            if current_price >= tp:
+                logger.info(f"✅ WIN: {s['id']} - TP touché ({current_price} >= {tp})")
+                history_mgr.update_signal_status(s["id"], "win", round((current_price - entry) / entry * 100, 4))
+                updated += 1
+            elif current_price <= sl:
+                logger.info(f"❌ LOSS: {s['id']} - SL touché ({current_price} <= {sl})")
+                history_mgr.update_signal_status(s["id"], "loss", round((current_price - entry) / entry * 100, 4))
+                updated += 1
+        elif direction == "SELL":
+            if current_price <= tp:
+                logger.info(f"✅ WIN: {s['id']} - TP touché ({current_price} <= {tp})")
+                history_mgr.update_signal_status(s["id"], "win", round((entry - current_price) / entry * 100, 4))
+                updated += 1
+            elif current_price >= sl:
+                logger.info(f"❌ LOSS: {s['id']} - SL touché ({current_price} >= {sl})")
+                history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
+                updated += 1
+
+    logger.info(f"🔄 check_signal_outcomes: FIN - {updated} signaux mis à jour")
+
+@check_limit
+async def refreshhistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "refreshhistory_start"))
+    await check_signal_outcomes(context.bot)
+    await update.message.reply_text(get_text(lang, "refreshhistory_done"))
+
 @check_limit
 async def clearhistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     history_mgr.clear_all_signals()
     await update.message.reply_text(get_text(lang, "clearhistory_done"))
-
 @check_limit
 async def find_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
