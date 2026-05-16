@@ -13,6 +13,7 @@ if ADMIN_ID == 0:
 FCS_API_KEY = os.environ.get("FCS_API_KEY")
 REALMARKET_API_KEY = os.environ.get("REALMARKET_API_KEY")
 TWELVEDATA_API_KEY = os.environ.get("TWELVEDATA_API_KEY")
+FCS_WS_KEY = os.environ.get("FCS_WS_KEY", "")
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
 
 # --- Limites utilisateur ---
@@ -135,6 +136,11 @@ SETTINGS_FILE = f"{DATA_DIR}/settings.json"
 USAGE_FILE = f"{DATA_DIR}/usage.json"
 SIGNALS_HISTORY_FILE = f"{DATA_DIR}/signals_history.json"
 CHALLENGE_SESSIONS_FILE = f"{DATA_DIR}/challenge_sessions.json"
+
+# WebSocket URLs
+TWELVEDATA_WS_URL = "wss://ws.twelvedata.com/v1/quotes/price"
+FCS_WS_URL = "wss://ws-v4.fcsapi.com/ws"
+REALMARKET_WS_URL = "wss://api.realmarketapi.com/price"
 
 # --- WebSocket RealMarket (optionnel) ---
 WS_URL = "wss://api.realmarketapi.com/v1/ws"
