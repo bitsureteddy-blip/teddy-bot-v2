@@ -13,18 +13,18 @@ from user_manager import UserManager
 from alert_manager import AlertManager
 from database import init_db
 
-# CRÉER LES TABLES AVANT D'IMPORTER BOT_HANDLERS (car il appelle UserManager au chargement)
+# CRÉER LES TABLES AVANT D'IMPORTER BOT_HANDLERS
 init_db()
 
 from bot_handlers import (
     start, help_command, analyse, price,
     alert, alerts, delalert, clearalerts, trend, volatility, correlation, levels,
     settings, settimeframe, setrisk, setlanguage, usage,
-    status, about, symbolinfo, myid, broadcast, reload_cmd, stats, find_memo,
+    status, about, myid, broadcast, reload_cmd, stats, find_memo,
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
-    support, challenge, snapshot, verify, historique, clearhistory,
+    support, snapshot, verify, historique, clearhistory,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
-    sentiment, compare, top, fav, teddy, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring,
+    sentiment, compare, top, fav, teddy, learn, check, ask, start_weekly_report_scheduler,
     handle_pending_alert_input, paper, switchapi, check_signal_outcomes, refreshhistory
 )
 
@@ -43,9 +43,7 @@ def main():
     AlertManager.get_instance()
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-  # AlertManager.get_instance().start_monitoring(app)
     start_weekly_report_scheduler(app)
-  # start_signal_monitoring(app)
 
     # Commandes
     handlers = [
@@ -57,10 +55,10 @@ def main():
         ("alert", alert), ("alerts", alerts), ("delalert", delalert), ("clearalerts", clearalerts),
         ("trend", trend), ("volatility", volatility), ("correlation", correlation), ("levels", levels),
         ("settings", settings), ("settimeframe", settimeframe), ("setrisk", setrisk), ("setlanguage", setlanguage),
-        ("usage", usage), ("status", status), ("about", about), ("symbolinfo", symbolinfo), ("myid", myid),
+        ("usage", usage), ("status", status), ("about", about), ("myid", myid),
         ("broadcast", broadcast), ("reload", reload_cmd), ("stats", stats), ("find_memo", find_memo), ("upgrade", upgrade),
         ("support", support), ("pay_binance", pay_binance), ("confirm_payment", confirm_payment),
-        ("challenge", challenge), ("snapshot", snapshot), ("verify", verify), ("historique", historique), ("clearhistory", clearhistory),
+        ("snapshot", snapshot), ("verify", verify), ("historique", historique), ("clearhistory", clearhistory),
         ("sentiment", sentiment), ("compare", compare), ("top", top), ("fav", fav), ("learn", learn), ("check", check), ("ask", ask),
         ("backtest", backtest), ("teddy", teddy)
     ]
@@ -83,7 +81,7 @@ def main():
 
     logger.info("Teddy Trading Bot started")
     DataFetcher.get_instance().start_websocket()
-    # Utiliser webhook si configuré, sinon polling
+    
     webhook_url = os.environ.get("WEBHOOK_URL")
     if webhook_url:
         app.run_webhook(
