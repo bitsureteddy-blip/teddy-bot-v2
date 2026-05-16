@@ -1776,6 +1776,47 @@ async def find_memo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"✅ Mémo {memo} → User ID: {user_id}")
     else:
         await update.message.reply_text(f"❌ Aucun utilisateur trouvé pour le mémo {memo}")
+        # ---------- HISTORIQUE ----------
+@check_limit
+async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
+    target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
+    if target_message is None:
+        return
+    signals = history_mgr.get_recent_signals(10)
+    if not signals:
+        await target_message.reply_text(get_text(lang, "history_empty"))
+        return
+    total = len(signals)
+    completed = [s for s in signals if s.get("status") in ("win", "loss")]
+    wins = sum(1 for s in completed if s.get("status") == "win")
+    losses = sum(1 for s in completed if s.get("status") == "loss")
+    win_rate = (wins / len(completed) * 100) if completed else 0
+    total_pnl_value = 0.0
+    for s in completed:
+        try:
+            total_pnl_value += float(s.get("result_pct") or 0)
+        except (TypeError, ValueError):
+            continue
+    lines = []
+    for s in signals:
+        status = s.get("status")
+        emoji = "✅" if status == "win" else "❌" if status == "loss" else "⏳"
+        timestamp = str(s.get("timestamp") or "")
+        time_hhmm = timestamp[11:16] if len(timestamp) >= 16 else "--:--"
+        symbol = s.get("symbol", "?")
+        direction = s.get("direction", "?")
+        price = format_number(s.get("entry_price", 0))
+        lines.append(f"{emoji} {time_hhmm} UTC {symbol} {direction} @ {price}")
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    text = "\n".join([
+        get_text(lang, "history_title", date=today_str),
+        "━━━━━━━━━━━━━━━━━━━━━",
+        *lines,
+        "━━━━━━━━━━━━━━━━━━━━━",
+        get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
+    ])
+    await target_message.reply_text(text)
 
 # ---------- SNAPSHOT / VERIFY ----------
 @check_limit
