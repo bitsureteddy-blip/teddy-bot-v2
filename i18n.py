@@ -1,4 +1,4 @@
-# i18n.py - Traductions complètes FR / EN pour Bitsure Teddy
+# i18n.py - Traductions FR / EN pour Bitsure Teddy
 
 TEXTS = {
     "fr": {
@@ -32,40 +32,14 @@ TEXTS = {
         "terms_refused_msg": "❌ Tu ne peux pas utiliser le bot sans accepter les conditions. Retape /start quand tu seras prêt.",
         "terms_must_accept": "⚠️ Tu dois d'abord accepter les conditions d'utilisation. Tape /start pour les consulter.",
         "terms_button": "📋 Lire les conditions d'utilisation",
-        "check_usage": "Usage: /check SYMBOLE BUY|SELL",
-        "check_choose_direction": "📊 {symbol} – Choisis la direction :",
-        "check": "📊 VALIDATION {symbol}\n━━━━━━━━━━━━━━━━━━━\n✅ Tendance : {trend}\n✅ RSI : {rsi}\n⚠️ Volatilité : {volatility}\n📈 Score : {score}/100 → {light}\n🎯 SL : {sl}\n💰 TP : {tp}",
-        "check_green": "🟢 FAVORABLE",
-        "check_orange": "🟡 PRUDENT",
-        "check_red": "🔴 RISQUÉ",
-        "check_vol_high": "Élevée",
-        "check_vol_normal": "Normale",
-        "history_stats_header": "📊 TON HISTORIQUE\n━━━━━━━━━━━━━━━━━━━\n📈 Signaux reçus : {total}\n✅ Gagnants : {wins} ({win_rate}%)\n❌ Perdants : {losses}\n\n💰 Gain moyen : {avg}%\n📉 Pire : {worst}%\n🏆 Meilleur : {best}%\n\n💡 Conseil : {advice}\n\n📋 DERNIERS SIGNAUX :\n",
-        "history_advice_high": "Continue, mais garde une gestion de risque stricte.",
-        "history_advice_low": "Réduis le risque et privilégie les scores élevés.",
-        "channel_required": "⚠️ Tu dois rejoindre le canal T's World pour utiliser Bitsure Teddy.\n\n👉 https://t.me/+c_xPX-20JAo0MTE0\n\nReviens après avoir rejoint !",
-        "channel_required_message": (
-            "📢 Avant de continuer...\n\n"
-            "Rejoins T's World pour voir :\n"
-            "📊 Les backtests publics chaque semaine\n"
-            "📈 Les signaux en direct\n"
-            "💡 Les analyses de marché\n\n"
-            "C'est gratuit et ça t'aide à mieux utiliser Bitsure Teddy."
-        ),
-        "channel_verified": "✅ Abonnement vérifié. Bienvenue !",
-        "channel_not_joined": "❌ Tu n'as pas encore rejoint le canal. Rejoins-le d'abord.",
-        "check_subscription": "✅ J'ai rejoint",
-        "ask_usage": "Usage : /ask <ta question>",
-        "ask_wait": "🤔 Je réfléchis...",
-        "ask_error": "❌ Erreur : {error}",
 
         # ----- Aide -----
+        "help_redirect": "Utilisez /menu pour accéder au menu interactif. Fonctionnalités clés : analyse technique avec score Teddy, paper trading intégré et backtest public vérifiable.",
         "help_full": (
             "🧸 *Commandes disponibles :*\n\n"
             "/menu – Menu principal interactif\n"
             "/analyse SYMBOLE – Analyse complète\n"
             "/price SYMBOLE – Prix actuel\n"
-            "/check SYMBOLE BUY|SELL – Validation par score Teddy\n"
             "/paper start – Paper trading intégré\n"
             "/backtest SYMBOLE – Backtest public vérifiable\n"
             "/alert SYMBOLE above/below PRIX – Créer alerte\n"
@@ -92,12 +66,10 @@ TEXTS = {
             "/usage – Requêtes restantes\n"
             "/status – État du bot\n"
             "/about – Version\n"
-            "/symbolinfo SYMBOLE – Infos symbole\n"
             "/myid – Votre ID Telegram\n"
             "/upgrade – Offre PRO\n"
             "/support – Contacter admin\n"
             "/symboles – Symboles populaires\n"
-            "/challenge – Défi d'entraînement (5 trades)\n"
             "/historique – Historique des signaux\n"
             "/snapshot – Image pour partage\n"
             "/verify ID – Vérifier un signal\n"
@@ -131,7 +103,6 @@ TEXTS = {
         "confirm_payment_missing": "❌ Aucun paiement Binance en attente pour {user_id}.",
         "premium_required": "🔒 *Fonctionnalité Premium*\n\nCette commande est réservée aux membres PRO.\nUtilisez /upgrade pour découvrir l'offre.",
         "payment_success": "✅ *Paiement réussi !*\nVous êtes maintenant *PRO*.\nMerci de votre confiance ! 🧸",
-        "stripe_soon": "💳 Le paiement par carte bancaire sera disponible très prochainement. En attendant, vous pouvez utiliser les Telegram Stars ou contacter le support.",
         "unavailable_option": "Option non disponible.",
 
         # ----- Limites -----
@@ -147,6 +118,10 @@ TEXTS = {
         "watchlist_show": "📋 *Watchlist:*\n{symbols}",
         "addwatch_usage": "Usage: /addwatch SYMBOLE",
         "removewatch_usage": "Usage: /removewatch SYMBOLE",
+        "watchlist_already": "ℹ️ {symbol} est déjà dans ta watchlist.",
+        "watchlist_missing": "ℹ️ {symbol} n'est pas dans ta watchlist.",
+        "watchlist_added_styled": "✅ {symbol} ajouté à ta watchlist",
+        "watchlist_removed_styled": "🗑️ {symbol} retiré de ta watchlist",
 
         # ----- Alertes -----
         "alert_usage": "Usage: /alert SYMBOLE above/below PRIX",
@@ -165,21 +140,24 @@ TEXTS = {
         "confirm_yes": "✅ Oui",
         "confirm_no": "❌ Non",
         "delalert_usage": "Usage: /delalert ID",
+        "delalert_pick": "Choisissez une alerte à supprimer :",
+        "cond_above": "Au-dessus",
+        "cond_below": "En-dessous",
+        "alert_choose_condition": "Choisissez une condition :",
+        "alert_enter_price": "Entrez le prix cible après la condition.",
+        "alert_price_invalid_retry": "Prix invalide, réessayez.",
 
         # ----- Symboles -----
         "symbole_invalide": "Symbole invalide.",
-        "invalid_symbol": "Symbole invalide.",
         "symboles_list": (
             "📊 *SYMBOLES POPULAIRES*\n\n"
-            "🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n"
-            "💱 *Devises*\nEURUSD – Euro/Dollar\nGBPUSD – Livre/Dollar\nUSDJPY – Dollar/Yen\n\n"
-            "✨ *Matières premières*\nXAUUSD – Or\nXAGUSD – Argent\n\n"
-            "📈 *Actions*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n"
+            "🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\n\n"
+            "💱 *Devises*\nEURUSD – Euro/Dollar\nGBPUSD – Livre/Dollar\nUSDJPY – Dollar/Yen\nAUDUSD – Dollar Australien\n\n"
+            "✨ *Matières premières*\nXAUUSD – Or\n\n"
+            "📈 *Actions*\nAAPL – Apple\nTSLA – Tesla\nNVDA – NVIDIA\n\n"
             "💡 Exemple : /analyse BTCUSD"
         ),
         "symbol_not_found": "Symbole non trouvé.",
-        "symbolinfo_usage": "Usage: /symbolinfo SYMBOLE",
-        "symbolinfo_format": "*{symbol}*\nPrix: {price}\nBid/Ask: {bid} / {ask}",
 
         # ----- Analyse -----
         "analyse_usage": "Usage: /analyse SYMBOLE",
@@ -213,31 +191,6 @@ TEXTS = {
         "price_usage": "Usage: /price SYMBOLE",
         "price_error": "❌ Prix non disponible pour {symbol}.",
         "price_format": "💵 *{symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Prix : {price}\n📉 Bid  : {bid}\n📈 Ask  : {ask}",
-        "price_label": "Prix",
-
-        # ----- Analyse rapide -----
-        "tick_usage": "Utilisez /price SYMBOLE pour consulter le dernier prix disponible.",
-        "tick_none": "❌ Aucun prix récent disponible.",
-        "tick_current": "🕒 *Prix récent {symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Prix : {price}",
-        "spread_usage": "Utilisez /price SYMBOLE pour consulter les données de marché disponibles.",
-        "spread_format": "📏 *Données de marché {symbol}*\n━━━━━━━━━━━━━━━━━━━\n📊 Données disponibles",
-        "spread_unavailable": "❌ Donnée de marché non disponible.",
-        "scalp_usage": "Utilisez /check SYMBOLE BUY|SELL pour obtenir une validation par score Teddy.",
-        "scalp_invalid_duration": "Durée invalide. Choisissez 3, 5, 10 ou 20 secondes.",
-        "scalp_signal_buy": "ACHETER",
-        "scalp_signal_sell": "VENDRE",
-        "scalp_signal_wait": "ATTENDRE",
-        "scalp_result": (
-            "⚡ *Analyse rapide {symbol} · {duration}s*\n"
-            "━━━━━━━━━━━━━━━━━━━\n"
-            "📊 Signal : {signal_emoji} {signal}\n"
-            "💰 Prix    : {price}\n"
-            "📉 Achat/Vente : {bid} / {ask}\n"
-            "📈 RSI     : {rsi:.1f}\n"
-            "📋 Raison  : {reason}\n"
-            "━━━━━━━━━━━━━━━━━━━"
-        ),
-        "realtime_data_error": "❌ Impossible d'obtenir les données temps réel.",
 
         # ----- Tendance / Volatilité / Corrélation / Niveaux -----
         "trend_usage": "Usage: /trend SYMBOLE",
@@ -300,6 +253,7 @@ TEXTS = {
         "settimeframe_usage": "Usage: /settimeframe 1h|4h|1d",
         "settimeframe_invalid": "Timeframe invalide.",
         "settimeframe_success": "✅ Timeframe par défaut: {tf}",
+        "settimeframe_choose": "Choisissez un timeframe :",
         "setrisk_usage": "Usage: /setrisk low|medium|high",
         "setrisk_invalid": "Risque invalide.",
         "setrisk_success": "✅ Profil de risque: {risk}",
@@ -307,55 +261,36 @@ TEXTS = {
         "setlanguage_invalid": "Langue invalide. Utilisez 'en' ou 'fr'.",
         "setlanguage_success_fr": "✅ Langue définie sur Français.",
         "setlanguage_success_en": "✅ Langue définie sur Anglais.",
+        "setlanguage_choose": "Choisissez une langue :",
         "usage_requests_remaining": "📊 Requêtes restantes aujourd'hui: {rem}",
         "usage_unlimited": "✅ Premium: requêtes illimitées.",
 
         # ----- Infos -----
-        "status_ok": "✅ Bot opérationnel. APIs: Twelve Data, Yahoo Finance.",
-        "about": "Teddy Trading Bot v2.0 – Bitsure Teddy\nDéveloppé pour trading professionnel.",
-        "symbolinfo": "ℹ️ Utilisez /analyse pour les infos détaillées.",
+        "status_ok": "✅ Bot opérationnel.",
+        "about": "Teddy Trading Bot v2.0 – Bitsure Teddy",
         "myid": "Votre ID Telegram: `{user_id}`",
 
         # ----- Admin -----
+        "admin_only": "⛔ Commande réservée à l'administrateur.",
         "broadcast_admin_only": "⛔ Commande réservée à l'administrateur.",
         "broadcast_usage": "Usage: /broadcast MESSAGE",
         "broadcast_sent": "✅ Broadcast envoyé à {success}/{total} utilisateurs.",
         "reload_success": "✅ Configuration rechargée.",
-        "stats_info": "📊 *STATISTIQUES*\n👥 Total: {total}\n🆓 FREE: {free}\n💪 PRO: {pro}",
-        "setrole_usage": "Usage: /setrole USER_ID ROLE (free/pro)",
-        "setrole_invalid_id": "❌ USER_ID invalide.",
-        "setrole_invalid_role": "❌ Rôle invalide. Utilisez free ou pro.",
-        "setrole_success": "✅ Rôle de l'utilisateur {target_id} mis à jour : *{role}*",
-        "gift_usage": "Usage: /gift USER_ID ROLE DAYS (pro)",
-        "gift_success": "✅ Rôle {role} offert à {target_id} pour {days} jours.",
-        "invalid_days": "❌ Nombre de jours invalide.",
-        "revoke_usage": "Usage: /revoke USER_ID",
-        "revoke_success": "✅ Rôle de l'utilisateur {target_id} révoqué (free).",
-        "revoke_confirm": "⚠️ Révoquer l'accès de {target_id} ?",
         "action_cancelled": "❌ Action annulée.",
-        "redeem_usage": "Usage: /redeem CODE",
-        "redeem_success": "✅ Code promo appliqué : {message}",
-        "redeem_invalid": "❌ Code promo invalide ou expiré.",
-        "redeem_already_used": "❌ Vous avez déjà utilisé ce code promo.",
-        "app_message": "📱 *Bitsure Teddy Mobile*\n\nL'application est en cours de développement. Restez à l'écoute ! 🧸",
-        "gift_notification": "🎁 Vous avez reçu un accès {role} gratuit pour {days} jours !",
 
-        # ----- Challenge / Snapshot / Verify -----
-        "challenge_start": "🔥 *DÉFI D'ENTRAÎNEMENT LANCÉ* 🔥\nAnalyse de 5 trades consécutifs sur EURUSD...",
-        "challenge_trade": "📊 *Trade {n}/5* – {signal} à {price}\nRésultat : {result} ({pips} pips)",
-        "challenge_score": "🏆 *SCORE FINAL* : {wins}/5 gagnés\n{summary}",
-        "win": "Gagné",
-        "loss": "Perdu",
-        "pending": "En attente",
-        "net_pips": "Pips nets",
-        "snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrix: {price}",
-        "verify_not_found": "❌ Aucun signal trouvé avec l'ID `{signal_id}`.",
-        "verify_result": "🔍 *Signal #{signal_id}*\nÉmis le : {timestamp}\nSymbole : {symbol}\nSignal : {signal}\nPrix d'entrée : {price}\nRésultat : {result}",
-        "verify_usage": "Usage: /verify SIGNAL_ID",
-        "history_title": "📜 *Historique des signaux*\n",
+        # ----- Switch API -----
+        "switchapi_usage": "Usage : /switchapi twelve|fcs|real",
+        "switchapi_current": "Source actuelle : {source}",
+        "switchapi_switched": "✅ Basculement vers {source} effectué.",
+
+        # ----- Refresh History -----
+        "refreshhistory_start": "🔄 Mise à jour de l'historique en cours...",
+        "refreshhistory_done": "✅ Historique mis à jour.",
+
+        # ----- Historique -----
+        "history_title": "📋 HISTORIQUE — {date}",
+        "history_summary": "📊 {total} signaux · {wins} gagnés ({win_rate}%) · {losses} perdus · {total_pnl}",
         "history_empty": "Aucun signal enregistré.",
-        "history_list_header": "📋 HISTORIQUE — {date}",
-        "history_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {total_pnl}",
         "no_recent_analysis": "Aucune analyse récente.",
 
         # ----- Signal Engine -----
@@ -364,8 +299,6 @@ TEXTS = {
         "signal_buy_advice": "⚠️ Entrée progressive conseillée",
         "signal_sell_reason": "📉 Signaux baissiers détectés",
         "signal_sell_advice": "⚠️ Risque de continuation",
-        "signal_wait_overbought": "Marché suracheté, attendez une correction",
-        "signal_wait_oversold": "Marché survendu, attendez un rebond",
         "signal_wait_neutral": "Aucun signal clair – phase de consolidation",
         "signal_wait_advice": "⏳ Attendre une confirmation",
         "confidence_high": "FORTE",
@@ -380,76 +313,48 @@ TEXTS = {
         "menu_title": "🧸 *MENU PRINCIPAL*\nSélectionnez une catégorie :",
         "menu_analyse": "📊 Analyse",
         "menu_paper": "📈 Paper Trading",
-        "menu_scalping": "⚡ Analyse rapide",
         "menu_alertes": "🚨 Alertes",
         "menu_watchlist": "📋 Watchlist",
         "menu_parametres": "⚙️ Paramètres",
-                        "back": "⬅️ Retour",
-        "menu_choose_command": "Choisissez une commande :",
         "menu_upgrade": "💎 Upgrade",
-        "switchapi_usage": "Usage : /switchapi twelve|fcs|real",
-        "switchapi_current": "Source actuelle : {source}",
-        "switchapi_switched": "✅ Basculement vers {source} effectué.",
-        "refreshhistory_start": "🔄 Mise à jour de l'historique en cours...",
-        "refreshhistory_done": "✅ Historique mis à jour.",
+        "back": "⬅️ Retour",
+        "menu_choose_command": "Choisissez une commande :",
         "btn_analyse": "📊 Analyse",
         "btn_price": "💰 Prix",
-        "btn_scalp": "⚡ Score Teddy",
-        "btn_watchlist": "📋 Watchlist",
-        "btn_settings": "⚙️ Paramètres",
-        "btn_upgrade": "💎 Upgrade",
-        "btn_historique": "📜 Historique",
-        "btn_clearhistory": "🧹 Effacer l'historique",
-        "btn_support": "📞 Support",
         "btn_trend": "📈 Tendance",
         "btn_volatility": "🌪 Volatilité",
         "btn_levels": "📍 Niveaux",
-        "btn_symbolinfo": "ℹ️ Symbole",
-        "btn_check": "✅ Check trade",
         "btn_paper": "📈 Paper Trading",
         "btn_paper_buy": "🟢 Acheter / Vendre",
         "btn_paper_status": "📊 Positions ouvertes",
         "btn_paper_history": "📋 Historique",
         "btn_paper_stats": "📈 Statistiques",
-        "btn_tick": "🕒 Prix récent",
-        "btn_spread": "↔️ Données marché",
         "btn_alert": "➕ Alerte",
         "btn_alerts": "📑 Alertes",
         "btn_delalert": "➖ Supprimer alerte",
         "btn_clearalerts": "🧹 Effacer alertes",
+        "btn_watchlist": "📋 Watchlist",
         "btn_addwatch": "➕ Ajouter",
         "btn_removewatch": "➖ Retirer",
         "btn_scan": "🔎 Scanner",
+        "btn_settings": "⚙️ Paramètres",
         "btn_settimeframe": "⏱ Timeframe",
         "btn_setlanguage": "🌐 Langue",
         "btn_usage": "📊 Usage",
-        "help_redirect": "Utilisez /menu pour accéder au menu interactif. Fonctionnalités clés : analyse technique avec score Teddy, paper trading intégré et backtest public vérifiable.",
+        "btn_historique": "📜 Historique",
+        "btn_clearhistory": "🧹 Effacer l'historique",
+        "btn_support": "📞 Support",
+        "btn_upgrade": "💎 Upgrade",
+        "help_redirect": "Utilisez /menu pour accéder au menu interactif.",
         "trial_days_left": "Essai gratuit : {days} jours restants",
         "btn_upgrade_stars": "Telegram Stars (19,99€/mois)",
         "btn_upgrade_binance": "Binance Junior (USDC)",
-        "settimeframe_choose": "Choisissez un timeframe :",
-        "setlanguage_choose": "Choisissez une langue :",
-        "delalert_pick": "Choisissez une alerte à supprimer :",
-        "scalp_choose_duration": "Choisissez une durée :",
-        "cond_above": "Au-dessus",
-        "cond_below": "En-dessous",
-        "alert_choose_condition": "Choisissez une condition :",
-        "alert_enter_price": "Entrez le prix cible après la condition.",
-        "alert_price_invalid_retry": "Prix invalide, réessayez.",
-        "watchlist_already": "ℹ️ {symbol} est déjà dans ta watchlist.",
-        "watchlist_missing": "ℹ️ {symbol} n'est pas dans ta watchlist.",
-        "watchlist_added_styled": "✅ {symbol} ajouté à ta watchlist",
-        "watchlist_removed_styled": "🗑️ {symbol} retiré de ta watchlist",
-        "scalp_wait_reason": "Tous les indicateurs sont neutres, aucun edge détecté.",
-        "scalp_fallback_buy": "RSI survendu fort détecté (fallback).",
-        "scalp_fallback_sell": "RSI suracheté fort détecté (fallback).",
-        "use_command": "Utilisez la commande /{cmd} pour plus d'informations.",
-        "unknown_command": "Commande non reconnue : /{cmd}",
+        "select_symbol": "Sélectionnez un symbole :",
+        "unknown_command": "Commande non reconnue.",
         "unknown_option": "Option non reconnue.",
-        "unsupported_command": "Commande non supportée : /{command}",
 
         # ----- Backtest -----
-        "backtest_start": "🚀 Lancement du backtest (peut prendre quelques instants)...",
+        "backtest_start": "🚀 Lancement du backtest...",
         "backtest_downloading": "⬇️ Téléchargement des données pour {symbol}...",
         "backtest_no_data": "⚠️ Pas de données pour {symbol}",
         "backtest_no_trades": "ℹ️ {symbol}: Aucun trade.",
@@ -470,7 +375,6 @@ TEXTS = {
         "paper_started": "✅ Paper trading activé avec {capital}$ virtuels.",
         "paper_status": "📊 CAPITAL: {capital}$ | ÉQUITÉ: {equity}$ | PnL: {total_pnl}$ | Ouvertes: {open_positions}",
         "paper_buy_usage": "Usage: /paper buy <symbole>",
-        "paper_no_signal": "Aucun signal actif pour ce symbole.",
         "paper_opened": "✅ Position ouverte sur {symbol} à {price}$ | SL: {sl}$ | TP: {tp}$",
         "paper_sell_usage": "Usage: /paper sell <symbole>",
         "paper_closed": "✅ Position fermée sur {symbol}.",
@@ -480,15 +384,12 @@ TEXTS = {
         "paper_choose_direction": "📈 {symbol} – Choisis la direction :",
         "paper_no_open_positions": "Aucune position ouverte.",
         "paper_stats": "📊 STATS PAPER TRADING\n💰 Capital: {capital}$\n📈 Équité: {equity}$\n💵 PnL: {total_pnl}$\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
-        # ----- Sélection de symboles -----
-        "select_symbol": "Sélectionnez un symbole :",
-        "category_crypto": "🪙 Cryptos",
-        "category_forex": "💱 Devises",
-        "category_commodities": "✨ Matières premières",
-        "category_stocks": "📈 Actions",
-        "category_fav": "⭐ Favoris",
-        "prev_page": "⬅️",
-        "next_page": "➡️",
+
+        # ----- Snapshot / Verify -----
+        "snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrix: {price}",
+        "verify_not_found": "❌ Aucun signal trouvé avec l'ID `{signal_id}`.",
+        "verify_result": "🔍 *Signal #{signal_id}*\nÉmis le : {timestamp}\nSymbole : {symbol}\nSignal : {signal}\nPrix d'entrée : {price}\nRésultat : {result}",
+        "verify_usage": "Usage: /verify SIGNAL_ID",
     },
 
     "en": {
@@ -522,40 +423,14 @@ TEXTS = {
         "terms_refused_msg": "❌ You cannot use the bot without accepting the terms. Type /start when you are ready.",
         "terms_must_accept": "⚠️ You must first accept the terms of use. Type /start to review them.",
         "terms_button": "📋 Read Terms of Use",
-        "check_usage": "Usage: /check SYMBOL BUY|SELL",
-        "check_choose_direction": "📊 {symbol} – Choose direction:",
-        "check": "📊 VALIDATION {symbol}\n━━━━━━━━━━━━━━━━━━━\n✅ Trend: {trend}\n✅ RSI: {rsi}\n⚠️ Volatility: {volatility}\n📈 Score: {score}/100 → {light}\n🎯 SL: {sl}\n💰 TP: {tp}",
-        "check_green": "🟢 FAVORABLE",
-        "check_orange": "🟡 CAUTION",
-        "check_red": "🔴 RISKY",
-        "check_vol_high": "High",
-        "check_vol_normal": "Normal",
-        "history_stats_header": "📊 YOUR HISTORY\n━━━━━━━━━━━━━━━━━━━\n📈 Signals received: {total}\n✅ Winners: {wins} ({win_rate}%)\n❌ Losers: {losses}\n\n💰 Average gain: {avg}%\n📉 Worst: {worst}%\n🏆 Best: {best}%\n\n💡 Advice: {advice}\n\n📋 LATEST SIGNALS:\n",
-        "history_advice_high": "Keep going, but maintain strict risk management.",
-        "history_advice_low": "Reduce risk and favor higher scores.",
-        "channel_required": "⚠️ You must join T's World channel to use Bitsure Teddy.\n\n👉 https://t.me/+c_xPX-20JAo0MTE0\n\nCome back after joining!",
-        "channel_required_message": (
-            "📢 Before you continue...\n\n"
-            "Join T's World to see:\n"
-            "📊 Public backtests every week\n"
-            "📈 Live signals\n"
-            "💡 Market analysis\n\n"
-            "It's free and helps you get the most out of Bitsure Teddy."
-        ),
-        "channel_verified": "✅ Subscription verified. Welcome!",
-        "channel_not_joined": "❌ You haven't joined the channel yet. Join it first.",
-        "check_subscription": "✅ I joined",
-        "ask_usage": "Usage: /ask <your question>",
-        "ask_wait": "🤔 Thinking...",
-        "ask_error": "❌ Error: {error}",
 
         # ----- Help -----
+        "help_redirect": "Use /menu to access the interactive menu. Key features: technical analysis with Teddy score, integrated paper trading, and verifiable public backtest.",
         "help_full": (
             "🧸 *Available commands:*\n\n"
             "/menu – Interactive main menu\n"
             "/analyse SYMBOL – Full analysis\n"
             "/price SYMBOL – Current price\n"
-            "/check SYMBOL BUY|SELL – Teddy score validation\n"
             "/paper start – Integrated paper trading\n"
             "/backtest SYMBOL – Verifiable public backtest\n"
             "/alert SYMBOL above/below PRICE – Create price alert\n"
@@ -582,12 +457,10 @@ TEXTS = {
             "/usage – Remaining requests\n"
             "/status – Bot status\n"
             "/about – Version & credits\n"
-            "/symbolinfo SYMBOL – Symbol info\n"
             "/myid – Get your Telegram ID\n"
             "/upgrade – PRO offer\n"
             "/support – Contact admin\n"
             "/symboles – Popular symbols\n"
-            "/challenge – Training challenge (5 trades)\n"
             "/historique – Signal history\n"
             "/snapshot – Instagram‑ready image\n"
             "/verify ID – Verify a signal\n"
@@ -621,7 +494,6 @@ TEXTS = {
         "confirm_payment_missing": "❌ No pending Binance payment for {user_id}.",
         "premium_required": "🔒 *Premium Feature*\n\nThis command is reserved for PRO members.\nUse /upgrade to discover the offer.",
         "payment_success": "✅ *Payment successful!*\nYou are now *PRO*.\nThank you for your trust! 🧸",
-        "stripe_soon": "💳 Credit card payment will be available very soon. In the meantime, you can use Telegram Stars or contact support.",
         "unavailable_option": "Unavailable option.",
 
         # ----- Limits -----
@@ -637,6 +509,10 @@ TEXTS = {
         "watchlist_show": "📋 *Watchlist:*\n{symbols}",
         "addwatch_usage": "Usage: /addwatch SYMBOL",
         "removewatch_usage": "Usage: /removewatch SYMBOL",
+        "watchlist_already": "ℹ️ {symbol} is already in your watchlist.",
+        "watchlist_missing": "ℹ️ {symbol} is not in your watchlist.",
+        "watchlist_added_styled": "✅ {symbol} added to your watchlist",
+        "watchlist_removed_styled": "🗑️ {symbol} removed from your watchlist",
 
         # ----- Alerts -----
         "alert_usage": "Usage: /alert SYMBOL above/below PRICE",
@@ -655,21 +531,24 @@ TEXTS = {
         "confirm_yes": "✅ Yes",
         "confirm_no": "❌ No",
         "delalert_usage": "Usage: /delalert ID",
+        "delalert_pick": "Choose an alert to delete:",
+        "cond_above": "Above",
+        "cond_below": "Below",
+        "alert_choose_condition": "Choose a condition:",
+        "alert_enter_price": "Enter the target price after selecting condition.",
+        "alert_price_invalid_retry": "Invalid price, please try again.",
 
         # ----- Symbols -----
         "symbole_invalide": "Invalid symbol.",
-        "invalid_symbol": "Invalid symbol.",
         "symboles_list": (
             "📊 *POPULAR SYMBOLS*\n\n"
-            "🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\nXRPUSD – Ripple\nSOLUSD – Solana\n\n"
-            "💱 *Currencies*\nEURUSD – Euro/Dollar\nGBPUSD – Pound/Dollar\nUSDJPY – Dollar/Yen\n\n"
-            "✨ *Commodities*\nXAUUSD – Gold\nXAGUSD – Silver\n\n"
-            "📈 *Stocks*\nAAPL – Apple\nTSLA – Tesla\nMSFT – Microsoft\n\n"
+            "🪙 *Cryptos*\nBTCUSD – Bitcoin\nETHUSD – Ethereum\n\n"
+            "💱 *Currencies*\nEURUSD – Euro/Dollar\nGBPUSD – Pound/Dollar\nUSDJPY – Dollar/Yen\nAUDUSD – Australian Dollar\n\n"
+            "✨ *Commodities*\nXAUUSD – Gold\n\n"
+            "📈 *Stocks*\nAAPL – Apple\nTSLA – Tesla\nNVDA – NVIDIA\n\n"
             "💡 Example: /analyse BTCUSD"
         ),
         "symbol_not_found": "Symbol not found.",
-        "symbolinfo_usage": "Usage: /symbolinfo SYMBOL",
-        "symbolinfo_format": "*{symbol}*\nPrice: {price}\nBid/Ask: {bid} / {ask}",
 
         # ----- Analysis -----
         "analyse_usage": "Usage: /analyse SYMBOL",
@@ -703,31 +582,6 @@ TEXTS = {
         "price_usage": "Usage: /price SYMBOL",
         "price_error": "❌ Price not available for {symbol}.",
         "price_format": "💵 *{symbol}*\n━━━━━━━━━━━━━━━━━━━\n💰 Price : {price}\n📉 Bid   : {bid}\n📈 Ask   : {ask}",
-        "price_label": "Price",
-
-        # ----- Analyse rapide -----
-        "tick_usage": "Use /price SYMBOL to view the latest available price.",
-        "tick_none": "❌ No recent price available.",
-        "tick_current": "🕒 Recent price {symbol}: {price}",
-        "spread_usage": "Use /price SYMBOL to view available market data.",
-        "spread_format": "📏 *Market data {symbol}*\n━━━━━━━━━━━━━━━━━━━\n📊 Data available",
-        "spread_unavailable": "❌ Market data unavailable.",
-        "scalp_usage": "Use /check SYMBOL BUY|SELL to get a Teddy score validation.",
-        "scalp_invalid_duration": "Invalid duration. Choose 3, 5, 10 or 20 seconds.",
-        "scalp_signal_buy": "BUY",
-        "scalp_signal_sell": "SELL",
-        "scalp_signal_wait": "WAIT",
-        "scalp_result": (
-            "⚡ *Quick analysis {symbol} · {duration}s*\n"
-            "━━━━━━━━━━━━━━━━━━━\n"
-            "📊 Signal : {signal_emoji} {signal}\n"
-            "💰 Price   : {price}\n"
-            "📉 Buy/Sell : {bid} / {ask}\n"
-            "📈 RSI     : {rsi:.1f}\n"
-            "📋 Reason  : {reason}\n"
-            "━━━━━━━━━━━━━━━━━━━"
-        ),
-        "realtime_data_error": "❌ Could not retrieve real-time data.",
 
         # ----- Trend / Volatility / Correlation / Levels -----
         "trend_usage": "Usage: /trend SYMBOL",
@@ -790,6 +644,7 @@ TEXTS = {
         "settimeframe_usage": "Usage: /settimeframe 1h|4h|1d",
         "settimeframe_invalid": "Invalid timeframe.",
         "settimeframe_success": "✅ Default timeframe: {tf}",
+        "settimeframe_choose": "Choose a timeframe:",
         "setrisk_usage": "Usage: /setrisk low|medium|high",
         "setrisk_invalid": "Invalid risk.",
         "setrisk_success": "✅ Risk profile: {risk}",
@@ -797,55 +652,36 @@ TEXTS = {
         "setlanguage_invalid": "Invalid language. Use 'en' or 'fr'.",
         "setlanguage_success_fr": "✅ Language set to French.",
         "setlanguage_success_en": "✅ Language set to English.",
+        "setlanguage_choose": "Choose a language:",
         "usage_requests_remaining": "📊 Requests remaining today: {rem}",
         "usage_unlimited": "✅ Premium: unlimited requests.",
 
         # ----- Info -----
-        "status_ok": "✅ Bot operational. APIs: Twelve Data, Yahoo Finance.",
-        "about": "Teddy Trading Bot v2.0 – Bitsure Teddy\nDeveloped for professional trading.",
-        "symbolinfo": "ℹ️ Use /analyse for detailed info.",
+        "status_ok": "✅ Bot operational.",
+        "about": "Teddy Trading Bot v2.0 – Bitsure Teddy",
         "myid": "Your Telegram ID: `{user_id}`",
 
         # ----- Admin -----
+        "admin_only": "⛔ Admin only command.",
         "broadcast_admin_only": "⛔ Admin only command.",
         "broadcast_usage": "Usage: /broadcast MESSAGE",
         "broadcast_sent": "✅ Broadcast sent to {success}/{total} users.",
         "reload_success": "✅ Configuration reloaded.",
-        "stats_info": "📊 *STATISTICS*\n👥 Total: {total}\n🆓 FREE: {free}\n💪 PRO: {pro}",
-        "setrole_usage": "Usage: /setrole USER_ID ROLE (free/pro)",
-        "setrole_invalid_id": "❌ Invalid USER_ID.",
-        "setrole_invalid_role": "❌ Invalid role. Use free or pro.",
-        "setrole_success": "✅ User {target_id} role updated: *{role}*",
-        "gift_usage": "Usage: /gift USER_ID ROLE DAYS (pro)",
-        "gift_success": "✅ {role} role granted to {target_id} for {days} days.",
-        "invalid_days": "❌ Invalid number of days.",
-        "revoke_usage": "Usage: /revoke USER_ID",
-        "revoke_success": "✅ User {target_id} role revoked (free).",
-        "revoke_confirm": "⚠️ Revoke access for {target_id}?",
         "action_cancelled": "❌ Action cancelled.",
-        "redeem_usage": "Usage: /redeem CODE",
-        "redeem_success": "✅ Promo code applied: {message}",
-        "redeem_invalid": "❌ Invalid or expired promo code.",
-        "redeem_already_used": "❌ You have already used this promo code.",
-        "app_message": "📱 *Bitsure Teddy Mobile*\n\nThe app is currently in development. Stay tuned! 🧸",
-        "gift_notification": "🎁 You have been granted free {role} access for {days} days! Enjoy!",
 
-        # ----- Challenge / Snapshot / Verify -----
-        "challenge_start": "🔥 *TRAINING CHALLENGE STARTED* 🔥\nAnalyzing 5 consecutive trades on EURUSD...",
-        "challenge_trade": "📊 *Trade {n}/5* – {signal} at {price}\nResult: {result} ({pips} pips)",
-        "challenge_score": "🏆 *FINAL SCORE*: {wins}/5 won\n{summary}",
-        "win": "Win",
-        "loss": "Loss",
-        "pending": "Pending",
-        "net_pips": "Net pips",
-        "snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrice: {price}",
-        "verify_not_found": "❌ No signal found with ID `{signal_id}`.",
-        "verify_result": "🔍 *Signal #{signal_id}*\nIssued on: {timestamp}\nSymbol: {symbol}\nSignal: {signal}\nEntry Price: {price}\nResult: {result}",
-        "verify_usage": "Usage: /verify SIGNAL_ID",
-        "history_title": "📜 *Signal History*\n",
-        "history_empty": "No signals recorded.",
-        "history_list_header": "📋 HISTORY — {date}",
+        # ----- Switch API -----
+        "switchapi_usage": "Usage: /switchapi twelve|fcs|real",
+        "switchapi_current": "Current source: {source}",
+        "switchapi_switched": "✅ Switched to {source}.",
+
+        # ----- Refresh History -----
+        "refreshhistory_start": "🔄 Updating history...",
+        "refreshhistory_done": "✅ History updated.",
+
+        # ----- History -----
+        "history_title": "📋 HISTORY — {date}",
         "history_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {total_pnl}",
+        "history_empty": "No signals recorded.",
         "no_recent_analysis": "No recent analysis.",
 
         # ----- Signal Engine -----
@@ -854,8 +690,6 @@ TEXTS = {
         "signal_buy_advice": "⚠️ Consider gradual entry",
         "signal_sell_reason": "📉 Bearish signals detected",
         "signal_sell_advice": "⚠️ Continuation risk",
-        "signal_wait_overbought": "Market overbought, wait for pullback",
-        "signal_wait_oversold": "Market oversold, wait for bounce",
         "signal_wait_neutral": "No clear signal – consolidation phase",
         "signal_wait_advice": "⏳ Wait for confirmation",
         "confidence_high": "HIGH",
@@ -870,86 +704,48 @@ TEXTS = {
         "menu_title": "🧸 *MAIN MENU*\nSelect a category:",
         "menu_analyse": "📊 Analysis",
         "menu_paper": "📈 Paper Trading",
-        "menu_scalping": "⚡ Quick analysis",
         "menu_alertes": "🚨 Alerts",
         "menu_watchlist": "📋 Watchlist",
         "menu_parametres": "⚙️ Settings",
-                        "back": "⬅️ Back",
-        "menu_choose_command": "Choose a command:",
         "menu_upgrade": "💎 Upgrade",
-        "switchapi_usage": "Usage: /switchapi twelve|fcs|real",
-        "switchapi_current": "Current source: {source}",
-        "switchapi_switched": "✅ Switched to {source}.",
-        "refreshhistory_start": "🔄 Updating history...",
-        "refreshhistory_done": "✅ History updated.",
+        "back": "⬅️ Back",
+        "menu_choose_command": "Choose a command:",
         "btn_analyse": "📊 Analysis",
         "btn_price": "💰 Price",
-        "btn_scalp": "⚡ Teddy score",
-        "btn_watchlist": "📋 Watchlist",
-        "btn_settings": "⚙️ Settings",
-        "btn_upgrade": "💎 Upgrade",
-        "btn_historique": "📜 History",
-        "btn_clearhistory": "🧹 Clear History",
-        "btn_support": "📞 Support",
         "btn_trend": "📈 Trend",
         "btn_volatility": "🌪 Volatility",
         "btn_levels": "📍 Levels",
-        "btn_symbolinfo": "ℹ️ Symbol",
-        "btn_check": "✅ Trade check",
         "btn_paper": "📈 Paper Trading",
         "btn_paper_buy": "🟢 Buy / Sell",
         "btn_paper_status": "📊 Open Positions",
         "btn_paper_history": "📋 History",
         "btn_paper_stats": "📈 Statistics",
-        "btn_tick": "🕒 Recent price",
-        "btn_spread": "↔️ Market data",
         "btn_alert": "➕ Alert",
         "btn_alerts": "📑 Alerts",
         "btn_delalert": "➖ Delete alert",
         "btn_clearalerts": "🧹 Clear alerts",
+        "btn_watchlist": "📋 Watchlist",
         "btn_addwatch": "➕ Add",
         "btn_removewatch": "➖ Remove",
         "btn_scan": "🔎 Scan",
+        "btn_settings": "⚙️ Settings",
         "btn_settimeframe": "⏱ Timeframe",
         "btn_setlanguage": "🌐 Language",
         "btn_usage": "📊 Usage",
-        "help_redirect": "Use /menu to access the interactive menu. Key features: technical analysis with Teddy score, integrated paper trading, and verifiable public backtest.",
+        "btn_historique": "📜 History",
+        "btn_clearhistory": "🧹 Clear History",
+        "btn_support": "📞 Support",
+        "btn_upgrade": "💎 Upgrade",
+        "help_redirect": "Use /menu to access the interactive menu.",
         "trial_days_left": "Free trial: {days} days remaining",
         "btn_upgrade_stars": "Telegram Stars (19.99€/month)",
         "btn_upgrade_binance": "Binance Junior (USDC)",
-        "settimeframe_choose": "Choose a timeframe:",
-        "setlanguage_choose": "Choose a language:",
-        "delalert_pick": "Choose an alert to delete:",
-        "scalp_choose_duration": "Choose a duration:",
-        "cond_above": "Above",
-        "cond_below": "Below",
-        "alert_choose_condition": "Choose a condition:",
-        "alert_enter_price": "Enter the target price after selecting condition.",
-        "alert_price_invalid_retry": "Invalid price, please try again.",
-        "watchlist_already": "ℹ️ {symbol} is already in your watchlist.",
-        "watchlist_missing": "ℹ️ {symbol} is not in your watchlist.",
-        "watchlist_added_styled": "✅ {symbol} added to your watchlist",
-        "watchlist_removed_styled": "🗑️ {symbol} removed from your watchlist",
-        "scalp_wait_reason": "All indicators are neutral, no edge detected.",
-        "scalp_fallback_buy": "Strong oversold RSI detected (fallback).",
-        "scalp_fallback_sell": "Strong overbought RSI detected (fallback).",
-        "btn_upgrade_stars_fr": "Telegram Stars (19,99€/mois)",
-        "btn_upgrade_binance_fr": "Binance Junior (USDC)",
-        "settimeframe_choose_fr": "Choisissez un timeframe :",
-        "setlanguage_choose_fr": "Choisissez une langue :",
-        "delalert_pick_fr": "Choisissez une alerte à supprimer :",
-        "scalp_choose_duration_fr": "Choisissez une durée :",
-        "cond_above_fr": "Au-dessus",
-        "cond_below_fr": "En-dessous",
-        "alert_choose_condition_fr": "Choisissez une condition :",
-        "alert_enter_price_fr": "Entrez le prix cible après la condition.",
-        "use_command": "Use the command /{cmd} for more information.",
-        "unknown_command": "Unknown command: /{cmd}",
+        "select_symbol": "Select a symbol:",
+        "unknown_command": "Unknown command.",
         "unknown_option": "Unknown option.",
-        "unsupported_command": "Unsupported command: /{command}",
 
         # ----- Backtest -----
-        "backtest_start": "🚀 Starting backtest (this may take a few moments)...",
+        "backtest_start": "🚀 Starting backtest...",
         "backtest_downloading": "⬇️ Downloading data for {symbol}...",
         "backtest_no_data": "⚠️ No data available for {symbol}",
         "backtest_no_trades": "ℹ️ {symbol}: No trades.",
@@ -970,7 +766,6 @@ TEXTS = {
         "paper_started": "✅ Paper trading activated with ${capital} virtual.",
         "paper_status": "📊 CAPITAL: ${capital} | EQUITY: ${equity} | PnL: ${total_pnl} | Open: {open_positions}",
         "paper_buy_usage": "Usage: /paper buy <symbol>",
-        "paper_no_signal": "No active signal for this symbol.",
         "paper_opened": "✅ Position opened on {symbol} at ${price} | SL: ${sl} | TP: ${tp}",
         "paper_sell_usage": "Usage: /paper sell <symbol>",
         "paper_closed": "✅ Position closed on {symbol}.",
@@ -980,15 +775,12 @@ TEXTS = {
         "paper_choose_direction": "📈 {symbol} – Choose direction:",
         "paper_no_open_positions": "No open positions.",
         "paper_stats": "📊 PAPER TRADING STATS\n💰 Capital: ${capital}\n📈 Equity: ${equity}\n💵 PnL: ${total_pnl}\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
-        # ----- Symbol Selection -----
-        "select_symbol": "Select a symbol:",
-        "category_crypto": "🪙 Crypto",
-        "category_forex": "💱 Currencies",
-        "category_commodities": "✨ Commodities",
-        "category_stocks": "📈 Stocks",
-        "category_fav": "⭐ Favorites",
-        "prev_page": "⬅️",
-        "next_page": "➡️",
+
+        # ----- Snapshot / Verify -----
+        "snapshot_caption": "🐻 *Bitsure Teddy*\n{symbol} – {signal}\nTeddy Score: {score}/100\nPrice: {price}",
+        "verify_not_found": "❌ No signal found with ID `{signal_id}`.",
+        "verify_result": "🔍 *Signal #{signal_id}*\nIssued on: {timestamp}\nSymbol: {symbol}\nSignal: {signal}\nEntry Price: {price}\nResult: {result}",
+        "verify_usage": "Usage: /verify SIGNAL_ID",
     }
 }
 
