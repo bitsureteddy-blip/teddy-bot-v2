@@ -25,7 +25,7 @@ from bot_handlers import (
     support, challenge, snapshot, verify, historique, clearhistory,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
     sentiment, compare, top, fav, teddy, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring,
-    handle_pending_alert_input, paper, switchapi
+    handle_pending_alert_input, paper, switchapi, check_signal_outcomes, refreshhistory
 )
 
 logging.basicConfig(
@@ -52,6 +52,7 @@ def main():
         ("start", start), ("help", help_command), ("menu", menu_command),
         ("paper", paper),
         ("switchapi", switchapi),
+        ("refreshhistory", refreshhistory),
         ("analyse", analyse), ("price", price),
         ("alert", alert), ("alerts", alerts), ("delalert", delalert), ("clearalerts", clearalerts),
         ("trend", trend), ("volatility", volatility), ("correlation", correlation), ("levels", levels),

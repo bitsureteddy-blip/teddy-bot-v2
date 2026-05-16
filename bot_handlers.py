@@ -446,8 +446,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_trend"), callback_data="cmd_trend")],
             [InlineKeyboardButton(get_text(lang, "btn_volatility"), callback_data="cmd_volatility")],
             [InlineKeyboardButton(get_text(lang, "btn_levels"), callback_data="cmd_levels")],
-            [InlineKeyboardButton(get_text(lang, "btn_symbolinfo"), callback_data="cmd_symbolinfo")],
-            [InlineKeyboardButton(get_text(lang, "btn_check"), callback_data="cmd_check")],
             [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
         ]
         await safe_edit(f"*{get_text(lang, 'menu_analyse')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
@@ -485,6 +483,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(get_text(lang, "btn_setlanguage"), callback_data="cmd_setlanguage")],
             [InlineKeyboardButton(get_text(lang, "btn_usage"), callback_data="cmd_usage")],
             [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique")],
+            [InlineKeyboardButton("🔄 Refresh History", callback_data="cmd_refreshhistory")],
             [InlineKeyboardButton(get_text(lang, "btn_clearhistory"), callback_data="cmd_clearhistory")],
             [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
             [InlineKeyboardButton("🔄 Switch API", callback_data="cmd_switchapi")],
@@ -650,6 +649,10 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await paper(update, context)
         elif cmd == "support":
             await message.reply_text(get_text(lang, "support"))
+        elif cmd == "refreshhistory":
+            await query.message.reply_text(get_text(lang, "refreshhistory_start"))
+            await check_signal_outcomes(context.bot)
+            await query.message.reply_text(get_text(lang, "refreshhistory_done"))
         elif cmd == "switchapi":
             kb = [
                 [InlineKeyboardButton("Twelve Data", callback_data="switchapi_twelve")],
@@ -1458,6 +1461,35 @@ async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
         fetcher._start_real_ws()
     await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
 @check_limit
+async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permet à l'admin de switcher manuellement de source API."""
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "admin_only"))
+        return
+    fetcher = DataFetcher.get_instance()
+    current = fetcher.active_source or "none"
+    if not context.args:
+        await update.message.reply_text(
+            f"🔄 {get_text(lang, 'switchapi_current', source=current)}\n"
+            f"{get_text(lang, 'switchapi_usage')}\n"
+            f"Failure stats: {fetcher.source_failures}"
+        )
+        return
+    target = context.args[0].lower()
+    if target not in ("twelve", "fcs", "real"):
+        await update.message.reply_text(get_text(lang, "switchapi_usage"))
+        return
+    if fetcher.ws:
+        fetcher.ws.close()
+    if target == "twelve":
+        fetcher._start_twelve_ws()
+    elif target == "fcs":
+        fetcher._start_fcs_ws()
+    elif target == "real":
+        fetcher._start_real_ws()
+    await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
+@check_limit
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     lang = user_mgr.get_setting(uid, "lang", "en")
@@ -1600,6 +1632,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
 @check_limit
 async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
@@ -1887,6 +1920,17 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
     ])
     await target_message.reply_text(text)
+
+async def check_signal_outcomes(bot):
+    return
+
+@check_limit
+async def refreshhistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    await update.message.reply_text(get_text(lang, "refreshhistory_start"))
+    await check_signal_outcomes(context.bot)
+    await update.message.reply_text(get_text(lang, "refreshhistory_done"))
+
 @check_limit
 async def clearhistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
