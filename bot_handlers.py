@@ -1362,6 +1362,72 @@ async def learn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(get_text(lang, "learn_usage"))
 # ---------- PARAMÈTRES ----------
+
+@check_limit
+async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permet à l'admin de switcher manuellement de source API."""
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "admin_only"))
+        return
+
+    fetcher = DataFetcher.get_instance()
+    current = fetcher.active_source or "none"
+
+    if not context.args:
+        await update.message.reply_text(
+            f"🔄 {get_text(lang, 'switchapi_current', source=current)}\n"
+            f"{get_text(lang, 'switchapi_usage')}\n"
+            f"Failure stats: {fetcher.source_failures}"
+        )
+        return
+
+    target = context.args[0].lower()
+    if target not in ("twelve", "fcs", "real"):
+        await update.message.reply_text(get_text(lang, "switchapi_usage"))
+        return
+
+    if fetcher.ws:
+        fetcher.ws.close()
+
+    if target == "twelve":
+        fetcher._start_twelve_ws()
+    elif target == "fcs":
+        fetcher._start_fcs_ws()
+    elif target == "real":
+        fetcher._start_real_ws()
+
+    await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
+
+@check_limit
+async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permet à l'admin de switcher manuellement de source API."""
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "admin_only"))
+        return
+    fetcher = DataFetcher.get_instance()
+    current = fetcher.active_source or "none"
+    if not context.args:
+        await update.message.reply_text(
+            f"🔄 {get_text(lang, 'switchapi_current', source=current)}\n"
+            f"{get_text(lang, 'switchapi_usage')}\n"
+            f"Failure stats: {fetcher.source_failures}"
+        )
+        return
+    target = context.args[0].lower()
+    if target not in ("twelve", "fcs", "real"):
+        await update.message.reply_text(get_text(lang, "switchapi_usage"))
+        return
+    if fetcher.ws:
+        fetcher.ws.close()
+    if target == "twelve":
+        fetcher._start_twelve_ws()
+    elif target == "fcs":
+        fetcher._start_fcs_ws()
+    elif target == "real":
+        fetcher._start_real_ws()
+    await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
 @check_limit
 async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Permet à l'admin de switcher manuellement de source API."""
@@ -1517,6 +1583,7 @@ async def reload_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     challenge_mgr = ChallengeManager.get_instance()
     await update.message.reply_text(get_text(lang, "reload_success"))
 @check_limit
+@check_limit
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text(get_text(user_mgr.get_setting(update.effective_user.id, "lang", "en"), "broadcast_admin_only"))
@@ -1533,7 +1600,203 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+@check_limit
+async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await handle_pending_alert_input(update, context):
+        return
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+    if not context.args:
+        await respond(update, get_text(lang, "paper_usage"))
+        return
+    action = context.args[0].lower()
+    if action == "start":
+        paper_trader.init_capital(user_id)
+        await respond(update, get_text(lang, "paper_started", capital=10000))
+    elif action == "status":
+        stats = paper_trader.get_stats(user_id)
+        positions = paper_trader.get_positions(user_id)
+        msg = get_text(lang, "paper_status", capital=round(stats["capital"], 4), equity=round(stats["equity"], 4),
+                       open_positions=stats["open_positions"], total_pnl=round(stats["total_pnl"], 4))
+        if positions:
+            for p in positions:
+                msg += f"\n{p['symbol']} @ {p['entry_price']:.4f} | SL: {p['sl']:.4f} | TP: {p['tp']:.4f} | PnL: {p['pnl_usdt']:.4f}$"
+        else:
+            msg += "\n" + get_text(lang, "paper_no_open_positions")
+        await respond(update, msg, parse_mode=ParseMode.MARKDOWN)
+    elif action == "buy":
+        if len(context.args) < 2:
+            await respond(update, get_text(lang, "paper_buy_usage"))
+            return
+        symbol = normalize_symbol(context.args[1].upper())
+        df = await fetcher.get_historical_data(symbol)
+        if df is None or df.empty:
+            await respond(update, get_text(lang, "data_unavailable"))
+            return
+        result = SignalEngine.analyze(df, lang, symbol=symbol)
+        price = float(result["indicators"]["price"])
+        atr_val = float(result["indicators"].get("atr", price * 0.01))
+        sl = price - ATR_MULTIPLIER_SL * atr_val
+        tp = price + RR_RATIO_TARGET * atr_val
+        capital = paper_trader.get_capital(user_id)
+        qty = capital / price if price > 0 else 1
+        pos = paper_trader.open_position(user_id, symbol, price, sl, tp, qty)
+        await respond(update, get_text(lang, "paper_opened", symbol=symbol, price=round(price, 4), sl=round(sl, 4), tp=round(tp, 4)))
+    elif action == "sell":
+        if len(context.args) < 2:
+            await respond(update, get_text(lang, "paper_sell_usage"))
+            return
+        symbol = normalize_symbol(context.args[1].upper())
+        positions = paper_trader.get_positions(user_id)
+        closed = False
+        for pos in list(positions):
+            if pos["symbol"] == symbol:
+                price_data = fetcher.get_cached_price(symbol)
+                exit_price = float(price_data["price"]) if (price_data and "price" in price_data) else float(pos["current_price"])
+                paper_trader.close_position(user_id, pos["id"], exit_price)
+                closed = True
+        if closed:
+            await respond(update, get_text(lang, "paper_closed", symbol=symbol))
+        else:
+            await respond(update, get_text(lang, "paper_no_open_position", symbol=symbol))
+    elif action == "history":
+        closed = paper_trader.get_closed_positions(user_id)
+        if not closed:
+            await respond(update, get_text(lang, "paper_history_empty"))
+            return
+        msg = get_text(lang, "paper_history_title")
+        for p in closed[-10:]:
+            emoji = "🟢" if p.get("pnl_usdt", 0) > 0 else "🔴"
+            msg += f"\n{emoji} {p['symbol']} @ {p['entry_price']:.4f} -> {p.get('exit_reason', '?')} ({p.get('pnl_usdt', 0):.4f}$)"
+        await respond(update, msg)
+    elif action == "stats":
+        stats = paper_trader.get_stats(user_id)
+        await respond(update, get_text(lang, "paper_stats",
+            capital=stats["capital"], equity=stats["equity"], total_pnl=stats["total_pnl"],
+            total_trades=stats["total_trades"], wins=stats["wins"], losses=stats["losses"],
+            win_rate=stats["win_rate"]))
+    else:
+        await respond(update, get_text(lang, "paper_usage"))
 
+@check_limit
+async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
+    lang = get_user_lang(update)
+    if len(context.args) < 2:
+        await respond(update, get_text(lang, "check_usage"))
+        return
+    symbol = normalize_symbol(context.args[0].upper())
+    side = context.args[1].upper()
+    if side not in ("BUY", "SELL"):
+        await respond(update, get_text(lang, "check_usage"))
+        return
+    df = await fetcher.get_historical_data(symbol)
+    if df is None or df.empty:
+        await respond(update, get_text(lang, "data_unavailable"))
+        return
+    result = SignalEngine.analyze(df, lang, symbol=symbol)
+    ind = result.get("indicators", {})
+    trend = ind.get("trend", "NEUTRAL")
+    trend_txt = get_text(lang, f"trend_{trend.lower()}") if isinstance(trend, str) else "N/A"
+    cfg = SYMBOL_CONFIGS.get(symbol, SYMBOL_CONFIGS["EURUSD"])
+    score = int(result.get("teddy_score", cfg.get("weights", {}).get("trend", 0)))
+    color = get_text(lang, "check_green") if score >= 80 else get_text(lang, "check_orange") if score >= 60 else get_text(lang, "check_red")
+    atr_v = float(ind.get("atr") or 0)
+    price_v = float(ind.get("price") or 1)
+    vol_txt = get_text(lang, "check_vol_high") if price_v and (atr_v / price_v) > 0.03 else get_text(lang, "check_vol_normal")
+    msg = get_text(
+        lang, "check",
+        symbol=symbol, trend=trend_txt, rsi=f"{float(ind.get('rsi') or 0):.1f}",
+        volatility=vol_txt, score=score, light=color,
+        sl=format_number(result.get('sl')) if result.get('sl') else "N/A",
+        tp=format_number(result.get('tp')) if result.get('tp') else "N/A"
+    )
+    await respond(update, msg)
+
+async def send_weekly_reports(bot):
+    pro_users = [int(uid) for uid, u in user_mgr.users.items() if u.get("role") == "pro"]
+    signals = history_mgr.get_recent_signals(50)
+    completed = [s for s in signals if s.get("status") in ("win", "loss")]
+    total = len(completed)
+    wins = sum(1 for s in completed if s.get("status") == "win")
+    win_rate = (wins / total * 100) if total else 0
+    pcts = [float(s.get("result_pct") or 0) for s in completed]
+    best = max(pcts) if pcts else 0
+    worst = min(pcts) if pcts else 0
+    msg = (
+        "📊 RAPPORT HEBDOMADAIRE\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        f"📈 Signaux reçus : {len(signals)}\n"
+        f"✅ Gagnés : {wins} ({win_rate:.0f}%)\n"
+        f"📉 Meilleur : {best:+.1f}%\n"
+        f"💸 Pire : {worst:+.1f}%\n"
+        "💡 Conseil : attends un score > 70"
+    )
+    for uid in pro_users:
+        try:
+            await bot.send_message(chat_id=uid, text=msg)
+        except Exception as e:
+            logger.warning(f"Weekly report failed for {uid}: {e}")
+
+def start_weekly_report_scheduler(app):
+    global weekly_scheduler
+    if weekly_scheduler is not None:
+        return
+    weekly_scheduler = AsyncIOScheduler(timezone="UTC")
+    weekly_scheduler.add_job(
+        send_weekly_reports,
+        "cron",
+        day_of_week="sun",
+        hour=18,
+        minute=0,
+        kwargs={"bot": app.bot},
+        id="weekly_report_job",
+        replace_existing=True,
+    )
+    weekly_scheduler.start()
+
+signal_scheduler = None
+
+async def check_signal_outcomes(bot):
+    signals = history_mgr.get_recent_signals(50)
+    for s in signals:
+        if s.get("status") not in (None, "pending"):
+            continue
+        symbol = s["symbol"]
+        entry = float(s["entry_price"])
+        sl = float(s.get("sl", 0) or 0)
+        tp = float(s.get("tp", 0) or 0)
+        if sl == 0 or tp == 0:
+            continue
+        price_data = await fetcher.get_realtime_price(symbol)
+        if not price_data:
+            continue
+        current_price = float(price_data["price"])
+        direction = s["direction"]
+        if direction == "BUY":
+            if current_price >= tp:
+                history_mgr.update_signal_status(s["id"], "win", round((current_price - entry) / entry * 100, 4))
+            elif current_price <= sl:
+                history_mgr.update_signal_status(s["id"], "loss", round((current_price - entry) / entry * 100, 4))
+        elif direction == "SELL":
+            if current_price <= tp:
+                history_mgr.update_signal_status(s["id"], "win", round((entry - current_price) / entry * 100, 4))
+            elif current_price >= sl:
+                history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
+
+def start_signal_monitoring(app):
+    global signal_scheduler
+    if signal_scheduler is not None:
+        return
+    signal_scheduler = AsyncIOScheduler(timezone="UTC")
+    signal_scheduler.add_job(
+        check_signal_outcomes,
+        "interval",
+        minutes=5,
+        kwargs={"bot": app.bot},
+        id="signal_monitor",
+        replace_existing=True,
+    )
+    signal_scheduler.start()
 @check_limit
 async def symboles(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
