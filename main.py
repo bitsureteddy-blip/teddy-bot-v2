@@ -45,7 +45,7 @@ def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     AlertManager.get_instance().start_monitoring(app)
     start_weekly_report_scheduler(app)
-    start_signal_monitoring(app)
+  # start_signal_monitoring(app)
 
     # Commandes
     handlers = [
