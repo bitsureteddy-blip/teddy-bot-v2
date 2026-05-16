@@ -242,14 +242,15 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
-        try:
-            member = await context.bot.get_chat_member("@t_sworld", user_id)
-            if member.status not in ("member", "administrator", "creator"):
-                target = update.callback_query.message if update.callback_query else update.message
-                await target.reply_text(get_text(lang, "channel_required"))
-                return
-        except Exception:
-            pass
+        # Vérification d'abonnement désactivée pendant la phase de test publique
+        # try:
+        #     member = await context.bot.get_chat_member("@t_sworld", user_id)
+        #     if member.status not in ("member", "administrator", "creator"):
+        #         target = update.callback_query.message if update.callback_query else update.message
+        #         await target.reply_text(get_text(lang, "channel_required"))
+        #         return
+        # except Exception:
+        #     pass
         if func.__name__ != "start" and not user_mgr.has_accepted_terms(user_id) and not user_mgr.is_admin(user_id):
             if update.callback_query:
                 await update.callback_query.answer(get_text(lang, "terms_must_accept"), show_alert=True)
@@ -787,21 +788,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     # Vérifier l'abonnement au canal
-    try:
-        member = await context.bot.get_chat_member("@t_sworld", user_id)
-        if member.status not in ("member", "administrator", "creator"):
-            keyboard = [
-                [InlineKeyboardButton("📢 Rejoindre T's World", url="https://t.me/+c_xPX-20JAo0MTE0")],
-                [InlineKeyboardButton(get_text(lang, "check_subscription"), callback_data="check_subscription")],
-            ]
-            await update.message.reply_text(
-                get_text(lang, "channel_required_message"),
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-    except Exception:
-        pass
+    # Vérification d'abonnement désactivée pendant la phase de test publique
+    # try:
+    #     member = await context.bot.get_chat_member("@t_sworld", user_id)
+    #     if member.status not in ("member", "administrator", "creator"):
+    #         keyboard = [
+    #             [InlineKeyboardButton("📢 Rejoindre T's World", url="https://t.me/+c_xPX-20JAo0MTE0")],
+    #             [InlineKeyboardButton(get_text(lang, "check_subscription"), callback_data="check_subscription")],
+    #         ]
+    #         await update.message.reply_text(
+    #             get_text(lang, "channel_required_message"),
+    #             reply_markup=InlineKeyboardMarkup(keyboard),
+    #             parse_mode=ParseMode.MARKDOWN
+    #         )
+    #         return
+    # except Exception:
+    #     pass
     # Utilisateur existant qui a déjà accepté → comportement normal
     role = user_mgr.get_role(user_id)
     if role == "free" and user_mgr.is_trial_valid(user_id):
@@ -1427,6 +1429,35 @@ async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
         fetcher._start_real_ws()
     await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
 @check_limit
+async def switchapi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permet à l'admin de switcher manuellement de source API."""
+    lang = get_user_lang(update)
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text(get_text(lang, "admin_only"))
+        return
+    fetcher = DataFetcher.get_instance()
+    current = fetcher.active_source or "none"
+    if not context.args:
+        await update.message.reply_text(
+            f"🔄 {get_text(lang, 'switchapi_current', source=current)}\n"
+            f"{get_text(lang, 'switchapi_usage')}\n"
+            f"Failure stats: {fetcher.source_failures}"
+        )
+        return
+    target = context.args[0].lower()
+    if target not in ("twelve", "fcs", "real"):
+        await update.message.reply_text(get_text(lang, "switchapi_usage"))
+        return
+    if fetcher.ws:
+        fetcher.ws.close()
+    if target == "twelve":
+        fetcher._start_twelve_ws()
+    elif target == "fcs":
+        fetcher._start_fcs_ws()
+    elif target == "real":
+        fetcher._start_real_ws()
+    await update.message.reply_text(get_text(lang, "switchapi_switched", source=target))
+@check_limit
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     lang = user_mgr.get_setting(uid, "lang", "en")
@@ -1569,7 +1600,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🆓 Gratuits : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-check_limit
+@check_limit
 async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
         return
@@ -1646,6 +1677,7 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
             win_rate=stats["win_rate"]))
     else:
         await respond(update, get_text(lang, "paper_usage"))
+
 @check_limit
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
     lang = get_user_lang(update)
@@ -1679,6 +1711,7 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
         tp=format_number(result.get('tp')) if result.get('tp') else "N/A"
     )
     await respond(update, msg)
+
 async def send_weekly_reports(bot):
     pro_users = [int(uid) for uid, u in user_mgr.users.items() if u.get("role") == "pro"]
     signals = history_mgr.get_recent_signals(50)
@@ -1703,6 +1736,7 @@ async def send_weekly_reports(bot):
             await bot.send_message(chat_id=uid, text=msg)
         except Exception as e:
             logger.warning(f"Weekly report failed for {uid}: {e}")
+
 def start_weekly_report_scheduler(app):
     global weekly_scheduler
     if weekly_scheduler is not None:
@@ -1719,7 +1753,9 @@ def start_weekly_report_scheduler(app):
         replace_existing=True,
     )
     weekly_scheduler.start()
+
 signal_scheduler = None
+
 async def check_signal_outcomes(bot):
     signals = history_mgr.get_recent_signals(50)
     for s in signals:
@@ -1746,6 +1782,7 @@ async def check_signal_outcomes(bot):
                 history_mgr.update_signal_status(s["id"], "win", round((entry - current_price) / entry * 100, 4))
             elif current_price >= sl:
                 history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
+
 def start_signal_monitoring(app):
     global signal_scheduler
     if signal_scheduler is not None:

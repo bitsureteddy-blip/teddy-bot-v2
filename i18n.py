@@ -4,13 +4,12 @@ TEXTS = {
     "fr": {
         # ----- Accueil / Statuts -----
         "start": (
-            "🐻 *Bitsure Teddy* – Votre assistant trading intelligent\n\n"
-            "📊 Analyse technique avec score Teddy\n"
-            "🧪 Paper trading intégré\n"
-            "📊 Backtest public vérifiable\n"
-            "*Statut actuel :* {status}\n\n"
-            "🔹 /menu – Menu principal\n"
-            "🔹 /upgrade – Passer à PRO\n\n"
+            "🐻 *Bitsure Teddy* — Assistant de trading transparent\n\n"
+            "📊 Analyse technique avec Teddy Score (0-95)\n"
+            "🎯 SL & TP calculés automatiquement\n"
+            "📋 Historique public vérifiable\n\n"
+            "🟢 *Phase de test publique* — Tout est gratuit\n\n"
+            "🔹 /menu — Menu principal\n\n"
             "Bons trades ! 🧸"
         ),
         "start_disclaimer": "",
@@ -493,13 +492,12 @@ TEXTS = {
     "en": {
         # ----- Welcome / Status -----
         "start": (
-            "🐻 *Bitsure Teddy* – Your smart trading assistant\n\n"
-            "📊 Technical analysis with Teddy score\n"
-            "🧪 Integrated paper trading\n"
-            "📊 Verifiable public backtest\n"
-            "*Current status:* {status}\n\n"
-            "🔹 /menu – Main menu\n"
-            "🔹 /upgrade – Upgrade to PRO\n\n"
+            "🐻 *Bitsure Teddy* — Transparent trading assistant\n\n"
+            "📊 Technical analysis with Teddy Score (0-95)\n"
+            "🎯 SL & TP calculated automatically\n"
+            "📋 Public verifiable history\n\n"
+            "🟢 *Public testing phase* — Everything is free\n\n"
+            "🔹 /menu — Main menu\n\n"
             "Happy trading! 🧸"
         ),
         "start_disclaimer": "",

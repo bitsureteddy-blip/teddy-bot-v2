@@ -50,7 +50,6 @@ class DataFetcher:
     # ========== DÉMARRAGE PRINCIPAL ==========
 
     def start_websocket(self):
-        """Démarre la source principale (Twelve Data) avec fallback automatique."""
         self._start_twelve_ws()
 
     # ========== TWELVE DATA ==========
@@ -173,7 +172,6 @@ class DataFetcher:
             self.active_source = "real"
             self.source_failures["real"] = 0
             logger.info("✅ RealMarket WebSocket actif")
-            # Abonnement aux symboles supportés par RealMarket
             real_symbols = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "BTCUSD", "ETHUSD", "AAPL", "TSLA", "NVDA"]
             available = [s for s in real_symbols if s in self.subscribed_symbols]
             if available:
