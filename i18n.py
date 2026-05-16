@@ -355,7 +355,7 @@ TEXTS = {
         "history_title": "📜 *Historique des signaux*\n",
         "history_empty": "Aucun signal enregistré.",
         "history_list_header": "📋 HISTORIQUE — {date}",
-        "history_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {total_pnl}",
+        "history_summary": "📊 {total} signaux · {wins} gagnés ({win_rate}%) · {losses} perdus · {total_pnl}",
         "no_recent_analysis": "Aucune analyse récente.",
 
         # ----- Signal Engine -----

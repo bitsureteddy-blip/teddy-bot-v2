@@ -50,7 +50,6 @@ class DataFetcher:
     # ========== DÉMARRAGE PRINCIPAL ==========
 
     def start_websocket(self):
-        """Démarre la source principale (Twelve Data) avec fallback automatique."""
         self._start_twelve_ws()
 
     # ========== TWELVE DATA ==========
@@ -117,19 +116,16 @@ class DataFetcher:
             return
 
         def on_open(ws):
-            ws.send(json.dumps({"type": "auth", "api_key": FCS_WS_KEY}))
-            logger.info("FCS: authentification envoyée")
+            self.active_source = "fcs"
+            self.source_failures["fcs"] = 0
+            logger.info("✅ FCS WebSocket actif")
+            formatted = [self._format_symbol_fcs(s) for s in sorted(self.subscribed_symbols)]
+            ws.send(json.dumps({"type": "subscribe", "symbol": ",".join(formatted)}))
 
         def on_message(ws, message):
             data = json.loads(message)
-            if data.get("type") == "auth" and data.get("status") == "ok":
-                self.active_source = "fcs"
-                self.source_failures["fcs"] = 0
-                logger.info("✅ FCS WebSocket actif")
-                formatted = [self._format_symbol_fcs(s) for s in sorted(self.subscribed_symbols)]
-                ws.send(json.dumps({"type": "subscribe", "symbol": ",".join(formatted)}))
-            elif data.get("type") == "price":
-                symbol = normalize_symbol(data.get("symbol", "").replace("FX:", "").replace("BINANCE:", ""))
+            if data.get("type") == "price":
+                symbol = normalize_symbol(data.get("symbol", "").replace("FX:", "").replace("BINANCE:", "").replace("NASDAQ:", ""))
                 prices = data.get("prices", {})
                 price = float(prices.get("c", 0))
                 bid = float(prices.get("b", price * 0.9995))
@@ -145,7 +141,7 @@ class DataFetcher:
                 self._start_real_ws()
 
         self.ws = websocket.WebSocketApp(
-            FCS_WS_URL,
+            f"{FCS_WS_URL}?access_key={FCS_WS_KEY}",
             on_open=on_open,
             on_message=on_message,
             on_error=on_error,
@@ -176,6 +172,10 @@ class DataFetcher:
             self.active_source = "real"
             self.source_failures["real"] = 0
             logger.info("✅ RealMarket WebSocket actif")
+            real_symbols = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "XAUUSD", "BTCUSD", "ETHUSD", "AAPL", "TSLA", "NVDA"]
+            available = [s for s in real_symbols if s in self.subscribed_symbols]
+            if available:
+                ws.send(json.dumps({"action": "subscribe", "params": {"symbols": ",".join(available)}}))
 
         def on_message(ws, message):
             try:
