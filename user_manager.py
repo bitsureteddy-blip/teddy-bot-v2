@@ -54,15 +54,31 @@ class UserManager:
     def get_user(self, user_id: int) -> Dict:
         user_id = str(user_id)
         if user_id not in self.users:
+            now = time.time()
             self.users[user_id] = {
                 "username": "",
                 "role": "free",
-                "joined": time.time(),
-                "used_promo_codes": []
+                "joined": now,
+                "used_promo_codes": [],
+                "trial_start": now,
+                "created_at": now,
+                "lang": "en",
+                "timeframe": "1h",
+                "risk": "medium",
+                "terms_accepted": False
             }
             self.settings[user_id] = {"timeframe": "1d", "risk": "medium", "lang": "en"}
             self.watchlists[user_id] = []
             self._save()
+            # Synchroniser avec SQLite
+            from database import get_db
+            conn = get_db()
+            conn.execute(
+                "INSERT OR IGNORE INTO users (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at) VALUES (?,?,?,?,?,?,?,?)",
+                (user_id, "free", "en", "1h", "medium", 0, now, now)
+            )
+            conn.commit()
+            conn.close()
         return self.users[user_id]
 
     def is_admin(self, user_id: int) -> bool:
@@ -80,6 +96,12 @@ class UserManager:
         if "premium_expiry" in self.users[user_id]:
             del self.users[user_id]["premium_expiry"]
         self._save()
+        # Synchroniser avec SQLite
+        from database import get_db
+        conn = get_db()
+        conn.execute("UPDATE users SET role=? WHERE user_id=?", (role, user_id))
+        conn.commit()
+        conn.close()
 
     def set_role_temp(self, user_id: int, role: str, days: int):
         user_id = str(user_id)
@@ -127,6 +149,15 @@ class UserManager:
         user = self.get_user(user_id)
         user["terms_accepted"] = True
         self._save()
+        # Synchroniser avec SQLite
+        from database import get_db
+        conn = get_db()
+        conn.execute(
+            "INSERT OR REPLACE INTO users (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at) VALUES (?,?,?,?,?,?,?,?)",
+            (user_id, user.get("role","free"), user.get("lang","en"), user.get("timeframe","1h"), user.get("risk","medium"), 1, user.get("trial_start", time.time()), user.get("created_at", time.time()))
+        )
+        conn.commit()
+        conn.close()
 
     def check_limit(self, user_id: int) -> bool:
         if self.is_premium(user_id) or self.is_admin(user_id):
@@ -223,13 +254,13 @@ class UserManager:
         lang = self.get_setting(user_id, "lang", "en")
         if code not in promos:
             return False, get_text(lang, "redeem_invalid")
-        
+
         user_id = str(user_id)
         user = self.get_user(user_id)
         used_codes = user.get("used_promo_codes", [])
         if code in used_codes:
             return False, get_text(lang, "redeem_already_used")
-        
+
         promo = promos[code]
         if promo["type"] == "trial_extension":
             user["joined"] = user.get("joined", time.time()) - (promo["days"] * 24 * 3600)
