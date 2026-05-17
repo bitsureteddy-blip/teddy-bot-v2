@@ -103,6 +103,39 @@ class DataFetcher:
                 ask = price + spread / 2
             self.price_cache[symbol] = {"price": price, "bid": bid, "ask": ask, "timestamp": time.time()}
             self.add_tick(symbol, price)
+            # --- Moteur d'alertes local (WebSocket) ---
+            from alert_manager import AlertManager
+            alert_mgr = AlertManager.get_instance()
+            all_alerts = alert_mgr.get_all_alerts()
+            for a in all_alerts:
+                if a.get("triggered"):
+                    continue
+                if a["symbol"] != symbol:
+                    continue
+                target = float(a["price"])
+                old_price = self.price_cache.get(symbol, {}).get("prev_price", price)
+                triggered = False
+                if a["condition"] == "above":
+                    if old_price <= target < price:
+                        triggered = True
+                elif a["condition"] == "below":
+                    if old_price >= target > price:
+                        triggered = True
+                if triggered:
+                    alert_mgr.mark_triggered(a["id"])
+                    try:
+                        from config import TELEGRAM_TOKEN
+                        import requests
+                        msg = f"🚨 *Alerte déclenchée* : {symbol} {a['condition']} {target}\nPrix actuel : {price}"
+                        requests.post(
+                            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+                            json={"chat_id": a["user_id"], "text": msg, "parse_mode": "Markdown"}
+                        )
+                    except Exception as e:
+                        logger.warning(f"Échec notification alerte: {e}")
+            # Mettre à jour prev_price pour le prochain tick
+            if symbol in self.price_cache:
+                self.price_cache[symbol]["prev_price"] = price
         except Exception as e:
             logger.debug(f"Twelve WS parse error: {e}")
 

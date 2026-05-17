@@ -120,3 +120,19 @@ class AlertManager:
             if user_id in self.alerts:
                 self.alerts[user_id] = []
                 save_json(ALERTS_FILE, self.alerts)
+    def get_all_alerts(self):
+        """Retourne toutes les alertes non déclenchées de tous les utilisateurs."""
+        all_alerts = []
+        for user_id, alerts in self.alerts.items():
+            for a in alerts:
+                a["user_id"] = user_id
+                all_alerts.append(a)
+        return all_alerts
+
+    def mark_triggered(self, alert_id):
+        """Marque une alerte comme déclenchée."""
+        for user_id, alerts in self.alerts.items():
+            for a in alerts:
+                if a["id"] == alert_id:
+                    a["triggered"] = True
+                    retur
