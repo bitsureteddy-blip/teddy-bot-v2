@@ -24,7 +24,7 @@ from bot_handlers import (
     upgrade, plan_callback, pre_checkout, successful_payment, pay_binance, confirm_payment,
     support, snapshot, verify, historique, clearhistory,
     menu_command, menu_callback, symbol_callback, clearalerts_callback, backtest, terms_callback,
-    sentiment, compare, top, fav, teddy, learn, check, ask, start_weekly_report_scheduler,
+    sentiment, compare, top, fav, teddy, learn, check, ask, start_weekly_report_scheduler, start_signal_monitoring,
     handle_pending_alert_input, paper, switchapi, check_signal_outcomes, refreshhistory
 )
 
@@ -44,6 +44,7 @@ def main():
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     start_weekly_report_scheduler(app)
+    start_signal_monitoring(app)
 
     # Commandes
     handlers = [
@@ -81,7 +82,7 @@ def main():
 
     logger.info("Teddy Trading Bot started")
     DataFetcher.get_instance().start_websocket()
-    
+
     webhook_url = os.environ.get("WEBHOOK_URL")
     if webhook_url:
         app.run_webhook(
