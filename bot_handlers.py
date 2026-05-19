@@ -574,10 +574,11 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await message.reply_text(get_text(lang, "watchlist_scan_empty"))
             else:
                 results = []
+                engine = SignalEngine()
                 for sym in wl:
                     df = await fetcher.get_historical_data(sym)
                     if df is not None and not df.empty:
-                        res = SignalEngine.analyze(df, lang, symbol=sym)
+                        res = engine.analyze(df, lang, symbol=sym)
                         results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
                     else:
                         results.append(f"{sym}: {get_text(lang, 'data_unavailable')}")
@@ -771,6 +772,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup,
             parse_mode=ParseMode.MARKDOWN
         )
+        return
+    if not user_mgr.can_access_bot(user_id):
+        await update.message.reply_text("🚧 Phase de test sur invitation uniquement")
         return
     role = user_mgr.get_role(user_id)
     if role == "free" and user_mgr.is_trial_valid(user_id):
@@ -1082,7 +1086,11 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(get_text(lang, "alert_invalid_cond"))
         return
     cond_label = get_text(lang, "cond_above") if cond == "above" else get_text(lang, "cond_below")
-    alert_id = alert_mgr.add_alert(update.effective_user.id, symbol, cond, price)
+    ok, result = alert_mgr.add_alert(update.effective_user.id, symbol, cond, price)
+    if not ok:
+        await update.message.reply_text("❌ Limite atteinte")
+        return
+    alert_id = result
     await update.message.reply_text(
         get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond_label, price=price)
     )
@@ -1127,7 +1135,10 @@ async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if symbol in watchlist:
         await respond(update, get_text(lang, "watchlist_already", symbol=symbol))
         return
-    user_mgr.add_to_watchlist(update.effective_user.id, symbol)
+    success, limit = user_mgr.add_to_watchlist(update.effective_user.id, symbol)
+    if not success:
+        await respond(update, f"❌ Limite atteinte ({limit})")
+        return
     await respond(update, get_text(lang, "watchlist_added_styled", symbol=symbol))
 
 @check_limit
