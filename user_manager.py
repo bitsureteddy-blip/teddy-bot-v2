@@ -22,20 +22,24 @@ from i18n import get_text
 
 
 class UserManager:
+
     _instance = None
 
     def __init__(self):
+
         self.users = {}
         self._load_users()
 
-        self.usage = load_json(USAGE_FILE)
-        self.settings = load_json(SETTINGS_FILE)
-        self.watchlists = load_json(WATCHLISTS_FILE)
+        self.usage = load_json(USAGE_FILE) or {}
+        self.settings = load_json(SETTINGS_FILE) or {}
+        self.watchlists = load_json(WATCHLISTS_FILE) or {}
 
     @classmethod
     def get_instance(cls):
+
         if cls._instance is None:
             cls._instance = cls()
+
         return cls._instance
 
     # =========================================================
@@ -43,61 +47,62 @@ class UserManager:
     # =========================================================
 
     def _load_users(self):
+
         from database import get_db
 
         conn = get_db()
 
-        rows = conn.execute("SELECT * FROM users").fetchall()
+        try:
 
-        self.users = {}
+            rows = conn.execute("SELECT * FROM users").fetchall()
 
-        if rows:
-            for r in rows:
-                self.users[str(r["user_id"])] = {
-                    "role": r["role"],
-                    "lang": r["lang"],
-                    "timeframe": r["timeframe"],
-                    "risk": r["risk"],
-                    "terms_accepted": bool(r["terms_accepted"]),
-                    "trial_start": r["trial_start"],
-                    "created_at": r["created_at"],
-                    "approved": True,
-                }
+            self.users = {}
 
-        else:
-            self.users = load_json(USERS_FILE)
+            if rows:
 
-            for uid, data in self.users.items():
-                conn.execute(
-                    """
-                    INSERT OR IGNORE INTO users
-                    (
-                        user_id,
-                        role,
-                        lang,
-                        timeframe,
-                        risk,
-                        terms_accepted,
-                        trial_start,
-                        created_at
+                for r in rows:
+
+                    self.users[str(r["user_id"])] = {
+                        "role": r["role"],
+                        "lang": r["lang"],
+                        "timeframe": r["timeframe"],
+                        "risk": r["risk"],
+                        "terms_accepted": bool(r["terms_accepted"]),
+                        "trial_start": r["trial_start"],
+                        "created_at": r["created_at"],
+                        "approved": True,
+                    }
+
+            else:
+
+                data = load_json(USERS_FILE) or {}
+
+                self.users = data
+
+                for uid, u in data.items():
+
+                    conn.execute(
+                        """
+                        INSERT OR IGNORE INTO users
+                        (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at)
+                        VALUES (?,?,?,?,?,?,?,?)
+                        """,
+                        (
+                            int(uid),
+                            u.get("role", "tester"),
+                            u.get("lang", "en"),
+                            u.get("timeframe", "1h"),
+                            u.get("risk", "medium"),
+                            int(u.get("terms_accepted", False)),
+                            u.get("trial_start", time.time()),
+                            u.get("created_at", time.time()),
+                        ),
                     )
-                    VALUES (?,?,?,?,?,?,?,?)
-                    """,
-                    (
-                        int(uid),
-                        data.get("role", "tester"),
-                        data.get("lang", "en"),
-                        data.get("timeframe", "1h"),
-                        data.get("risk", "medium"),
-                        int(data.get("terms_accepted", False)),
-                        data.get("trial_start"),
-                        data.get("created_at"),
-                    ),
-                )
 
-            conn.commit()
+                conn.commit()
 
-        conn.close()
+        finally:
+            conn.close()
 
     # =========================================================
     # SAVE
@@ -107,7 +112,7 @@ class UserManager:
         save_json(USERS_FILE, self.users)
 
     # =========================================================
-    # USER ACCESS
+    # ACCESS
     # =========================================================
 
     def user_exists(self, user_id: int) -> bool:
@@ -117,78 +122,73 @@ class UserManager:
         return int(user_id) == ADMIN_ID
 
     def is_approved(self, user_id: int) -> bool:
+
         if self.is_admin(user_id):
             return True
 
         user = self.users.get(str(user_id))
 
-        if not user:
-            return False
-
-        return user.get("approved", False)
+        return bool(user and user.get("approved", False))
 
     def can_access_bot(self, user_id: int) -> bool:
+
         if ACCESS_MODE == "open":
             return True
 
-        return self.is_approved(user_id)
+        if ACCESS_MODE == "approved_only":
+            return self.is_approved(user_id)
+
+        return True
 
     # =========================================================
-    # GET USER
+    # USER GET
     # =========================================================
 
     def get_user(self, user_id: int) -> Optional[Dict]:
 
         user_id = str(user_id)
 
-        if user_id not in self.users:
+        if user_id in self.users:
+            return self.users[user_id]
 
-            if not ALLOW_AUTO_REGISTER:
-                return None
+        if not ALLOW_AUTO_REGISTER:
+            return None
 
-            now = time.time()
+        now = time.time()
 
-            self.users[user_id] = {
-                "username": "",
-                "role": "tester",
-                "joined": now,
-                "trial_start": now,
-                "created_at": now,
-                "used_promo_codes": [],
-                "lang": "en",
-                "timeframe": "1h",
-                "risk": "medium",
-                "terms_accepted": False,
-                "approved": False,
-            }
+        self.users[user_id] = {
+            "role": "tester",
+            "joined": now,
+            "trial_start": now,
+            "created_at": now,
+            "used_promo_codes": [],
+            "lang": "en",
+            "timeframe": "1h",
+            "risk": "medium",
+            "terms_accepted": False,
+            "approved": False,
+        }
 
-            self.settings[user_id] = {
-                "timeframe": "1h",
-                "risk": "medium",
-                "lang": "en",
-            }
+        self.settings[user_id] = {
+            "timeframe": "1h",
+            "risk": "medium",
+            "lang": "en",
+        }
 
-            self.watchlists[user_id] = []
+        self.watchlists[user_id] = []
 
-            self._save()
+        self._save()
 
-            from database import get_db
+        from database import get_db
 
-            conn = get_db()
+        conn = get_db()
+
+        try:
 
             conn.execute(
                 """
                 INSERT OR IGNORE INTO users
-                (
-                    user_id,
-                    role,
-                    lang,
-                    timeframe,
-                    risk,
-                    terms_accepted,
-                    trial_start,
-                    created_at
-                )
+                (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at)
                 VALUES (?,?,?,?,?,?,?,?)
                 """,
                 (
@@ -204,101 +204,24 @@ class UserManager:
             )
 
             conn.commit()
+
+        finally:
             conn.close()
 
-        return self.users.get(user_id)
+        return self.users[user_id]
 
     # =========================================================
-    # ROLE MANAGEMENT
+    # ROLE
     # =========================================================
 
     def get_role(self, user_id: int) -> str:
+
         user = self.get_user(user_id)
 
         if not user:
             return "blocked"
 
         return user.get("role", "tester")
-
-    def set_role(self, user_id: int, role: str):
-
-        user_id = str(user_id)
-
-        if user_id not in self.users:
-            return
-
-        self.users[user_id]["role"] = role
-
-        if "premium_expiry" in self.users[user_id]:
-            del self.users[user_id]["premium_expiry"]
-
-        self._save()
-
-        from database import get_db
-
-        conn = get_db()
-
-        conn.execute(
-            "UPDATE users SET role=? WHERE user_id=?",
-            (role, int(user_id)),
-        )
-
-        conn.commit()
-        conn.close()
-
-    def approve_user(self, user_id: int):
-
-        user_id = str(user_id)
-
-        if user_id not in self.users:
-            return False
-
-        self.users[user_id]["approved"] = True
-
-        self._save()
-
-        return True
-
-    # =========================================================
-    # PREMIUM
-    # =========================================================
-
-    def set_role_temp(self, user_id: int, role: str, days: int):
-
-        user_id = str(user_id)
-
-        if user_id not in self.users:
-            return
-
-        expiry = time.time() + (days * 24 * 3600)
-
-        self.users[user_id]["role"] = role
-        self.users[user_id]["premium_expiry"] = expiry
-
-        self._save()
-
-    def check_premium_expiry(self, user_id: int) -> bool:
-
-        user_id = str(user_id)
-
-        user = self.users.get(user_id)
-
-        if not user:
-            return False
-
-        if "premium_expiry" in user:
-
-            if time.time() > user["premium_expiry"]:
-
-                user["role"] = "tester"
-
-                del user["premium_expiry"]
-
-                self._save()
-
-                return True
-
-        return False
 
     def is_premium(self, user_id: int) -> bool:
 
@@ -307,9 +230,7 @@ class UserManager:
         if self.is_admin(user_id):
             return True
 
-        role = self.get_role(user_id)
-
-        return role in ["pro", "admin"]
+        return self.get_role(user_id) in ["pro", "admin"]
 
     # =========================================================
     # TRIAL
@@ -322,18 +243,13 @@ class UserManager:
         if not user:
             return False
 
-        trial_start = user.get("trial_start", time.time())
+        start = user.get("trial_start", time.time())
 
-        trial_end = trial_start + (TRIAL_DAYS * 24 * 3600)
-
-        return time.time() < trial_end
+        return time.time() < start + (TRIAL_DAYS * 86400)
 
     def can_use_premium_feature(self, user_id: int) -> bool:
 
-        if self.is_premium(user_id):
-            return True
-
-        return self.is_trial_valid(user_id)
+        return self.is_premium(user_id) or self.is_trial_valid(user_id)
 
     # =========================================================
     # TERMS
@@ -343,10 +259,7 @@ class UserManager:
 
         user = self.get_user(user_id)
 
-        if not user:
-            return False
-
-        return user.get("terms_accepted", False)
+        return bool(user and user.get("terms_accepted", False))
 
     def accept_terms(self, user_id: int):
 
@@ -356,94 +269,41 @@ class UserManager:
             return
 
         user["terms_accepted"] = True
-
         self._save()
 
-        from database import get_db
-
-        conn = get_db()
-
-        conn.execute(
-            """
-            UPDATE users
-            SET terms_accepted=1
-            WHERE user_id=?
-            """,
-            (int(user_id),),
-        )
-
-        conn.commit()
-        conn.close()
-
     # =========================================================
-    # REQUEST LIMITS
+    # LIMITS
     # =========================================================
 
     def check_limit(self, user_id: int) -> bool:
 
-        if self.is_premium(user_id) or self.is_admin(user_id):
+        if self.is_admin(user_id) or self.is_premium(user_id):
             return True
 
-        user_id = str(user_id)
+        uid = str(user_id)
 
         today = datetime.now().strftime("%Y-%m-%d")
 
-        if (
-            user_id not in self.usage
-            or self.usage[user_id].get("date") != today
-        ):
-            self.usage[user_id] = {
-                "date": today,
-                "count": 0,
-            }
+        if uid not in self.usage or self.usage[uid].get("date") != today:
+            self.usage[uid] = {"date": today, "count": 0}
 
-        return self.usage[user_id]["count"] < FREE_DAILY_REQUESTS
+        return self.usage[uid]["count"] < FREE_DAILY_REQUESTS
 
     def increment_usage(self, user_id: int):
 
-        if self.is_premium(user_id) or self.is_admin(user_id):
+        if self.is_admin(user_id) or self.is_premium(user_id):
             return
 
-        user_id = str(user_id)
+        uid = str(user_id)
 
         today = datetime.now().strftime("%Y-%m-%d")
 
-        if (
-            user_id not in self.usage
-            or self.usage[user_id].get("date") != today
-        ):
-            self.usage[user_id] = {
-                "date": today,
-                "count": 1,
-            }
+        if uid not in self.usage or self.usage[uid].get("date") != today:
+            self.usage[uid] = {"date": today, "count": 1}
         else:
-            self.usage[user_id]["count"] += 1
+            self.usage[uid]["count"] += 1
 
         save_json(USAGE_FILE, self.usage)
-
-    # =========================================================
-    # SETTINGS
-    # =========================================================
-
-    def get_setting(self, user_id: int, key: str, default=None):
-
-        user_id = str(user_id)
-
-        if user_id not in self.settings:
-            self.settings[user_id] = {}
-
-        return self.settings[user_id].get(key, default)
-
-    def set_setting(self, user_id: int, key: str, value):
-
-        user_id = str(user_id)
-
-        if user_id not in self.settings:
-            self.settings[user_id] = {}
-
-        self.settings[user_id][key] = value
-
-        save_json(SETTINGS_FILE, self.settings)
 
     # =========================================================
     # WATCHLIST
@@ -461,106 +321,66 @@ class UserManager:
 
         return MAX_WATCHLIST_SYMBOLS_FREE
 
-    def get_watchlist(self, user_id: int) -> list:
-
-        user_id = str(user_id)
-
-        return self.watchlists.get(user_id, [])
-
     def add_to_watchlist(self, user_id: int, symbol: str):
 
-        user_id = str(user_id)
+        uid = str(user_id)
 
-        if user_id not in self.watchlists:
-            self.watchlists[user_id] = []
+        if uid not in self.watchlists:
+            self.watchlists[uid] = []
 
-        current = self.watchlists[user_id]
+        limit = self.get_watchlist_limit(user_id)
 
-        limit = self.get_watchlist_limit(int(user_id))
-
-        if len(current) >= limit:
+        if len(self.watchlists[uid]) >= limit:
             return False, limit
 
-        if symbol not in current:
-            current.append(symbol)
+        if symbol not in self.watchlists[uid]:
+            self.watchlists[uid].append(symbol)
 
-            save_json(WATCHLISTS_FILE, self.watchlists)
+        save_json(WATCHLISTS_FILE, self.watchlists)
 
         return True, limit
 
     def remove_from_watchlist(self, user_id: int, symbol: str):
 
-        user_id = str(user_id)
+        uid = str(user_id)
 
-        if (
-            user_id in self.watchlists
-            and symbol in self.watchlists[user_id]
-        ):
-            self.watchlists[user_id].remove(symbol)
+        if uid in self.watchlists and symbol in self.watchlists[uid]:
+            self.watchlists[uid].remove(symbol)
 
             save_json(WATCHLISTS_FILE, self.watchlists)
 
     # =========================================================
-    # USERS
+    # SETTINGS
     # =========================================================
 
-    def get_all_users(self) -> list:
-        return list(self.users.keys())
+    def get_setting(self, user_id: int, key: str, default=None):
+
+        uid = str(user_id)
+
+        if uid not in self.settings:
+            self.settings[uid] = {}
+
+        return self.settings[uid].get(key, default)
+
+    def set_setting(self, user_id: int, key: str, value):
+
+        uid = str(user_id)
+
+        if uid not in self.settings:
+            self.settings[uid] = {}
+
+        self.settings[uid][key] = value
+
+        save_json(SETTINGS_FILE, self.settings)
 
     # =========================================================
-    # FAVORITES
+    # PROMO FIX
     # =========================================================
 
-    def get_favorites(self, user_id: int) -> List[str]:
-
-        user_id = str(user_id)
-
-        return self.settings.get(user_id, {}).get("favorites", [])
-
-    def add_favorite(self, user_id: int, symbol: str):
-
-        user_id = str(user_id)
-
-        if user_id not in self.settings:
-            self.settings[user_id] = {}
-
-        favs = self.settings[user_id].get("favorites", [])
-
-        if symbol not in favs:
-            favs.append(symbol)
-
-            self.settings[user_id]["favorites"] = favs
-
-            save_json(SETTINGS_FILE, self.settings)
-
-    def remove_favorite(self, user_id: int, symbol: str):
-
-        user_id = str(user_id)
-
-        if user_id in self.settings:
-
-            favs = self.settings[user_id].get("favorites", [])
-
-            if symbol in favs:
-
-                favs.remove(symbol)
-
-                self.settings[user_id]["favorites"] = favs
-
-                save_json(SETTINGS_FILE, self.settings)
-
-    # =========================================================
-    # PROMOS
-    # =========================================================
-
-    def redeem_promo(self, user_id: int, code: str) -> tuple:
+    def redeem_promo(self, user_id: int, code: str):
 
         promos = {
-            "TRADERBURUNDI": {
-                "type": "trial_extension",
-                "days": 5,
-                "max_uses": 1,
-            },
+            "TRADERBURUNDI": {"days": 5}
         }
 
         code = code.upper()
@@ -573,34 +393,10 @@ class UserManager:
         user = self.get_user(user_id)
 
         if not user:
-            return False, "Utilisateur introuvable."
+            return False, "User not found"
 
-        used_codes = user.get("used_promo_codes", [])
+        user["trial_start"] -= promos[code]["days"] * 86400
 
-        if code in used_codes:
-            return False, get_text(lang, "redeem_already_used")
+        self._save()
 
-        promo = promos[code]
-
-        if promo["type"] == "trial_extension":
-
-            user["trial_start"] -= (
-                promo["days"] * 24 * 3600
-            )
-
-            used_codes.append(code)
-
-            user["used_promo_codes"] = used_codes
-
-            self._save()
-
-            return (
-                True,
-                get_text(
-                    lang,
-                    "redeem_success",
-                    message=f"{promo['days']} jours",
-                ),
-            )
-
-        return False, get_text(lang, "redeem_invalid")
+        return True, get_text(lang, "redeem_success")
