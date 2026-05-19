@@ -761,6 +761,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mgr.get_user(user_id)
     if was_new:
         await notify_admin_new_user(update, context)
+    
+    # Bloquer les non-testeurs
+    if not user_mgr.can_access_bot(user_id):
+        await update.message.reply_text("🚧 Phase de test sur invitation uniquement")
+        return
+    
     if not user_mgr.has_accepted_terms(user_id):
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "terms_button"), callback_data="terms_show")],
@@ -772,9 +778,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup,
             parse_mode=ParseMode.MARKDOWN
         )
-        return
-    if not user_mgr.can_access_bot(user_id):
-        await update.message.reply_text("🚧 Phase de test sur invitation uniquement")
         return
     role = user_mgr.get_role(user_id)
     if role == "free" and user_mgr.is_trial_valid(user_id):
@@ -1137,10 +1140,9 @@ async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     success, limit = user_mgr.add_to_watchlist(update.effective_user.id, symbol)
     if not success:
-        await respond(update, f"❌ Limite atteinte ({limit})")
+        await respond(update, f"❌ Limite atteinte ({limit} symboles max)")
         return
     await respond(update, get_text(lang, "watchlist_added_styled", symbol=symbol))
-
 @check_limit
 async def removewatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
