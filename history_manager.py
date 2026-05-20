@@ -16,7 +16,7 @@ class HistoryManager:
     _instance = None
 
     def __init__(self):
-        pass  # Plus de chargement RAM
+        pass
 
     @classmethod
     def get_instance(cls):
@@ -29,21 +29,21 @@ class HistoryManager:
     # =========================================================
 
     def _row_to_dict(self, row) -> Dict:
-    return {
-        "id": row["id"],
-        "symbol": row["symbol"],
-        "direction": row["direction"],
-        "entry_price": row["entry_price"],
-        "timeframe": "1h",
-        "type": "analyse",
-        "score": row["score"],
-        "timestamp": datetime.utcfromtimestamp(row["created_at"]).isoformat() if row["created_at"] else "",
-        "status": row["status"],
-        "sl": row["sl"],
-        "tp": row["tp"],
-        "result_price": row["result_price"] if "result_price" in row.keys() else None,
-        "result_pct": row["result_pct"]
-    }
+        return {
+            "id": row["id"],
+            "symbol": row["symbol"],
+            "direction": row["direction"],
+            "entry_price": row["entry_price"],
+            "timeframe": "1h",
+            "type": "analyse",
+            "score": row["score"],
+            "timestamp": datetime.utcfromtimestamp(row["created_at"]).isoformat() if row["created_at"] else "",
+            "status": row["status"],
+            "sl": row["sl"],
+            "tp": row["tp"],
+            "result_price": row["result_price"] if "result_price" in row.keys() else None,
+            "result_pct": row["result_pct"]
+        }
 
     # =========================================================
     # AJOUT
@@ -97,16 +97,13 @@ class HistoryManager:
         conn.close()
 
     def update_signal_result(self, signal_id: str, current_price: float) -> Optional[str]:
-        """Vérifie si le prix actuel a touché le SL ou le TP."""
         signal = self.get_signal_by_id(signal_id)
         if not signal or signal["status"] != "pending":
             return None
-
         entry = signal["entry_price"]
         sl = signal.get("sl")
         tp = signal.get("tp")
         direction = signal["direction"]
-
         if direction == "BUY":
             if tp and current_price >= tp:
                 result_pct = round((current_price - entry) / entry * 100, 4)
