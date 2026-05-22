@@ -87,7 +87,23 @@ class HistoryManager:
     # =========================================================
 
     def update_signal_status(self, signal_id: str, status: str, result_pct: float):
+        """
+        Met à jour le statut d'un signal avec le PnL%.
+        
+        Args:
+            signal_id: ID unique du signal
+            status: 'win', 'loss', ou 'pending'
+            result_pct: Le PnL en pourcentage (calculé correctement par le caller)
+        
+        BUG FIX (2026-05-22):
+        - Ajout d'un clamp pour éviter les valeurs impossibles
+        - Limite raisonnable: -100% à +400%
+        """
         from database import get_db
+        
+        # Clamp le résultat entre -100% et +400% (limites raisonnables)
+        result_pct = max(-100, min(400, result_pct))
+        
         conn = get_db()
         conn.execute(
             "UPDATE signals SET status=?, result_pct=?, closed_at=? WHERE id=?",
@@ -97,6 +113,13 @@ class HistoryManager:
         conn.close()
 
     def update_signal_result(self, signal_id: str, current_price: float) -> Optional[str]:
+        """
+        Met à jour le résultat d'un signal en comparant avec le prix actuel.
+        
+        BUG FIX (2026-05-22):
+        - SELL loss: Ligne 122 utilisait (entry - sl), maintenant (entry - current_price)
+        - Assure que le PnL est basé sur le prix actuel, pas sur le SL
+        """
         signal = self.get_signal_by_id(signal_id)
         if not signal or signal["status"] != "pending":
             return None
@@ -119,7 +142,8 @@ class HistoryManager:
                 self.update_signal_status(signal_id, "win", result_pct)
                 return "win"
             elif sl and current_price >= sl:
-                result_pct = round((entry - sl) / entry * 100, 4)
+                # ✅ FIX: WAS (entry - sl) / entry, NOW (entry - current_price) / entry
+                result_pct = round((entry - current_price) / entry * 100, 4)
                 self.update_signal_status(signal_id, "loss", result_pct)
                 return "loss"
         return None
