@@ -29,10 +29,6 @@ init_db()
 # IMPORT HANDLERS - USER
 # =========================================================
 
-from admin_handlers import (
-    quota,
-)
-
 from bot_handlers import (
     start,
     help_command,
@@ -78,6 +74,7 @@ from admin_handlers import (
     confirm_payment,
     refreshhistory,
     clearhistory,
+    quota,
 )
 
 # =========================================================
@@ -132,29 +129,38 @@ def main():
     # COMMANDS
     # =====================================================
 
-        handlers = [
-        # User
+    handlers = [
+
+        # ================= USER =================
+
         ("start", start),
         ("help", help_command),
         ("menu", menu_command),
-        ("paper", paper),
+
         ("analyse", analyse),
         ("price", price),
-        ("alert", alert),
-        ("alerts", alerts),
-        ("delalert", delalert),
         ("trend", trend),
         ("volatility", volatility),
         ("levels", levels),
+
+        ("alert", alert),
+        ("alerts", alerts),
+        ("delalert", delalert),
+
+        ("paper", paper),
+
         ("settings", settings),
         ("settimeframe", settimeframe),
         ("setlanguage", setlanguage),
+
         ("usage", usage),
         ("upgrade", upgrade),
         ("support", support),
         ("pay_binance", pay_binance),
         ("historique", historique),
-        # Admin
+
+        # ================= ADMIN =================
+
         ("stats", stats),
         ("quota", quota),
         ("teddy", teddy),
@@ -165,12 +171,21 @@ def main():
         ("refreshhistory", refreshhistory),
         ("clearhistory", clearhistory),
     ]
+
+    # =====================================================
+    # REGISTER COMMANDS
+    # =====================================================
+
     seen = set()
+
     for cmd, func in handlers:
+
         if cmd in seen:
             logger.warning(f"Duplicate command skipped: /{cmd}")
             continue
+
         seen.add(cmd)
+
         app.add_handler(CommandHandler(cmd, func))
 
     # =====================================================
@@ -178,7 +193,10 @@ def main():
     # =====================================================
 
     app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_pending_alert_input)
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            handle_pending_alert_input
+        )
     )
 
     # =====================================================
@@ -186,16 +204,42 @@ def main():
     # =====================================================
 
     app.add_handler(
-        CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_|paperdir_|check_subscription|clearhistory_)")
+        CallbackQueryHandler(
+            menu_callback,
+            pattern="^(menu_|cmd_|paperdir_|check_subscription|clearhistory_)"
+        )
     )
+
     app.add_handler(
-        CallbackQueryHandler(symbol_callback, pattern="^(sympage_|symsel_|noop)")
+        CallbackQueryHandler(
+            symbol_callback,
+            pattern="^(sympage_|symsel_|noop)"
+        )
     )
+
     app.add_handler(
-        CallbackQueryHandler(plan_callback, pattern="^plan_")
+        CallbackQueryHandler(
+            plan_callback,
+            pattern="^plan_"
+        )
     )
+
     app.add_handler(
-        CallbackQueryHandler(terms_callback, pattern="^terms_")
+        CallbackQueryHandler(
+            terms_callback,
+            pattern="^terms_"
+        )
+    )
+
+    # =====================================================
+    # PAYMENTS
+    # =====================================================
+
+    app.add_handler(
+        MessageHandler(
+            filters.SUCCESSFUL_PAYMENT,
+            successful_payment
+        )
     )
 
     # =====================================================
@@ -203,6 +247,10 @@ def main():
     # =====================================================
 
     logger.info("Bitsure Teddy started successfully.")
+
+    # =====================================================
+    # START WEBSOCKET
+    # =====================================================
 
     try:
         DataFetcher.get_instance().start_websocket()
@@ -217,16 +265,23 @@ def main():
     webhook_url = os.environ.get("WEBHOOK_URL")
 
     if webhook_url:
+
         logger.info(f"Starting webhook mode: {webhook_url}")
+
         app.run_webhook(
             listen="0.0.0.0",
             port=int(os.environ.get("PORT", "8443")),
             url_path=TELEGRAM_TOKEN,
             webhook_url=f"{webhook_url}/{TELEGRAM_TOKEN}",
         )
+
     else:
+
         logger.info("Starting polling mode.")
-        app.run_polling(drop_pending_updates=True)
+
+        app.run_polling(
+            drop_pending_updates=True
+        )
 
 # =========================================================
 # ENTRYPOINT
