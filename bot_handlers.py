@@ -31,6 +31,7 @@ alert_mgr = AlertManager.get_instance()
 history_mgr = HistoryManager.get_instance()
 weekly_scheduler = None
 paper_trader = PaperTrader()
+signal_scheduler = None
 
 SYMBOLS_12 = [
     "BTCUSD", "ETHUSD", "EURUSD", "GBPUSD", "USDJPY",
@@ -151,31 +152,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if was_new:
         await notify_admin_new_user(update, context)
 
-    if not user_mgr.can_access_bot(user_id):
-        await update.message.reply_text("🚧 Phase de test sur invitation uniquement")
-        return
-
     if not user_mgr.has_accepted_terms(user_id):
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "terms_button"), callback_data="terms_show")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
+        welcome = get_text(lang, "start", status=get_text(lang, "status_free_trial"))
         await update.message.reply_text(
-            get_text(lang, "terms_must_accept"),
+            welcome + "\n\n" + get_text(lang, "terms_must_accept"),
             reply_markup=reply_markup,
             parse_mode=ParseMode.MARKDOWN
         )
         return
 
+    if not user_mgr.can_access_bot(user_id):
+        await update.message.reply_text("🚧 This bot is currently in private testing phase. Access is by invitation only.")
+        return
+
     role = user_mgr.get_role(user_id)
-    if role == "pro":
+    if role == "free" and user_mgr.is_trial_valid(user_id):
+        status = get_text(lang, "status_free_trial")
+    elif role == "free":
+        status = get_text(lang, "status_free_ended")
+    elif role == "pro":
         status = get_text(lang, "status_pro")
     else:
-        status = get_text(lang, "status_free_trial")
-    await update.message.reply_text(
-        get_text(lang, "start", status=status),
-        parse_mode=ParseMode.MARKDOWN
-    )
+        status = role.upper()
+    welcome = get_text(lang, "start", status=status)
+    disclaimer = get_text(lang, "start_disclaimer")
+    payment_info = get_text(lang, "international_payment_info") if role == "free" else ""
+    full_text = welcome + disclaimer + payment_info
+    await update.message.reply_text(full_text, parse_mode=ParseMode.MARKDOWN)
 
 # =========================================================
 # TERMS
@@ -199,11 +206,17 @@ async def terms_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     elif data == "terms_accept":
         user_mgr.accept_terms(user_id)
-        await query.edit_message_text(get_text(lang, "terms_accepted"), parse_mode=ParseMode.MARKDOWN)
+        await query.edit_message_text(
+            get_text(lang, "terms_accepted"),
+            parse_mode=ParseMode.MARKDOWN
+        )
         context.args = []
         await start(update, context)
     elif data == "terms_refuse":
-        await query.edit_message_text(get_text(lang, "terms_refused_msg"), parse_mode=ParseMode.MARKDOWN)
+        await query.edit_message_text(
+            get_text(lang, "terms_refused_msg"),
+            parse_mode=ParseMode.MARKDOWN
+        )
 
 # =========================================================
 # HELP & SUPPORT
@@ -212,7 +225,17 @@ async def terms_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @check_limit
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
-    await update.message.reply_text(get_text(lang, "help_redirect"), parse_mode=ParseMode.MARKDOWN)
+    trial_msg = ""
+    if user_mgr.get_role(update.effective_user.id) == "free" and user_mgr.is_trial_valid(update.effective_user.id):
+        from datetime import datetime
+        from config import TRIAL_DAYS
+        user_id = update.effective_user.id
+        user = user_mgr.get_user(user_id)
+        trial_start = user.get("joined", time.time())
+        trial_end = trial_start + (TRIAL_DAYS * 24 * 3600)
+        trial_days = max(0, int((trial_end - time.time()) / 86400))
+        trial_msg = "\n" + get_text(lang, "trial_days_left", days=trial_days)
+    await update.message.reply_text(get_text(lang, "help_redirect") + trial_msg, parse_mode=ParseMode.MARKDOWN)
 
 @check_limit
 async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -525,105 +548,9 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "noop":
         return
 
-# ---------- START ----------
-@check_limit
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    user_id = user.id
-    lang = user_mgr.get_setting(user_id, "lang", "en")
-    was_new = str(user_id) not in user_mgr.users
-    user_mgr.get_user(user_id)
-    if was_new:
-        await notify_admin_new_user(update, context)
-    if not user_mgr.has_accepted_terms(user_id):
-        keyboard = [
-            [InlineKeyboardButton(get_text(lang, "terms_button"), callback_data="terms_show")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        welcome = get_text(lang, "start", status=get_text(lang, "status_free_trial"))
-        await update.message.reply_text(
-            welcome + "\n\n" + get_text(lang, "terms_must_accept"),
-            reply_markup=reply_markup,
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    if not user_mgr.can_access_bot(user_id):
-        await update.message.reply_text("🚧 This bot is currently in private testing phase. Access is by invitation only.")
-        return
-    role = user_mgr.get_role(user_id)
-    if role == "free" and user_mgr.is_trial_valid(user_id):
-        status = get_text(lang, "status_free_trial")
-    elif role == "free":
-        status = get_text(lang, "status_free_ended")
-    elif role == "pro":
-        status = get_text(lang, "status_pro")
-    else:
-        status = role.upper()
-    welcome = get_text(lang, "start", status=status)
-    disclaimer = get_text(lang, "start_disclaimer")
-    payment_info = get_text(lang, "international_payment_info") if role == "free" else ""
-    full_text = welcome + disclaimer + payment_info
-    await update.message.reply_text(full_text, parse_mode=ParseMode.MARKDOWN)
-
-async def terms_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    lang = get_user_lang(update)
-    user_id = update.effective_user.id
-    if data == "terms_show":
-        keyboard = [
-            [InlineKeyboardButton(get_text(lang, "terms_accept"), callback_data="terms_accept")],
-            [InlineKeyboardButton(get_text(lang, "terms_refuse"), callback_data="terms_refuse")],
-        ]
-        await query.edit_message_text(
-            get_text(lang, "terms_text"),
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode=ParseMode.MARKDOWN
-        )
-    elif data == "terms_accept":
-        user_mgr.accept_terms(user_id)
-        await query.edit_message_text(
-            get_text(lang, "terms_accepted"),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        context.args = []
-        await start(update, context)
-    elif data == "terms_refuse":
-        await query.edit_message_text(
-            get_text(lang, "terms_refused_msg"),
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-@check_limit
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    trial_msg = ""
-    if user_mgr.get_role(update.effective_user.id) == "free" and user_mgr.is_trial_valid(update.effective_user.id):
-        from datetime import datetime
-        from config import TRIAL_DAYS
-        user_id = update.effective_user.id
-        user = user_mgr.get_user(user_id)
-        trial_start = user.get("joined", time.time())
-        trial_end = trial_start + (TRIAL_DAYS * 24 * 3600)
-        trial_days = max(0, int((trial_end - time.time()) / 86400))
-        trial_msg = "\n" + get_text(lang, "trial_days_left", days=trial_days)
-    await update.message.reply_text(get_text(lang, "help_redirect") + trial_msg, parse_mode=ParseMode.MARKDOWN)
-
-@check_limit
-async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(get_text(get_user_lang(update), "support"))
-
-# ---------- UPGRADE ----------
-@check_limit
-async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(update)
-    keyboard = [
-        [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
-        [InlineKeyboardButton(get_text(lang, "button_binance_usdc"), callback_data="plan_binance")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(get_text(lang, "upgrade_title"), parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+# =========================================================
+# ANALYSE
+# =========================================================
 
 @check_limit
 async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
@@ -754,8 +681,7 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
 @check_limit
 async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
-        return
-    lang = get_user_lang(update)
+        return    lang = get_user_lang(update)
     if len(context.args) < 3:
         await update.message.reply_text(get_text(lang, "alert_usage"))
         return
@@ -1126,8 +1052,6 @@ def start_signal_monitoring(app):
     signal_scheduler = AsyncIOScheduler(timezone="UTC")
     signal_scheduler.add_job(check_signal_outcomes, "interval", minutes=5, kwargs={"bot": app.bot}, id="signal_monitor", replace_existing=True)
     signal_scheduler.start()
-
-signal_scheduler = None
 
 # =========================================================
 # UPGRADE & PAYMENTS
