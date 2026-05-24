@@ -123,12 +123,9 @@ class HistoryManager:
                 return signal["status"]
         return None
 
-    def update_signal_status(self, signal_id, status, result_pct):
-        for s in self.signals:
-            if s["id"] == signal_id:
-                s["status"] = status
-                s["result_pct"] = result_pct
+    def update_signal_status(self, signal_id: str, status: str, result_pct: float):
         from database import get_db
+        result_pct = max(-100, min(400, result_pct))
         conn = get_db()
         conn.execute(
             "UPDATE signals SET status=?, result_pct=?, closed_at=? WHERE id=?",

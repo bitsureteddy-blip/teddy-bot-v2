@@ -345,11 +345,10 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
         [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
-        [InlineKeyboardButton(get_text(lang, "menu_paper"), callback_data="menu_paper")],
         [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
         [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
+        [InlineKeyboardButton(get_text(lang, "menu_paper"), callback_data="menu_paper")],
         [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
-        [InlineKeyboardButton(get_text(lang, "menu_upgrade"), callback_data="menu_upgrade")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(get_text(lang, "menu_title"), reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
@@ -460,7 +459,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_edit(f"*{get_text(lang, 'menu_watchlist')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
     elif data == "menu_parametres":
         keyboard = [
-            [InlineKeyboardButton(get_text(lang, "btn_settings"), callback_data="cmd_settings")],
             [InlineKeyboardButton(get_text(lang, "btn_settimeframe"), callback_data="cmd_settimeframe")],
             [InlineKeyboardButton(get_text(lang, "btn_setlanguage"), callback_data="cmd_setlanguage")],
             [InlineKeyboardButton(get_text(lang, "btn_usage"), callback_data="cmd_usage")],
@@ -482,11 +480,10 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "menu_back":
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
-            [InlineKeyboardButton(get_text(lang, "menu_paper"), callback_data="menu_paper")],
             [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
             [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
+            [InlineKeyboardButton(get_text(lang, "menu_paper"), callback_data="menu_paper")],
             [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
-            [InlineKeyboardButton(get_text(lang, "menu_upgrade"), callback_data="menu_upgrade")],
         ]
         await safe_edit(get_text(lang, "menu_title"), keyboard)
     elif data == "check_subscription":
@@ -574,10 +571,11 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await message.reply_text(get_text(lang, "watchlist_scan_empty"))
             else:
                 results = []
+                engine = SignalEngine()
                 for sym in wl:
                     df = await fetcher.get_historical_data(sym)
                     if df is not None and not df.empty:
-                        res = SignalEngine.analyze(df, lang, symbol=sym)
+                        res = engine.analyze(df, lang, symbol=sym)
                         results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
                     else:
                         results.append(f"{sym}: {get_text(lang, 'data_unavailable')}")
@@ -771,6 +769,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup,
             parse_mode=ParseMode.MARKDOWN
         )
+        return
+    if not user_mgr.can_access_bot(user_id):
+        await update.message.reply_text("🚧 This bot is currently in private testing phase. Access is by invitation only.")
         return
     role = user_mgr.get_role(user_id)
     if role == "free" and user_mgr.is_trial_valid(user_id):
@@ -1082,7 +1083,11 @@ async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(get_text(lang, "alert_invalid_cond"))
         return
     cond_label = get_text(lang, "cond_above") if cond == "above" else get_text(lang, "cond_below")
-    alert_id = alert_mgr.add_alert(update.effective_user.id, symbol, cond, price)
+    ok, result = alert_mgr.add_alert(update.effective_user.id, symbol, cond, price)
+    if not ok:
+        await update.message.reply_text("❌ Limite atteinte")
+        return
+    alert_id = result
     await update.message.reply_text(
         get_text(lang, "alert_created", id=alert_id, symbol=symbol, cond=cond_label, price=price)
     )
@@ -1127,7 +1132,10 @@ async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if symbol in watchlist:
         await respond(update, get_text(lang, "watchlist_already", symbol=symbol))
         return
-    user_mgr.add_to_watchlist(update.effective_user.id, symbol)
+    success, limit = user_mgr.add_to_watchlist(update.effective_user.id, symbol)
+    if not success:
+        await respond(update, f"❌ Limite atteinte ({limit})")
+        return
     await respond(update, get_text(lang, "watchlist_added_styled", symbol=symbol))
 
 @check_limit
@@ -1692,12 +1700,7 @@ def start_weekly_report_scheduler(app):
 signal_scheduler = None
 
 async def check_signal_outcomes(bot):
-    logger.info("🔄 check_signal_outcomes: DÉMARRAGE")
     signals = history_mgr.get_recent_signals(50)
-    logger.info(f"🔄 check_signal_outcomes: {len(signals)} signaux récupérés")
-    pending_count = sum(1 for s in signals if s.get("status") in (None, "pending"))
-    logger.info(f"🔄 check_signal_outcomes: {pending_count} signaux pending à vérifier")
-    updated = 0
     for s in signals:
         if s.get("status") not in (None, "pending"):
             continue
@@ -1707,33 +1710,27 @@ async def check_signal_outcomes(bot):
         tp = float(s.get("tp", 0) or 0)
         if sl == 0 or tp == 0:
             continue
-        logger.info(f"🔍 Vérification signal {s['id']}: {symbol} {s['direction']} @ {entry}, SL={sl}, TP={tp}")
         price_data = await fetcher.get_realtime_price(symbol)
         if not price_data:
-            logger.warning(f"⚠️ Pas de prix pour {symbol}")
             continue
         current_price = float(price_data["price"])
-        logger.info(f"💰 Prix actuel {symbol}: {current_price}")
         direction = s["direction"]
+        
         if direction == "BUY":
             if current_price >= tp:
-                logger.info(f"✅ WIN: {s['id']} - TP touché ({current_price} >= {tp})")
-                history_mgr.update_signal_status(s["id"], "win", round((current_price - entry) / entry * 100, 4))
-                updated += 1
+                pnl_pct = round((current_price - entry) / entry * 100, 4)
+                history_mgr.update_signal_status(s["id"], "win", pnl_pct)
             elif current_price <= sl:
-                logger.info(f"❌ LOSS: {s['id']} - SL touché ({current_price} <= {sl})")
-                history_mgr.update_signal_status(s["id"], "loss", round((current_price - entry) / entry * 100, 4))
-                updated += 1
+                pnl_pct = round((current_price - entry) / entry * 100, 4)
+                history_mgr.update_signal_status(s["id"], "loss", pnl_pct)
+                
         elif direction == "SELL":
             if current_price <= tp:
-                logger.info(f"✅ WIN: {s['id']} - TP touché ({current_price} <= {tp})")
-                history_mgr.update_signal_status(s["id"], "win", round((entry - current_price) / entry * 100, 4))
-                updated += 1
+                pnl_pct = round((entry - current_price) / entry * 100, 4)
+                history_mgr.update_signal_status(s["id"], "win", pnl_pct)
             elif current_price >= sl:
-                logger.info(f"❌ LOSS: {s['id']} - SL touché ({current_price} >= {sl})")
-                history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
-                updated += 1
-    logger.info(f"🔄 check_signal_outcomes: FIN - {updated} signaux mis à jour")
+                pnl_pct = round((entry - current_price) / entry * 100, 4)
+                history_mgr.update_signal_status(s["id"], "loss", pnl_pct)
 
 def start_signal_monitoring(app):
     global signal_scheduler

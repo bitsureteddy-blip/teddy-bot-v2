@@ -58,7 +58,7 @@ class AlertManager:
                             await self._notify_user(bot_app, user_id, alert, current_price)
                 with self.lock:
                     save_json(ALERTS_FILE, self.alerts)
-                await asyncio.sleep(10)
+                await asyncio.sleep(60)
             except Exception as e:
                 print(f"Alert monitoring error: {e}")
                 await asyncio.sleep(30)

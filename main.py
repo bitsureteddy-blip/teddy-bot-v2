@@ -31,6 +31,10 @@ init_db()
 # IMPORT HANDLERS
 # =========================================================
 
+from admin_handlers import (
+    quota,
+)
+
 from bot_handlers import (
     start,
     help_command,
@@ -227,6 +231,8 @@ def main():
         ("reload", reload_cmd),
 
         ("stats", stats),
+
+        ("quota", quota),
 
         ("find_memo", find_memo),
 
