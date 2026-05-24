@@ -681,7 +681,8 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
 @check_limit
 async def alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
-        return    lang = get_user_lang(update)
+        return
+    lang = get_user_lang(update)
     if len(context.args) < 3:
         await update.message.reply_text(get_text(lang, "alert_usage"))
         return
