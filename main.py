@@ -132,7 +132,7 @@ def main():
     # COMMANDS
     # =====================================================
 
-    handlers = [
+        handlers = [
         # User
         ("start", start),
         ("help", help_command),
@@ -150,29 +150,13 @@ def main():
         ("settimeframe", settimeframe),
         ("setlanguage", setlanguage),
         ("usage", usage),
-
-        ("status", status),
-
-        ("about", about),
-
-        ("myid", myid),
-
-        ("broadcast", broadcast),
-
-        ("reload", reload_cmd),
-
-        ("stats", stats),
-
-        ("quota", quota),
-
-        ("find_memo", find_memo),
-
         ("upgrade", upgrade),
         ("support", support),
         ("pay_binance", pay_binance),
         ("historique", historique),
         # Admin
         ("stats", stats),
+        ("quota", quota),
         ("teddy", teddy),
         ("broadcast", broadcast),
         ("switchapi", switchapi),
@@ -181,7 +165,6 @@ def main():
         ("refreshhistory", refreshhistory),
         ("clearhistory", clearhistory),
     ]
-
     seen = set()
     for cmd, func in handlers:
         if cmd in seen:
