@@ -15,9 +15,7 @@ from telegram.ext import (
 )
 
 from config import TELEGRAM_TOKEN
-
 from data_fetcher import DataFetcher
-from user_manager import UserManager
 from alert_manager import AlertManager
 from database import init_db
 
@@ -28,7 +26,7 @@ from database import init_db
 init_db()
 
 # =========================================================
-# IMPORT HANDLERS
+# IMPORT HANDLERS - USER
 # =========================================================
 
 from admin_handlers import (
@@ -43,55 +41,43 @@ from bot_handlers import (
     alert,
     alerts,
     delalert,
-    clearalerts,
     trend,
     volatility,
-    correlation,
     levels,
     settings,
     settimeframe,
-    setrisk,
     setlanguage,
     usage,
-    status,
-    about,
-    myid,
-    broadcast,
-    reload_cmd,
-    stats,
-    find_memo,
     upgrade,
     plan_callback,
     pre_checkout,
     successful_payment,
     pay_binance,
-    confirm_payment,
     support,
-    snapshot,
-    verify,
     historique,
-    clearhistory,
     menu_command,
     menu_callback,
     symbol_callback,
-    clearalerts_callback,
-    backtest,
     terms_callback,
-    sentiment,
-    compare,
-    top,
-    fav,
-    teddy,
-    learn,
-    check,
-    ask,
-    start_weekly_report_scheduler,
-    start_signal_monitoring,
     handle_pending_alert_input,
     paper,
+    start_weekly_report_scheduler,
+    start_signal_monitoring,
+)
+
+# =========================================================
+# IMPORT HANDLERS - ADMIN
+# =========================================================
+
+from admin_handlers import (
+    stats,
+    teddy,
+    broadcast,
     switchapi,
-    check_signal_outcomes,
+    find_memo,
+    confirm_payment,
     refreshhistory,
+    clearhistory,
 )
 
 # =========================================================
@@ -112,112 +98,57 @@ logger = logging.getLogger(__name__)
 def main():
 
     if not TELEGRAM_TOKEN:
-        raise ValueError(
-            "❌ TELEGRAM_TOKEN manquant."
-        )
+        raise ValueError("❌ TELEGRAM_TOKEN manquant.")
 
     logger.info("Initializing services...")
 
-    # =====================================================
-    # SINGLETONS
-    # =====================================================
-
-    fetcher = DataFetcher.get_instance()
-
-    user_mgr = UserManager.get_instance()
-
     alert_mgr = AlertManager.get_instance()
 
-    # =====================================================
-    # TELEGRAM APP
-    # =====================================================
-
-    app = (
-        ApplicationBuilder()
-        .token(TELEGRAM_TOKEN)
-        .build()
-    )
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     # =====================================================
     # BACKGROUND TASKS
     # =====================================================
 
     try:
-
         start_weekly_report_scheduler(app)
-
-        logger.info(
-            "Weekly scheduler started."
-        )
-
+        logger.info("Weekly scheduler started.")
     except Exception as e:
-
-        logger.warning(
-            f"Scheduler start failed: {e}"
-        )
+        logger.warning(f"Scheduler start failed: {e}")
 
     try:
-
         start_signal_monitoring(app)
-
-        logger.info(
-            "Signal monitoring started."
-        )
-
+        logger.info("Signal monitoring started.")
     except Exception as e:
-
-        logger.warning(
-            f"Signal monitoring failed: {e}"
-        )
+        logger.warning(f"Signal monitoring failed: {e}")
 
     try:
-
         alert_mgr.start_monitoring(app)
-
-        logger.info(
-            "Alert monitoring started."
-        )
-
+        logger.info("Alert monitoring started.")
     except Exception as e:
-
-        logger.warning(
-            f"Alert monitoring failed: {e}"
-        )
+        logger.warning(f"Alert monitoring failed: {e}")
 
     # =====================================================
     # COMMANDS
     # =====================================================
 
     handlers = [
-
+        # User
         ("start", start),
         ("help", help_command),
         ("menu", menu_command),
-
         ("paper", paper),
-
-        ("switchapi", switchapi),
-
-        ("refreshhistory", refreshhistory),
-
         ("analyse", analyse),
         ("price", price),
-
         ("alert", alert),
         ("alerts", alerts),
         ("delalert", delalert),
-        ("clearalerts", clearalerts),
-
         ("trend", trend),
         ("volatility", volatility),
-        ("correlation", correlation),
         ("levels", levels),
-
         ("settings", settings),
         ("settimeframe", settimeframe),
-        ("setrisk", setrisk),
         ("setlanguage", setlanguage),
-
         ("usage", usage),
 
         ("status", status),
@@ -237,68 +168,34 @@ def main():
         ("find_memo", find_memo),
 
         ("upgrade", upgrade),
-
         ("support", support),
-
         ("pay_binance", pay_binance),
-
-        ("confirm_payment", confirm_payment),
-
-        ("snapshot", snapshot),
-
-        ("verify", verify),
-
         ("historique", historique),
-
-        ("clearhistory", clearhistory),
-
-        ("sentiment", sentiment),
-
-        ("compare", compare),
-
-        ("top", top),
-
-        ("fav", fav),
-
-        ("learn", learn),
-
-        ("check", check),
-
-        ("ask", ask),
-
-        ("backtest", backtest),
-
+        # Admin
+        ("stats", stats),
         ("teddy", teddy),
+        ("broadcast", broadcast),
+        ("switchapi", switchapi),
+        ("find_memo", find_memo),
+        ("confirm_payment", confirm_payment),
+        ("refreshhistory", refreshhistory),
+        ("clearhistory", clearhistory),
     ]
 
     seen = set()
-
     for cmd, func in handlers:
-
         if cmd in seen:
-
-            logger.warning(
-                f"Duplicate command skipped: /{cmd}"
-            )
-
+            logger.warning(f"Duplicate command skipped: /{cmd}")
             continue
-
         seen.add(cmd)
-
-        app.add_handler(
-            CommandHandler(cmd, func)
-        )
+        app.add_handler(CommandHandler(cmd, func))
 
     # =====================================================
     # TEXT INPUTS
     # =====================================================
 
     app.add_handler(
-
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            handle_pending_alert_input
-        )
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_pending_alert_input)
     )
 
     # =====================================================
@@ -306,118 +203,51 @@ def main():
     # =====================================================
 
     app.add_handler(
-
-        CallbackQueryHandler(
-            menu_callback,
-            pattern=(
-                "^(menu_|cmd_|checkdir_|"
-                "paperdir_|check_subscription|"
-                "clearhistory_|switchapi_)"
-            )
-        )
+        CallbackQueryHandler(menu_callback, pattern="^(menu_|cmd_|paperdir_|check_subscription|clearhistory_)")
     )
-
     app.add_handler(
-
-        CallbackQueryHandler(
-            symbol_callback,
-            pattern="^(symcat_|sympage_|symsel_|noop)"
-        )
+        CallbackQueryHandler(symbol_callback, pattern="^(sympage_|symsel_|noop)")
     )
-
     app.add_handler(
-
-        CallbackQueryHandler(
-            clearalerts_callback,
-            pattern="^clearalerts_"
-        )
+        CallbackQueryHandler(plan_callback, pattern="^plan_")
     )
-
     app.add_handler(
-
-        CallbackQueryHandler(
-            plan_callback,
-            pattern="^plan_"
-        )
-    )
-
-    app.add_handler(
-
-        CallbackQueryHandler(
-            terms_callback,
-            pattern="^terms_"
-        )
+        CallbackQueryHandler(terms_callback, pattern="^terms_")
     )
 
     # =====================================================
     # START BOT
     # =====================================================
 
-    logger.info(
-        "Bitsure Teddy started successfully."
-    )
-
-    # =====================================================
-    # START WEBSOCKET
-    # =====================================================
+    logger.info("Bitsure Teddy started successfully.")
 
     try:
-
-        fetcher.start_websocket()
-
-        logger.info(
-            "Realtime websocket started."
-        )
-
+        DataFetcher.get_instance().start_websocket()
+        logger.info("Realtime websocket started.")
     except Exception as e:
-
-        logger.warning(
-            f"Websocket startup failed: {e}"
-        )
+        logger.warning(f"Websocket startup failed: {e}")
 
     # =====================================================
     # WEBHOOK / POLLING
     # =====================================================
 
-    webhook_url = os.environ.get(
-        "WEBHOOK_URL"
-    )
+    webhook_url = os.environ.get("WEBHOOK_URL")
 
     if webhook_url:
-
-        logger.info(
-            f"Starting webhook mode: {webhook_url}"
-        )
-
+        logger.info(f"Starting webhook mode: {webhook_url}")
         app.run_webhook(
             listen="0.0.0.0",
-            port=int(
-                os.environ.get(
-                    "PORT",
-                    "8443"
-                )
-            ),
+            port=int(os.environ.get("PORT", "8443")),
             url_path=TELEGRAM_TOKEN,
-            webhook_url=(
-                f"{webhook_url}/"
-                f"{TELEGRAM_TOKEN}"
-            ),
+            webhook_url=f"{webhook_url}/{TELEGRAM_TOKEN}",
         )
-
     else:
-
-        logger.info(
-            "Starting polling mode."
-        )
-
-        app.run_polling(
-            drop_pending_updates=True
-        )
+        logger.info("Starting polling mode.")
+        app.run_polling(drop_pending_updates=True)
 
 # =========================================================
 # ENTRYPOINT
 # =========================================================
 
 if __name__ == "__main__":
-
     main()
