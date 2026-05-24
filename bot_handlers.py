@@ -225,11 +225,11 @@ async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     keyboard = [
-        [InlineKeyboardButton("📊 " + get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
-        [InlineKeyboardButton("🚨 " + get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
-        [InlineKeyboardButton("📋 " + get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
-        [InlineKeyboardButton("📈 " + get_text(lang, "menu_paper"), callback_data="menu_paper")],
-        [InlineKeyboardButton("⚙️ " + get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
+        [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
+        [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
+        [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
+        [InlineKeyboardButton(get_text(lang, "menu_paper"), callback_data="menu_paper")],
+        [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(get_text(lang, "menu_title"), reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
@@ -299,7 +299,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "menu_parametres":
         keyboard = [
-            [InlineKeyboardButton(get_text(lang, "btn_settings"), callback_data="cmd_settings")],
             [InlineKeyboardButton(get_text(lang, "btn_settimeframe"), callback_data="cmd_settimeframe")],
             [InlineKeyboardButton(get_text(lang, "btn_setlanguage"), callback_data="cmd_setlanguage")],
             [InlineKeyboardButton(get_text(lang, "btn_usage"), callback_data="cmd_usage")],
@@ -311,11 +310,11 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "menu_back":
         keyboard = [
-            [InlineKeyboardButton("📊 " + get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
-            [InlineKeyboardButton("🚨 " + get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
-            [InlineKeyboardButton("📋 " + get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
-            [InlineKeyboardButton("📈 " + get_text(lang, "menu_paper"), callback_data="menu_paper")],
-            [InlineKeyboardButton("⚙️ " + get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
+            [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
+            [InlineKeyboardButton(get_text(lang, "menu_alertes"), callback_data="menu_alertes")],
+            [InlineKeyboardButton(get_text(lang, "menu_watchlist"), callback_data="menu_watchlist")],
+            [InlineKeyboardButton(get_text(lang, "menu_paper"), callback_data="menu_paper")],
+            [InlineKeyboardButton(get_text(lang, "menu_parametres"), callback_data="menu_parametres")],
         ]
         await safe_edit(get_text(lang, "menu_title"), keyboard)
 
@@ -379,10 +378,11 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.message.reply_text(get_text(lang, "watchlist_scan_empty"))
             else:
                 results = []
+                engine = SignalEngine()
                 for sym in wl:
                     df = await fetcher.get_historical_data(sym)
                     if df is not None and not df.empty:
-                        res = SignalEngine.analyze(df, lang, symbol=sym)
+                        res = engine.analyze(df, lang, symbol=sym)
                         results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
                     else:
                         results.append(f"{sym}: {get_text(lang, 'data_unavailable')}")
@@ -525,9 +525,105 @@ async def symbol_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "noop":
         return
 
-# =========================================================
-# ANALYSE
-# =========================================================
+# ---------- START ----------
+@check_limit
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    lang = user_mgr.get_setting(user_id, "lang", "en")
+    was_new = str(user_id) not in user_mgr.users
+    user_mgr.get_user(user_id)
+    if was_new:
+        await notify_admin_new_user(update, context)
+    if not user_mgr.has_accepted_terms(user_id):
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "terms_button"), callback_data="terms_show")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        welcome = get_text(lang, "start", status=get_text(lang, "status_free_trial"))
+        await update.message.reply_text(
+            welcome + "\n\n" + get_text(lang, "terms_must_accept"),
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    if not user_mgr.can_access_bot(user_id):
+        await update.message.reply_text("🚧 This bot is currently in private testing phase. Access is by invitation only.")
+        return
+    role = user_mgr.get_role(user_id)
+    if role == "free" and user_mgr.is_trial_valid(user_id):
+        status = get_text(lang, "status_free_trial")
+    elif role == "free":
+        status = get_text(lang, "status_free_ended")
+    elif role == "pro":
+        status = get_text(lang, "status_pro")
+    else:
+        status = role.upper()
+    welcome = get_text(lang, "start", status=status)
+    disclaimer = get_text(lang, "start_disclaimer")
+    payment_info = get_text(lang, "international_payment_info") if role == "free" else ""
+    full_text = welcome + disclaimer + payment_info
+    await update.message.reply_text(full_text, parse_mode=ParseMode.MARKDOWN)
+
+async def terms_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+    if data == "terms_show":
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "terms_accept"), callback_data="terms_accept")],
+            [InlineKeyboardButton(get_text(lang, "terms_refuse"), callback_data="terms_refuse")],
+        ]
+        await query.edit_message_text(
+            get_text(lang, "terms_text"),
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    elif data == "terms_accept":
+        user_mgr.accept_terms(user_id)
+        await query.edit_message_text(
+            get_text(lang, "terms_accepted"),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        context.args = []
+        await start(update, context)
+    elif data == "terms_refuse":
+        await query.edit_message_text(
+            get_text(lang, "terms_refused_msg"),
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+@check_limit
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    trial_msg = ""
+    if user_mgr.get_role(update.effective_user.id) == "free" and user_mgr.is_trial_valid(update.effective_user.id):
+        from datetime import datetime
+        from config import TRIAL_DAYS
+        user_id = update.effective_user.id
+        user = user_mgr.get_user(user_id)
+        trial_start = user.get("joined", time.time())
+        trial_end = trial_start + (TRIAL_DAYS * 24 * 3600)
+        trial_days = max(0, int((trial_end - time.time()) / 86400))
+        trial_msg = "\n" + get_text(lang, "trial_days_left", days=trial_days)
+    await update.message.reply_text(get_text(lang, "help_redirect") + trial_msg, parse_mode=ParseMode.MARKDOWN)
+
+@check_limit
+async def support(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(get_text(get_user_lang(update), "support"))
+
+# ---------- UPGRADE ----------
+@check_limit
+async def upgrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(update)
+    keyboard = [
+        [InlineKeyboardButton(get_text(lang, "button_pro_stars"), callback_data="plan_pro_stars")],
+        [InlineKeyboardButton(get_text(lang, "button_binance_usdc"), callback_data="plan_binance")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(get_text(lang, "upgrade_title"), parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
 
 @check_limit
 async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callback=False):
@@ -726,7 +822,7 @@ async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     success, limit = user_mgr.add_to_watchlist(update.effective_user.id, symbol)
     if not success:
-        await respond(update, f"❌ Limite atteinte ({limit} symboles max)")
+        await respond(update, f"❌ Limite atteinte ({limit} symboles max)")main
         return
     await respond(update, get_text(lang, "watchlist_added_styled", symbol=symbol))
 
@@ -1006,16 +1102,22 @@ async def check_signal_outcomes(bot):
             continue
         current_price = float(price_data["price"])
         direction = s["direction"]
+        
         if direction == "BUY":
             if current_price >= tp:
-                history_mgr.update_signal_status(s["id"], "win", round((current_price - entry) / entry * 100, 4))
+                pnl_pct = round((current_price - entry) / entry * 100, 4)
+                history_mgr.update_signal_status(s["id"], "win", pnl_pct)
             elif current_price <= sl:
-                history_mgr.update_signal_status(s["id"], "loss", round((current_price - entry) / entry * 100, 4))
+                pnl_pct = round((current_price - entry) / entry * 100, 4)
+                history_mgr.update_signal_status(s["id"], "loss", pnl_pct)
+                
         elif direction == "SELL":
             if current_price <= tp:
-                history_mgr.update_signal_status(s["id"], "win", round((entry - current_price) / entry * 100, 4))
+                pnl_pct = round((entry - current_price) / entry * 100, 4)
+                history_mgr.update_signal_status(s["id"], "win", pnl_pct)
             elif current_price >= sl:
-                history_mgr.update_signal_status(s["id"], "loss", round((entry - sl) / entry * 100, 4))
+                pnl_pct = round((entry - current_price) / entry * 100, 4)
+                history_mgr.update_signal_status(s["id"], "loss", pnl_pct)
 
 def start_signal_monitoring(app):
     global signal_scheduler

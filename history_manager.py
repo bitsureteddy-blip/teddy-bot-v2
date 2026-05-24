@@ -76,7 +76,38 @@ class HistoryManager:
         return [self._row_to_dict(r) for r in rows]
 
     def get_signal_by_id(self, signal_id: str) -> Optional[Dict]:
+        for signal in self.signals:
+            if signal["id"] == signal_id:
+                return signal
+        return None
+
+    def update_signal_result(self, signal_id: str, current_price: float) -> Optional[str]:
+        for signal in self.signals:
+            if signal["id"] == signal_id and signal["status"] == "pending":
+                entry = signal["entry_price"]
+                if signal["direction"] == "BUY":
+                    result_pct = ((current_price - entry) / entry) * 100
+                    signal["status"] = "win" if current_price > entry else "loss"
+                else:
+                    result_pct = ((entry - current_price) / entry) * 100
+                    signal["status"] = "win" if current_price < entry else "loss"
+                signal["result_price"] = current_price
+                signal["result_pct"] = round(result_pct, 2)
+                return signal["status"]
+        return None
+
+    def update_signal_status(self, signal_id: str, status: str, result_pct: float):
         from database import get_db
+        result_pct = max(-100, min(400, result_pct))
+        conn = get_db()
+        conn.execute(
+            "UPDATE signals SET status=?, result_pct=?, closed_at=? WHERE id=?",
+            (status, result_pct, time.time(), signal_id)
+        )
+        conn.commit()
+        conn.close()
+        from database import get_db
+        result_pct = max(-100, min(400, result_pct))
         conn = get_db()
         row = conn.execute("SELECT * FROM signals WHERE id=?", (signal_id,)).fetchone()
         conn.close()

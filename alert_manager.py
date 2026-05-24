@@ -88,15 +88,9 @@ class AlertManager:
                             alert["triggered"] = True
                             alert["triggered_at"] = time.time()
                             await self._notify_user(bot_app, user_id, alert, current_price)
-
-                # 4. Sauvegarde toutes les 30 secondes max
-                if time.time() - self._last_save > 30:
-                    with self.lock:
-                        save_json(ALERTS_FILE, self.alerts)
-                    self._last_save = time.time()
-
-                await asyncio.sleep(10)
-
+                with self.lock:
+                    save_json(ALERTS_FILE, self.alerts)
+                await asyncio.sleep(60)
             except Exception as e:
                 print(f"Alert monitoring error: {e}")
                 await asyncio.sleep(30)

@@ -29,6 +29,10 @@ init_db()
 # IMPORT HANDLERS - USER
 # =========================================================
 
+from admin_handlers import (
+    quota,
+)
+
 from bot_handlers import (
     start,
     help_command,
@@ -146,6 +150,23 @@ def main():
         ("settimeframe", settimeframe),
         ("setlanguage", setlanguage),
         ("usage", usage),
+
+        ("status", status),
+
+        ("about", about),
+
+        ("myid", myid),
+
+        ("broadcast", broadcast),
+
+        ("reload", reload_cmd),
+
+        ("stats", stats),
+
+        ("quota", quota),
+
+        ("find_memo", find_memo),
+
         ("upgrade", upgrade),
         ("support", support),
         ("pay_binance", pay_binance),
