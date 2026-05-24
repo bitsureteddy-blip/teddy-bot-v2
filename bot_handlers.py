@@ -822,7 +822,7 @@ async def addwatch(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     success, limit = user_mgr.add_to_watchlist(update.effective_user.id, symbol)
     if not success:
-        await respond(update, f"❌ Limite atteinte ({limit} symboles max)")main
+        await respond(update, f"❌ Limite atteinte ({limit} symboles max)")
         return
     await respond(update, get_text(lang, "watchlist_added_styled", symbol=symbol))
 
