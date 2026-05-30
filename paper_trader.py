@@ -6,16 +6,16 @@ from typing import Dict, List, Optional
 
 class PaperTrader:
     def __init__(self, data_dir: str = "data"):
+        from database import get_db
         self.data_dir = data_dir
+        self.conn = get_db()
         self.positions: Dict[str, List[Dict]] = {}
         self.closed_positions: Dict[str, List[Dict]] = {}
         self.capitals: Dict[str, float] = {}
         self._load()
 
     def _load(self):
-        from database import get_db
-        conn = get_db()
-        rows = conn.execute("SELECT * FROM paper_positions WHERE status='open'").fetchall()
+        rows = self.conn.execute("SELECT * FROM paper_positions WHERE status='open'").fetchall()
         for r in rows:
             uid = str(r["user_id"])
             if uid not in self.positions:
@@ -36,7 +36,7 @@ class PaperTrader:
                 "exit_reason": None,
                 "peak_price": r["peak_price"] if r["peak_price"] else r["entry_price"],
             })
-        rows2 = conn.execute("SELECT * FROM paper_positions WHERE status='closed' ORDER BY closed_at DESC LIMIT 100").fetchall()
+        rows2 = self.conn.execute("SELECT * FROM paper_positions WHERE status='closed' ORDER BY closed_at DESC LIMIT 100").fetchall()
         for r in rows2:
             uid = str(r["user_id"])
             if uid not in self.closed_positions:
@@ -56,33 +56,30 @@ class PaperTrader:
                 "closed_at": r["closed_at"],
                 "exit_reason": r["exit_reason"],
             })
-        caps = conn.execute("SELECT * FROM paper_capitals").fetchall()
+        caps = self.conn.execute("SELECT * FROM paper_capitals").fetchall()
         for c in caps:
             self.capitals[str(c["user_id"])] = c["capital"]
-        conn.close()
 
     def _save(self):
-        from database import get_db
-        conn = get_db()
         for uid, plist in self.positions.items():
             for p in plist:
-                conn.execute(
+                self.conn.execute(
                     "INSERT OR REPLACE INTO paper_positions (id, user_id, symbol, entry_price, sl, tp, qty, current_price, pnl_usdt, pnl_pct, status, opened_at, peak_price) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (p["id"], int(uid), p["symbol"], p["entry_price"], p["sl"], p["tp"], p["qty"], p["current_price"], p["pnl_usdt"], p["pnl_pct"], p["status"], p["opened_at"], p.get("peak_price", p["entry_price"]))
                 )
         for uid, plist in self.closed_positions.items():
             for p in plist:
-                conn.execute(
+                self.conn.execute(
                     "INSERT OR REPLACE INTO paper_positions (id, user_id, symbol, entry_price, sl, tp, qty, current_price, pnl_usdt, pnl_pct, status, opened_at, closed_at, exit_reason) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (p["id"], int(uid), p["symbol"], p["entry_price"], p["sl"], p["tp"], p["qty"], p["current_price"], p["pnl_usdt"], p["pnl_pct"], "closed", p["opened_at"], p["closed_at"], p["exit_reason"])
                 )
         for uid, capital in self.capitals.items():
-            conn.execute(
+            self.conn.execute(
                 "INSERT OR REPLACE INTO paper_capitals (user_id, capital) VALUES (?,?)",
                 (int(uid), capital)
             )
-        conn.commit()
-        conn.close()
+        self.conn.commit()
+
     def _uid(self, user_id) -> str:
         return str(user_id)
 
