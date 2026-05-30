@@ -3,10 +3,6 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from config import (
-    USERS_FILE,
-    USAGE_FILE,
-    SETTINGS_FILE,
-    WATCHLISTS_FILE,
     FREE_DAILY_REQUESTS,
     ADMIN_ID,
     TRIAL_DAYS,
@@ -17,7 +13,6 @@ from config import (
     MAX_WATCHLIST_SYMBOLS_PRO,
 )
 
-from utils import load_json, save_json
 from i18n import get_text
 
 
@@ -26,11 +21,9 @@ class UserManager:
     _instance = None
 
     def __init__(self):
-        self.users = {}
-        self._load_users()
-        self.usage = load_json(USAGE_FILE) or {}
-        self.settings = load_json(SETTINGS_FILE) or {}
-        self.watchlists = load_json(WATCHLISTS_FILE) or {}
+        from database import get_db
+        self.conn = get_db()
+        self._init_tables()
 
     @classmethod
     def get_instance(cls):
@@ -39,93 +32,83 @@ class UserManager:
         return cls._instance
 
     # =========================================================
-    # LOAD USERS
+    # INIT DATABASE
     # =========================================================
 
-    def _load_users(self):
-        from database import get_db
-        conn = get_db()
-        try:
-            rows = conn.execute("SELECT * FROM users").fetchall()
-            self.users = {}
-            if rows:
-                for r in rows:
-                    self.users[str(r["user_id"])] = {
-                        "role": r["role"],
-                        "lang": r["lang"],
-                        "timeframe": r["timeframe"],
-                        "risk": r["risk"],
-                        "terms_accepted": bool(r["terms_accepted"]),
-                        "trial_start": r["trial_start"],
-                        "created_at": r["created_at"],
-                        "approved": True,
-                    }
-            else:
-                data = load_json(USERS_FILE) or {}
-                self.users = data
-                for uid, u in data.items():
-                    conn.execute(
-                        """
-                        INSERT OR IGNORE INTO users
-                        (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at)
-                        VALUES (?,?,?,?,?,?,?,?)
-                        """,
-                        (
-                            int(uid),
-                            u.get("role", "tester"),
-                            u.get("lang", "en"),
-                            u.get("timeframe", "1h"),
-                            u.get("risk", "medium"),
-                            int(u.get("terms_accepted", False)),
-                            u.get("trial_start", time.time()),
-                            u.get("created_at", time.time()),
-                        ),
-                    )
-                conn.commit()
-        finally:
-            conn.close()
+    def _init_tables(self):
+        """Crée les tables si elles n'existent pas."""
+        self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                role TEXT DEFAULT 'tester',
+                lang TEXT DEFAULT 'en',
+                timeframe TEXT DEFAULT '1h',
+                risk TEXT DEFAULT 'medium',
+                terms_accepted INTEGER DEFAULT 0,
+                trial_start REAL DEFAULT 0,
+                created_at REAL DEFAULT 0,
+                approved INTEGER DEFAULT 0,
+                memo TEXT
+            );
 
-    # =========================================================
-    # SAVE
-    # =========================================================
+            CREATE TABLE IF NOT EXISTS usage (
+                user_id INTEGER,
+                date TEXT,
+                count INTEGER DEFAULT 0,
+                PRIMARY KEY (user_id, date)
+            );
 
-    def _save(self):
-        save_json(USERS_FILE, self.users)
+            CREATE TABLE IF NOT EXISTS settings (
+                user_id INTEGER,
+                key TEXT,
+                value TEXT,
+                PRIMARY KEY (user_id, key)
+            );
+
+            CREATE TABLE IF NOT EXISTS watchlist (
+                user_id INTEGER,
+                symbol TEXT,
+                PRIMARY KEY (user_id, symbol)
+            );
+        """)
+        self.conn.commit()
 
     # =========================================================
     # SAFE GET USER
     # =========================================================
 
     def get_user(self, user_id: int) -> Optional[Dict]:
-        uid = str(user_id)
-        if uid in self.users and isinstance(self.users[uid], dict):
-            return self.users[uid]
+        """Récupère un utilisateur depuis SQLite, ou le crée si autorisé."""
+        row = self.conn.execute(
+            "SELECT * FROM users WHERE user_id = ?", (user_id,)
+        ).fetchone()
+
+        if row:
+            return dict(row)
+
         if not ALLOW_AUTO_REGISTER:
             return None
+
         now = time.time()
-        self.users[uid] = {
-            "role": "tester",
-            "joined": now,
-            "trial_start": now,
-            "created_at": now,
-            "used_promo_codes": [],
-            "lang": "en",
-            "timeframe": "1h",
-            "risk": "medium",
-            "terms_accepted": False,
-            "approved": False,
-        }
-        self.settings[uid] = {"timeframe": "1h", "risk": "medium", "lang": "en"}
-        self.watchlists[uid] = []
-        self._save()
-        return self.users[uid]
+        self.conn.execute(
+            """
+            INSERT INTO users (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at, approved)
+            VALUES (?, 'tester', 'en', '1h', 'medium', 0, ?, ?, 0)
+            """,
+            (user_id, now, now)
+        )
+        self.conn.commit()
+        return self.get_user(user_id)
 
     # =========================================================
     # ACCESS
     # =========================================================
 
     def user_exists(self, user_id: int) -> bool:
-        return str(user_id) in self.users
+        row = self.conn.execute(
+            "SELECT 1 FROM users WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        return row is not None
 
     def is_admin(self, user_id: int) -> bool:
         return int(user_id) == ADMIN_ID
@@ -134,7 +117,7 @@ class UserManager:
         if self.is_admin(user_id):
             return True
         user = self.get_user(user_id)
-        return bool(user and user.get("approved", False))
+        return bool(user and user.get("approved", 0))
 
     def can_access_bot(self, user_id: int) -> bool:
         if ACCESS_MODE == "open":
@@ -157,20 +140,23 @@ class UserManager:
         return self.get_role(user_id) in ["pro", "admin"]
 
     # =========================================================
-    # TRIAL SAFE
+    # TRIAL
     # =========================================================
 
     def is_trial_valid(self, user_id: int) -> bool:
         user = self.get_user(user_id)
         if not user:
             return False
-        start = user.get("trial_start")
+        start = user.get("trial_start", 0)
         try:
             start = float(start)
         except (TypeError, ValueError):
             start = time.time()
-            user["trial_start"] = start
-            self._save()
+            self.conn.execute(
+                "UPDATE users SET trial_start = ? WHERE user_id = ?",
+                (start, user_id)
+            )
+            self.conn.commit()
         return time.time() < start + (TRIAL_DAYS * 86400)
 
     def can_use_premium_feature(self, user_id: int) -> bool:
@@ -182,61 +168,69 @@ class UserManager:
 
     def has_accepted_terms(self, user_id: int) -> bool:
         user = self.get_user(user_id)
-        return bool(user and user.get("terms_accepted", False))
+        return bool(user and user.get("terms_accepted", 0))
 
     def accept_terms(self, user_id: int):
-        user = self.get_user(user_id)
-        if not user:
-            return
-        user["terms_accepted"] = True
-        self._save()
+        self.conn.execute(
+            "UPDATE users SET terms_accepted = 1 WHERE user_id = ?",
+            (user_id,)
+        )
+        self.conn.commit()
 
     # =========================================================
-    # LIMITS SAFE
+    # LIMITS
     # =========================================================
+
+    def _get_today(self) -> str:
+        return datetime.now().strftime("%Y-%m-%d")
+
+    def _get_usage(self, user_id: int) -> int:
+        today = self._get_today()
+        row = self.conn.execute(
+            "SELECT count FROM usage WHERE user_id = ? AND date = ?",
+            (user_id, today)
+        ).fetchone()
+        return row["count"] if row else 0
+
+    def _set_usage(self, user_id: int, count: int):
+        today = self._get_today()
+        self.conn.execute(
+            """
+            INSERT INTO usage (user_id, date, count) VALUES (?, ?, ?)
+            ON CONFLICT(user_id, date) DO UPDATE SET count = excluded.count
+            """,
+            (user_id, today, count)
+        )
+        self.conn.commit()
 
     def check_limit(self, user_id: int) -> bool:
         if self.is_admin(user_id) or self.is_premium(user_id):
             return True
-        uid = str(user_id)
-        today = datetime.now().strftime("%Y-%m-%d")
-        if uid not in self.usage or not isinstance(self.usage.get(uid), dict):
-            self.usage[uid] = {"date": today, "count": 0}
-        if self.usage[uid].get("date") != today:
-            self.usage[uid] = {"date": today, "count": 0}
-        return self.usage[uid]["count"] < FREE_DAILY_REQUESTS
+        used = self._get_usage(user_id)
+        return used < FREE_DAILY_REQUESTS
 
     def increment_usage(self, user_id: int):
         if self.is_admin(user_id) or self.is_premium(user_id):
             return
-        uid = str(user_id)
-        today = datetime.now().strftime("%Y-%m-%d")
-        if uid not in self.usage or self.usage[uid].get("date") != today:
-            self.usage[uid] = {"date": today, "count": 1}
-        else:
-            self.usage[uid]["count"] += 1
-        save_json(USAGE_FILE, self.usage)
+        used = self._get_usage(user_id)
+        self._set_usage(user_id, used + 1)
 
     def get_remaining_requests(self, user_id: int) -> int:
         if self.is_premium(user_id) or self.is_admin(user_id):
             return -1
-        uid = str(user_id)
-        today = datetime.now().strftime("%Y-%m-%d")
-        if uid not in self.usage or self.usage[uid].get("date") != today:
-            return FREE_DAILY_REQUESTS
-        used = self.usage[uid]["count"]
+        used = self._get_usage(user_id)
         return max(0, FREE_DAILY_REQUESTS - used)
 
     # =========================================================
-    # WATCHLIST SAFE
+    # WATCHLIST
     # =========================================================
 
     def get_watchlist(self, user_id: int) -> List[str]:
-        uid = str(user_id)
-        if uid not in self.watchlists or not isinstance(self.watchlists[uid], list):
-            self.watchlists[uid] = []
-            self._save()
-        return self.watchlists[uid]
+        rows = self.conn.execute(
+            "SELECT symbol FROM watchlist WHERE user_id = ?",
+            (user_id,)
+        ).fetchall()
+        return [row["symbol"] for row in rows]
 
     def get_watchlist_limit(self, user_id: int) -> int:
         role = self.get_role(user_id)
@@ -247,42 +241,50 @@ class UserManager:
         return MAX_WATCHLIST_SYMBOLS_FREE
 
     def add_to_watchlist(self, user_id: int, symbol: str):
-        uid = str(user_id)
-        if uid not in self.watchlists:
-            self.watchlists[uid] = []
+        current = self.get_watchlist(user_id)
         limit = self.get_watchlist_limit(user_id)
-        if len(self.watchlists[uid]) >= limit:
+        if len(current) >= limit:
             return False, limit
-        if symbol not in self.watchlists[uid]:
-            self.watchlists[uid].append(symbol)
-        save_json(WATCHLISTS_FILE, self.watchlists)
+        try:
+            self.conn.execute(
+                "INSERT INTO watchlist (user_id, symbol) VALUES (?, ?)",
+                (user_id, symbol.upper())
+            )
+            self.conn.commit()
+        except Exception:
+            pass  # déjà présent
         return True, limit
 
     def remove_from_watchlist(self, user_id: int, symbol: str):
-        uid = str(user_id)
-        if uid in self.watchlists and symbol in self.watchlists[uid]:
-            self.watchlists[uid].remove(symbol)
-            save_json(WATCHLISTS_FILE, self.watchlists)
+        self.conn.execute(
+            "DELETE FROM watchlist WHERE user_id = ? AND symbol = ?",
+            (user_id, symbol.upper())
+        )
+        self.conn.commit()
 
     # =========================================================
-    # SETTINGS SAFE
+    # SETTINGS
     # =========================================================
 
     def get_setting(self, user_id: int, key: str, default=None):
-        uid = str(user_id)
-        if uid not in self.settings or not isinstance(self.settings[uid], dict):
-            self.settings[uid] = {}
-        return self.settings[uid].get(key, default)
+        row = self.conn.execute(
+            "SELECT value FROM settings WHERE user_id = ? AND key = ?",
+            (user_id, key)
+        ).fetchone()
+        return row["value"] if row else default
 
     def set_setting(self, user_id: int, key: str, value):
-        uid = str(user_id)
-        if uid not in self.settings:
-            self.settings[uid] = {}
-        self.settings[uid][key] = value
-        save_json(SETTINGS_FILE, self.settings)
+        self.conn.execute(
+            """
+            INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)
+            ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value
+            """,
+            (user_id, key, str(value))
+        )
+        self.conn.commit()
 
     # =========================================================
-    # PROMO SAFE
+    # PROMO
     # =========================================================
 
     def redeem_promo(self, user_id: int, code: str):
@@ -294,6 +296,63 @@ class UserManager:
         user = self.get_user(user_id)
         if not user:
             return False, "User not found"
-        user["trial_start"] = user.get("trial_start", time.time()) - promos[code]["days"] * 86400
-        self._save()
+        new_trial = user.get("trial_start", time.time()) - promos[code]["days"] * 86400
+        self.conn.execute(
+            "UPDATE users SET trial_start = ? WHERE user_id = ?",
+            (new_trial, user_id)
+        )
+        self.conn.commit()
         return True, get_text(lang, "redeem_success")
+
+    # =========================================================
+    # ADMIN: GET ALL USERS
+    # =========================================================
+
+    def get_all_users(self) -> List[int]:
+        """Retourne la liste de tous les user_id."""
+        rows = self.conn.execute("SELECT user_id FROM users").fetchall()
+        return [row["user_id"] for row in rows]
+
+    # =========================================================
+    # ADMIN: CONFIRM PAYMENT
+    # =========================================================
+
+    def confirm_binance_payment(self, user_id: int) -> bool:
+        """Passe un utilisateur en rôle 'pro' après paiement confirmé."""
+        user = self.get_user(user_id)
+        if not user:
+            return False
+        self.conn.execute(
+            "UPDATE users SET role = 'pro' WHERE user_id = ?",
+            (user_id,)
+        )
+        self.conn.commit()
+        return True
+
+    # =========================================================
+    # ADMIN: APPROVE TESTER
+    # =========================================================
+
+    def approve_user(self, user_id: int) -> bool:
+        """Approuve un utilisateur comme testeur."""
+        user = self.get_user(user_id)
+        if not user:
+            return False
+        self.conn.execute(
+            "UPDATE users SET role = 'tester', approved = 1 WHERE user_id = ?",
+            (user_id,)
+        )
+        self.conn.commit()
+        return True
+
+    # =========================================================
+    # ADMIN: FIND USER BY MEMO
+    # =========================================================
+
+    def find_user_by_memo(self, memo: str) -> Optional[int]:
+        """Retrouve un user_id à partir de son mémo de paiement Binance."""
+        row = self.conn.execute(
+            "SELECT user_id FROM users WHERE memo = ?",
+            (memo,)
+        ).fetchone()
+        return row["user_id"] if row else None
