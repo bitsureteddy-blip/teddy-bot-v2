@@ -71,7 +71,7 @@ SYMBOL_CONFIGS = {
         "min_cond": 4
     },
     "ETHUSD": {
-        "adx_min": 25,  # ← 27 → 25, pour un peu plus de signaux sans trop de bruit
+        "adx_min": 25,
         "rsi_buy_low": 47, "rsi_buy_high": 70,
         "rsi_sell_low": 30, "rsi_sell_high": 53,
         "atr_max_pct": 4.8,
@@ -95,7 +95,7 @@ SYMBOL_CONFIGS = {
         "adx_min": 24,
         "rsi_buy_low": 45, "rsi_buy_high": 67,
         "rsi_sell_low": 33, "rsi_sell_high": 55,
-        "atr_max_pct": 1.05,  # ← 1.1 → 1.05, pour ne pas filtrer des mouvements valides
+        "atr_max_pct": 1.05,
         "min_cond": 4
     },
     "AUDUSD": {
@@ -140,11 +140,6 @@ SYMBOL_CONFIGS = {
 # =========================================================
 
 DATA_DIR = "data"
-USERS_FILE = f"{DATA_DIR}/users.json"
-ALERTS_FILE = f"{DATA_DIR}/alerts.json"
-WATCHLISTS_FILE = f"{DATA_DIR}/watchlists.json"
-SETTINGS_FILE = f"{DATA_DIR}/settings.json"
-USAGE_FILE = f"{DATA_DIR}/usage.json"
 
 # =========================================================
 # WEBSOCKETS
