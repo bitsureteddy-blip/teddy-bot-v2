@@ -17,13 +17,13 @@ from telegram.ext import (
 from config import TELEGRAM_TOKEN
 from data_fetcher import DataFetcher
 from alert_manager import AlertManager
-from database import init_db
+from database import get_db
 
 # =========================================================
 # INIT DATABASE
 # =========================================================
 
-init_db()
+get_db()
 
 # =========================================================
 # IMPORT HANDLERS - USER
