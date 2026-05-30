@@ -18,7 +18,7 @@ def get_db():
     return _conn
 
 def _ensure_schema(conn):
-    """Crée les tables et les colonnes manquantes si nécessaire."""
+    """Crée les tables et ajoute les colonnes manquantes si nécessaire."""
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
@@ -103,7 +103,7 @@ def _ensure_schema(conn):
         );
     """)
 
-    # Migrations ponctuelles (colonnes manquantes)
+    # Migrations ponctuelles (colonnes manquantes sur bases existantes)
     _add_column_if_missing(conn, "users", "approved", "INTEGER DEFAULT 0")
     _add_column_if_missing(conn, "users", "memo", "TEXT")
     _add_column_if_missing(conn, "alerts", "created_at", "REAL DEFAULT 0")
