@@ -16,7 +16,8 @@ class HistoryManager:
     _instance = None
 
     def __init__(self):
-        pass
+        from database import get_db
+        self.conn = get_db()
 
     @classmethod
     def get_instance(cls):
@@ -38,8 +39,8 @@ class HistoryManager:
             "type": "analyse",
             "score": row["score"],
             "timestamp": datetime.utcfromtimestamp(row["created_at"]).isoformat() if row["created_at"] else "",
-            "created_at": row["created_at"],                     # timestamp brut
-            "closed_at": row["closed_at"] if row["closed_at"] else None,   # timestamp brut ou None
+            "created_at": row["created_at"],
+            "closed_at": row["closed_at"] if row["closed_at"] else None,
             "status": row["status"],
             "sl": row["sl"],
             "tp": row["tp"],
@@ -56,14 +57,11 @@ class HistoryManager:
                    sl: Optional[float] = None, tp: Optional[float] = None) -> str:
         signal_id = hashlib.md5(f"{symbol}{direction}{price}{timeframe}{time.time()}".encode()).hexdigest()[:8]
         now = time.time()
-        from database import get_db
-        conn = get_db()
-        conn.execute(
+        self.conn.execute(
             "INSERT OR REPLACE INTO signals (id, symbol, direction, entry_price, sl, tp, score, status, result_pct, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (signal_id, symbol.upper(), direction, price, sl, tp, score, "pending", None, now)
         )
-        conn.commit()
-        conn.close()
+        self.conn.commit()
         return signal_id
 
     # =========================================================
@@ -71,34 +69,25 @@ class HistoryManager:
     # =========================================================
 
     def get_recent_signals(self, limit: int = 10) -> List[Dict]:
-        from database import get_db
-        conn = get_db()
-        rows = conn.execute("SELECT * FROM signals ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
-        conn.close()
+        rows = self.conn.execute("SELECT * FROM signals ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
     def get_signal_by_id(self, signal_id: str) -> Optional[Dict]:
-        from database import get_db
-        conn = get_db()
-        row = conn.execute("SELECT * FROM signals WHERE id=?", (signal_id,)).fetchone()
-        conn.close()
+        row = self.conn.execute("SELECT * FROM signals WHERE id=?", (signal_id,)).fetchone()
         return self._row_to_dict(row) if row else None
 
     # =========================================================
-    # MISE À JOUR DU STATUT (version unique, clampée)
+    # MISE À JOUR DU STATUT
     # =========================================================
 
     def update_signal_status(self, signal_id: str, status: str, result_pct: float):
         """Met à jour le statut d'un signal avec le PnL% et l'heure de clôture."""
-        from database import get_db
         result_pct = max(-100, min(400, result_pct))
-        conn = get_db()
-        conn.execute(
+        self.conn.execute(
             "UPDATE signals SET status=?, result_pct=?, closed_at=? WHERE id=?",
             (status, result_pct, time.time(), signal_id)
         )
-        conn.commit()
-        conn.close()
+        self.conn.commit()
 
     # =========================================================
     # MISE À JOUR DU RÉSULTAT (via prix actuel)
@@ -138,18 +127,12 @@ class HistoryManager:
     # =========================================================
 
     def clear_all_signals(self):
-        from database import get_db
-        conn = get_db()
-        conn.execute("DELETE FROM signals")
-        conn.commit()
-        conn.close()
+        self.conn.execute("DELETE FROM signals")
+        self.conn.commit()
         logger.info("✅ Tous les signaux ont été effacés")
 
     def clear_old_signals(self, days: int = 30):
-        from database import get_db
         cutoff = time.time() - (days * 86400)
-        conn = get_db()
-        conn.execute("DELETE FROM signals WHERE created_at < ?", (cutoff,))
-        conn.commit()
-        conn.close()
+        self.conn.execute("DELETE FROM signals WHERE created_at < ?", (cutoff,))
+        self.conn.commit()
         logger.info(f"✅ Signaux de plus de {days} jours supprimés")
