@@ -22,56 +22,13 @@ class UserManager:
 
     def __init__(self):
         from database import get_db
-        self.conn = get_db()
-        self._init_tables()
+        self.conn = get_db()   # database.py gère tout le schéma
 
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
-
-    # =========================================================
-    # INIT DATABASE
-    # =========================================================
-
-    def _init_tables(self):
-        """Crée les tables si elles n'existent pas."""
-        self.conn.executescript("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                role TEXT DEFAULT 'tester',
-                lang TEXT DEFAULT 'en',
-                timeframe TEXT DEFAULT '1h',
-                risk TEXT DEFAULT 'medium',
-                terms_accepted INTEGER DEFAULT 0,
-                trial_start REAL DEFAULT 0,
-                created_at REAL DEFAULT 0,
-                approved INTEGER DEFAULT 0,
-                memo TEXT
-            );
-
-            CREATE TABLE IF NOT EXISTS usage (
-                user_id INTEGER,
-                date TEXT,
-                count INTEGER DEFAULT 0,
-                PRIMARY KEY (user_id, date)
-            );
-
-            CREATE TABLE IF NOT EXISTS settings (
-                user_id INTEGER,
-                key TEXT,
-                value TEXT,
-                PRIMARY KEY (user_id, key)
-            );
-
-            CREATE TABLE IF NOT EXISTS watchlist (
-                user_id INTEGER,
-                symbol TEXT,
-                PRIMARY KEY (user_id, symbol)
-            );
-        """)
-        self.conn.commit()
 
     # =========================================================
     # SAFE GET USER
