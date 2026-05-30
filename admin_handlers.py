@@ -38,15 +38,12 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
-    from database import get_db
-    conn = get_db()
-    total_row = conn.execute("SELECT COUNT(*) as total FROM users").fetchone()
+    total_row = user_mgr.conn.execute("SELECT COUNT(*) as total FROM users").fetchone()
     total = total_row["total"] if total_row else 0
-    free_row = conn.execute("SELECT COUNT(*) as c FROM users WHERE role='tester'").fetchone()
+    free_row = user_mgr.conn.execute("SELECT COUNT(*) as c FROM users WHERE role='tester'").fetchone()
     free = free_row["c"] if free_row else 0
-    pro_row = conn.execute("SELECT COUNT(*) as c FROM users WHERE role='pro'").fetchone()
+    pro_row = user_mgr.conn.execute("SELECT COUNT(*) as c FROM users WHERE role='pro'").fetchone()
     pro = pro_row["c"] if pro_row else 0
-    conn.close()
     text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🧪 Testeurs : {free}\n💎 PRO : {pro}"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
