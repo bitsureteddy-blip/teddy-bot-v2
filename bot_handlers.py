@@ -988,12 +988,16 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for s in signals:
         status = s.get("status")
         emoji = "✅" if status == "win" else "❌" if status == "loss" else "⏳"
-        timestamp = str(s.get("timestamp") or "")
-        time_hhmm = timestamp[11:16] if len(timestamp) >= 16 else "--:--"
+        # Heure de clôture pour les trades terminés, heure d'ouverture pour les pending
+        ts = s.get("closed_at") if status in ("win", "loss") and s.get("closed_at") else s.get("created_at")
+        if ts:
+            time_str = datetime.utcfromtimestamp(ts).strftime('%H:%M UTC')
+        else:
+            time_str = "--:-- UTC"
         symbol = s.get("symbol", "?")
         direction = s.get("direction", "?")
         price = format_number(s.get("entry_price", 0))
-        lines.append(f"{emoji} {time_hhmm} UTC {symbol} {direction} @ {price}")
+        lines.append(f"{emoji} {time_str} {symbol} {direction} @ {price}")
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
         get_text(lang, "history_title", date=today_str),
@@ -1003,7 +1007,6 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
     ])
     await target_message.reply_text(text)
-
 # =========================================================
 # PAPER TRADING
 # =========================================================
