@@ -5,7 +5,7 @@ Stockage SQLite uniquement.
 
 import hashlib
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 import logging
 
@@ -38,6 +38,8 @@ class HistoryManager:
             "type": "analyse",
             "score": row["score"],
             "timestamp": datetime.utcfromtimestamp(row["created_at"]).isoformat() if row["created_at"] else "",
+            "created_at": row["created_at"],                     # timestamp brut
+            "closed_at": row["closed_at"] if row["closed_at"] else None,   # timestamp brut ou None
             "status": row["status"],
             "sl": row["sl"],
             "tp": row["tp"],
@@ -76,65 +78,20 @@ class HistoryManager:
         return [self._row_to_dict(r) for r in rows]
 
     def get_signal_by_id(self, signal_id: str) -> Optional[Dict]:
-        for signal in self.signals:
-            if signal["id"] == signal_id:
-                return signal
-        return None
-
-    def update_signal_result(self, signal_id: str, current_price: float) -> Optional[str]:
-        for signal in self.signals:
-            if signal["id"] == signal_id and signal["status"] == "pending":
-                entry = signal["entry_price"]
-                if signal["direction"] == "BUY":
-                    result_pct = ((current_price - entry) / entry) * 100
-                    signal["status"] = "win" if current_price > entry else "loss"
-                else:
-                    result_pct = ((entry - current_price) / entry) * 100
-                    signal["status"] = "win" if current_price < entry else "loss"
-                signal["result_price"] = current_price
-                signal["result_pct"] = round(result_pct, 2)
-                return signal["status"]
-        return None
-
-    def update_signal_status(self, signal_id: str, status: str, result_pct: float):
         from database import get_db
-        result_pct = max(-100, min(400, result_pct))
-        conn = get_db()
-        conn.execute(
-            "UPDATE signals SET status=?, result_pct=?, closed_at=? WHERE id=?",
-            (status, result_pct, time.time(), signal_id)
-        )
-        conn.commit()
-        conn.close()
-        from database import get_db
-        result_pct = max(-100, min(400, result_pct))
         conn = get_db()
         row = conn.execute("SELECT * FROM signals WHERE id=?", (signal_id,)).fetchone()
         conn.close()
         return self._row_to_dict(row) if row else None
 
     # =========================================================
-    # MISE À JOUR
+    # MISE À JOUR DU STATUT (version unique, clampée)
     # =========================================================
 
     def update_signal_status(self, signal_id: str, status: str, result_pct: float):
-        """
-        Met à jour le statut d'un signal avec le PnL%.
-        
-        Args:
-            signal_id: ID unique du signal
-            status: 'win', 'loss', ou 'pending'
-            result_pct: Le PnL en pourcentage (calculé correctement par le caller)
-        
-        BUG FIX (2026-05-22):
-        - Ajout d'un clamp pour éviter les valeurs impossibles
-        - Limite raisonnable: -100% à +400%
-        """
+        """Met à jour le statut d'un signal avec le PnL% et l'heure de clôture."""
         from database import get_db
-        
-        # Clamp le résultat entre -100% et +400% (limites raisonnables)
         result_pct = max(-100, min(400, result_pct))
-        
         conn = get_db()
         conn.execute(
             "UPDATE signals SET status=?, result_pct=?, closed_at=? WHERE id=?",
@@ -143,14 +100,12 @@ class HistoryManager:
         conn.commit()
         conn.close()
 
+    # =========================================================
+    # MISE À JOUR DU RÉSULTAT (via prix actuel)
+    # =========================================================
+
     def update_signal_result(self, signal_id: str, current_price: float) -> Optional[str]:
-        """
-        Met à jour le résultat d'un signal en comparant avec le prix actuel.
-        
-        BUG FIX (2026-05-22):
-        - SELL loss: Ligne 122 utilisait (entry - sl), maintenant (entry - current_price)
-        - Assure que le PnL est basé sur le prix actuel, pas sur le SL
-        """
+        """Vérifie si le signal a touché SL ou TP et met à jour son statut."""
         signal = self.get_signal_by_id(signal_id)
         if not signal or signal["status"] != "pending":
             return None
@@ -173,7 +128,6 @@ class HistoryManager:
                 self.update_signal_status(signal_id, "win", result_pct)
                 return "win"
             elif sl and current_price >= sl:
-                # ✅ FIX: WAS (entry - sl) / entry, NOW (entry - current_price) / entry
                 result_pct = round((entry - current_price) / entry * 100, 4)
                 self.update_signal_status(signal_id, "loss", result_pct)
                 return "loss"
