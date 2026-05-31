@@ -1033,6 +1033,7 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def check_signal_outcomes(bot):
     signals = history_mgr.get_recent_signals(50)
+    logger.info(f"check_signal_outcomes: {len(signals)} signaux trouvés")
     for s in signals:
         if s.get("status") not in (None, "pending"):
             continue
@@ -1041,7 +1042,9 @@ async def check_signal_outcomes(bot):
         sl = float(s.get("sl", 0) or 0)
         tp = float(s.get("tp", 0) or 0)
         if sl == 0 or tp == 0:
+            logger.info(f"Signal {s['id']} {symbol} ignoré: SL={sl}, TP={tp}")
             continue
+        logger.info(f"Vérification {s['id']} {symbol} {s['direction']} SL={sl} TP={tp}")
         price_data = await fetcher.get_realtime_price(symbol)
         if not price_data:
             continue
