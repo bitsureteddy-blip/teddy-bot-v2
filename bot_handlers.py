@@ -92,6 +92,13 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
+        if not user_mgr.can_access_bot(user_id):
+            if update.callback_query:
+                await update.callback_query.answer("🚧 Accès sur invitation uniquement.", show_alert=True)
+                return
+            else:
+                await update.message.reply_text("🚧 Accès sur invitation uniquement.\n\n🚧 Access by invitation only.")
+                return
         if func.__name__ != "start" and not user_mgr.has_accepted_terms(user_id) and not user_mgr.is_admin(user_id):
             if update.callback_query:
                 await update.callback_query.answer(get_text(lang, "terms_must_accept"), show_alert=True)
