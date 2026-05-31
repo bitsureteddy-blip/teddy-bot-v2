@@ -30,7 +30,8 @@ def _ensure_schema(conn):
             trial_start REAL DEFAULT 0,
             created_at REAL DEFAULT 0,
             approved INTEGER DEFAULT 0,
-            memo TEXT
+            memo TEXT,
+                username TEXT
         );
 
         CREATE TABLE IF NOT EXISTS usage (
@@ -106,6 +107,7 @@ def _ensure_schema(conn):
     # Migrations ponctuelles (colonnes manquantes sur bases existantes)
     _add_column_if_missing(conn, "users", "approved", "INTEGER DEFAULT 0")
     _add_column_if_missing(conn, "users", "memo", "TEXT")
+    _add_column_if_missing(conn, "users", "username", "TEXT")
     _add_column_if_missing(conn, "alerts", "created_at", "REAL DEFAULT 0")
     _add_column_if_missing(conn, "alerts", "triggered_at", "REAL DEFAULT 0")
 

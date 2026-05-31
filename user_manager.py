@@ -49,8 +49,8 @@ class UserManager:
         now = time.time()
         self.conn.execute(
             """
-            INSERT INTO users (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at, approved)
-            VALUES (?, 'tester', 'en', '1h', 'medium', 0, ?, ?, 0)
+            INSERT INTO users (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at, approved, username)
+            VALUES (?, 'tester', 'en', '1h', 'medium', 0, ?, ?, 0, NULL)
             """,
             (user_id, now, now)
         )

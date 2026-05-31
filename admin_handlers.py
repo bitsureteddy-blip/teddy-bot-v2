@@ -40,13 +40,40 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     lang = user_mgr.get_setting(update.effective_user.id, "lang", "en")
+    
+    # Statistiques globales
     total_row = user_mgr.conn.execute("SELECT COUNT(*) as total FROM users").fetchone()
     total = total_row["total"] if total_row else 0
     free_row = user_mgr.conn.execute("SELECT COUNT(*) as c FROM users WHERE role='tester'").fetchone()
     free = free_row["c"] if free_row else 0
     pro_row = user_mgr.conn.execute("SELECT COUNT(*) as c FROM users WHERE role='pro'").fetchone()
     pro = pro_row["c"] if pro_row else 0
-    text = f"📊 Statistiques Bitsure Teddy\n👥 Utilisateurs : {total}\n🧪 Testeurs : {free}\n💎 PRO : {pro}"
+    
+    text = f"📊 *Bitsure Teddy Stats*\n👥 Utilisateurs : {total}\n🧪 Testeurs : {free}\n💎 PRO : {pro}\n\n"
+    
+    # Détail par utilisateur
+    users = user_mgr.conn.execute("SELECT user_id, role, username FROM users ORDER BY role, user_id").fetchall()
+    for u in users:
+        uid = u["user_id"]
+        username = u["username"] or f"ID:{uid}"
+        role = u["role"]
+        
+        # Compter les requêtes du jour
+        from datetime import datetime
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        usage_row = user_mgr.conn.execute("SELECT count FROM usage WHERE user_id=? AND date=?", (uid, today)).fetchone()
+        used = usage_row["count"] if usage_row else 0
+        
+        # Compter les signaux
+        sig_row = user_mgr.conn.execute("SELECT COUNT(*) as c FROM signals WHERE user_id=?", (uid,)).fetchone()
+        sig_count = sig_row["c"] if sig_row else 0
+        
+        emoji = "💎" if role == "pro" else "🧪" if role == "tester" else "👤"
+        text += f"{emoji} {uid} {username} | {role} | {used} req | {sig_count} signals\n"
+    
+    if len(text) > 4000:
+        text = text[:4000] + "\n... (truncated)"
+    
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 # =========================================================
