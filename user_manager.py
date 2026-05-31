@@ -73,6 +73,8 @@ class UserManager:
     def is_approved(self, user_id: int) -> bool:
         if self.is_admin(user_id):
             return True
+        if self.is_premium(user_id):
+            return True
         user = self.get_user(user_id)
         return bool(user and user.get("approved", 0))
 
