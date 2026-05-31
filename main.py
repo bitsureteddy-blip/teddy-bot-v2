@@ -139,7 +139,6 @@ def main():
         # ================= USER =================
 
         ("start", start),
-        ("myid", myid),
         ("help", help_command),
         ("menu", menu_command),
 
@@ -187,6 +186,9 @@ def main():
     # =====================================================
 
     seen = set()
+
+    # Handler spécial sans restriction d'accès
+    app.add_handler(CommandHandler("myid", myid))
 
     for cmd, func in handlers:
 
