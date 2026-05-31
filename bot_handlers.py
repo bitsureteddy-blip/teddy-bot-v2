@@ -161,7 +161,7 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"🆔 *Your ID* : {user.id}\n"
         f"👤 *Name* : {username}\n\n"
-        f"_Send this ID to @btsr_teddy09 to get an invitation._",
+        f"_Send this ID to @btsr\_teddy09 to get an invitation._",
         parse_mode="Markdown"
     )
 
