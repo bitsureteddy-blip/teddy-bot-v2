@@ -63,8 +63,16 @@ async def teddy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = int(context.args[0])
     if user_mgr.confirm_binance_payment(uid):
         await update.message.reply_text(f"✅ Paiement confirmé pour {uid}")
+        try:
+            await context.bot.send_message(chat_id=uid, text="✅ Your PRO subscription has been activated! Use /menu to start trading.")
+        except:
+            pass
     elif user_mgr.approve_user(uid):
         await update.message.reply_text(f"✅ Utilisateur {uid} approuvé comme testeur")
+        try:
+            await context.bot.send_message(chat_id=uid, text="✅ Your access has been approved! Use /menu to start.")
+        except:
+            pass
     else:
         await update.message.reply_text(f"❌ Utilisateur {uid} introuvable")
 
@@ -157,6 +165,10 @@ async def confirm_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = int(context.args[0])
     if user_mgr.confirm_binance_payment(uid):
         await update.message.reply_text(get_text(lang, "confirm_payment_ok", user_id=uid))
+        try:
+            await context.bot.send_message(chat_id=uid, text="✅ Your PRO subscription has been activated! Use /menu to start trading.")
+        except:
+            pass
     else:
         await update.message.reply_text(get_text(lang, "confirm_payment_missing", user_id=uid))
 
