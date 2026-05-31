@@ -657,7 +657,7 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
                        adx=ind.get('adx') if pd.notna(ind.get('adx')) else 0.0, adx_state=adx_state,
                        sma20=format_number(ind['sma20']), sma50=format_number(ind['sma50']),
                        teddy_score=result['teddy_score'])
-    signal_id = history_mgr.add_signal(symbol, result['signal'], ind['price'], DEFAULT_TIMEFRAME, "analyse", result['teddy_score'], sl=result.get('sl'), tp=result.get('tp'))
+    signal_id = history_mgr.add_signal(symbol, result['signal'], ind['price'], DEFAULT_TIMEFRAME, "analyse", result['teddy_score'], sl=result.get('sl'), tp=result.get('tp')) if result['signal'] in ('BUY', 'SELL') else 'N/A'
     caption += f"\n\n🔐 ID: `{signal_id}`"
     await msg.delete()
     if from_callback and update.callback_query:
