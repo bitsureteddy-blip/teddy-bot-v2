@@ -69,6 +69,7 @@ from admin_handlers import (
     deleteuser,
     exportsignals,
     dbquery,
+    cleanwaits,
     stats,
     teddy,
     broadcast,
@@ -176,6 +177,7 @@ def main():
         ("deleteuser", deleteuser),
         ("exportsignals", exportsignals),
         ("dbquery", dbquery),
+        ("cleanwaits", cleanwaits),
     ]
 
     # =====================================================

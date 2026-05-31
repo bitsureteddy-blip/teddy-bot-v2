@@ -171,6 +171,21 @@ async def confirm_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @check_limit
 # =========================================================
+# =========================================================
+# CLEAN WAIT SIGNALS
+# =========================================================
+
+@check_limit
+async def cleanwaits(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    from database import get_db
+    conn = get_db()
+    cursor = conn.execute("DELETE FROM signals WHERE direction = 'WAIT'")
+    conn.commit()
+    count = cursor.rowcount
+    await update.message.reply_text(f"{count} signaux WAIT supprimés")
+
 # DB QUERY
 # =========================================================
 
