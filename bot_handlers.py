@@ -94,10 +94,10 @@ def check_limit(func):
         lang = get_user_lang(update)
         if not user_mgr.can_access_bot(user_id):
             if update.callback_query:
-                await update.callback_query.answer("🚧 Accès sur invitation uniquement.", show_alert=True)
+                await update.callback_query.answer("🚧 Access by invitation only. Contact @btsr_teddy09", show_alert=True)
                 return
             else:
-                await update.message.reply_text("🚧 Accès sur invitation uniquement.\n\n🚧 Access by invitation only.")
+                await update.message.reply_text("🚧 Access by invitation only.\n\nContact @btsr_teddy09 to get an invitation.")
                 return
         if func.__name__ != "start" and not user_mgr.has_accepted_terms(user_id) and not user_mgr.is_admin(user_id):
             if update.callback_query:
@@ -159,10 +159,9 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     username = f"@{user.username}" if user.username else user.first_name
     await update.message.reply_text(
-        f"🆔 *Your ID* : {user.id}\n"
-        f"👤 *Name* : {username}\n\n"
-        f"_Send this ID to @btsr\_teddy09 to get an invitation._",
-        parse_mode="Markdown"
+        f"🆔 Your ID: {user.id}\n"
+        f"👤 Name: {username}\n\n"
+        f"Send this ID to @btsr_teddy09 to get an invitation."
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -504,7 +503,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     if not user_mgr.can_access_bot(user_id):
-        await update.message.reply_text("🚧 This bot is currently in private testing phase. Access is by invitation only.")
+        await update.message.reply_text("🚧 Access by invitation only.\n\nContact @btsr_teddy09 to get an invitation.")
         return
     role = user_mgr.get_role(user_id)
     if role == "free" and user_mgr.is_trial_valid(user_id):
