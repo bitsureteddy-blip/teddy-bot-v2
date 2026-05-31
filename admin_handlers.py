@@ -5,6 +5,8 @@ Fonctions réservées à l'administrateur
 
 import logging
 import requests
+import io
+import csv
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
@@ -163,6 +165,46 @@ async def confirm_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================================================
 
 @check_limit
+# =========================================================
+# EXPORT SIGNALS
+# =========================================================
+
+@check_limit
+async def exportsignals(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    lang = get_user_lang(update)
+    signals = history_mgr.get_recent_signals(1000)
+    if not signals:
+        await update.message.reply_text("Aucun signal a exporter")
+        return
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Symbole", "Direction", "Entree", "SL", "TP", "Score", "Statut", "PnL%", "Ouvert", "Ferme"])
+    for s in signals:
+        from datetime import datetime
+        created = datetime.utcfromtimestamp(s['created_at']).strftime('%Y-%m-%d %H:%M') if s.get('created_at') else ''
+        closed = datetime.utcfromtimestamp(s['closed_at']).strftime('%Y-%m-%d %H:%M') if s.get('closed_at') else ''
+        writer.writerow([
+            s.get('id', ''),
+            s.get('symbol', ''),
+            s.get('direction', ''),
+            s.get('entry_price', ''),
+            s.get('sl', ''),
+            s.get('tp', ''),
+            s.get('score', ''),
+            s.get('status', ''),
+            s.get('result_pct', ''),
+            created,
+            closed
+        ])
+    output.seek(0)
+    await update.message.reply_document(
+        document=output.getvalue().encode('utf-8'),
+        filename='signals_export.csv',
+        caption=f'{len(signals)} signaux exportes'
+    )
+
 async def refreshhistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return

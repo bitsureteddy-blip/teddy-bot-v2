@@ -67,6 +67,7 @@ from bot_handlers import (
 
 from admin_handlers import (
     deleteuser,
+    exportsignals,
     stats,
     teddy,
     broadcast,
@@ -172,6 +173,7 @@ def main():
         ("refreshhistory", refreshhistory),
         ("clearhistory", clearhistory),
         ("deleteuser", deleteuser),
+        ("exportsignals", exportsignals),
     ]
 
     # =====================================================
