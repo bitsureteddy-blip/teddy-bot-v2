@@ -16,6 +16,17 @@ from telegram.ext import (
 
 from config import TELEGRAM_TOKEN
 from data_fetcher import DataFetcher
+
+# Handler /myid accessible à tous sans aucune restriction
+async def myid_handler(update, context):
+    user = update.effective_user
+    username = f"@{user.username}" if user.username else user.first_name
+    await update.message.reply_text(
+        f"🆔 Your ID: {user.id}\n"
+        f"👤 Name: {username}\n\n"
+        f"Send this ID to @btsr_teddy09 to get an invitation."
+    )
+
 from alert_manager import AlertManager
 from database import get_db
 
@@ -30,7 +41,6 @@ get_db()
 # =========================================================
 
 from bot_handlers import (
-    myid,
     start,
     help_command,
     analyse,
@@ -188,7 +198,9 @@ def main():
     seen = set()
 
     # Handler spécial sans restriction d'accès
-    app.add_handler(CommandHandler("myid", myid))
+
+    # Handler public accessible sans restriction
+    app.add_handler(CommandHandler("myid", myid_handler))
 
     for cmd, func in handlers:
 

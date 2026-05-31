@@ -94,7 +94,7 @@ def check_limit(func):
         lang = get_user_lang(update)
         import logging
         logging.getLogger(__name__).warning(f"[check_limit] func={func.__name__}, user={user_id}")
-        if func.__name__ != "myid" and not user_mgr.can_access_bot(user_id):
+        if not user_mgr.can_access_bot(user_id):
             if update.callback_query:
                 await update.callback_query.answer("🚧 Access by invitation only. Contact @btsr_teddy09", show_alert=True)
                 return
@@ -153,19 +153,6 @@ async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, rol
 @check_limit
 
 @check_limit
-# =========================================================
-# MY ID
-# =========================================================
-
-async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    username = f"@{user.username}" if user.username else user.first_name
-    await update.message.reply_text(
-        f"🆔 Your ID: {user.id}\n"
-        f"👤 Name: {username}\n\n"
-        f"Send this ID to @btsr_teddy09 to get an invitation."
-    )
-
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "help_redirect"), parse_mode=ParseMode.MARKDOWN)
