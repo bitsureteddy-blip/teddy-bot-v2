@@ -206,3 +206,24 @@ async def quota(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Impossible de vérifier le quota")
     except Exception as e:
         await update.message.reply_text(f"❌ Erreur : {e}")
+
+# =========================================================
+# DELETE USER
+# =========================================================
+
+@check_limit
+async def deleteuser(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /deleteuser <user_id>")
+        return
+    try:
+        uid = int(context.args[0])
+    except ValueError:
+        await update.message.reply_text("❌ ID invalide")
+        return
+    if user_mgr.delete_user(uid):
+        await update.message.reply_text(f"🗑️ Utilisateur {uid} supprimé avec toutes ses données")
+    else:
+        await update.message.reply_text(f"❌ Utilisateur {uid} introuvable")

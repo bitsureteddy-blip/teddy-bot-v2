@@ -66,6 +66,7 @@ from bot_handlers import (
 # =========================================================
 
 from admin_handlers import (
+    deleteuser,
     stats,
     teddy,
     broadcast,
@@ -170,6 +171,7 @@ def main():
         ("confirm_payment", confirm_payment),
         ("refreshhistory", refreshhistory),
         ("clearhistory", clearhistory),
+        ("deleteuser", deleteuser),
     ]
 
     # =====================================================
