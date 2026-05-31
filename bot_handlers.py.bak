@@ -142,6 +142,72 @@ async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, rol
 # =========================================================
 
 @check_limit
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    lang = user_mgr.get_setting(user_id, "lang", "en")
+    was_new = str(user_id) not in user_mgr.users
+    user_mgr.get_user(user_id)
+    if was_new:
+        await notify_admin_new_user(update, context)
+
+    if not user_mgr.can_access_bot(user_id):
+        await update.message.reply_text("🚧 Phase de test sur invitation uniquement")
+        return
+
+    if not user_mgr.has_accepted_terms(user_id):
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "terms_button"), callback_data="terms_show")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            get_text(lang, "terms_must_accept"),
+            reply_markup=reply_markup,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+
+    role = user_mgr.get_role(user_id)
+    if role == "pro":
+        status = get_text(lang, "status_pro")
+    else:
+        status = get_text(lang, "status_free_trial")
+    await update.message.reply_text(
+        get_text(lang, "start", status=status),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+# =========================================================
+# TERMS
+# =========================================================
+
+async def terms_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    lang = get_user_lang(update)
+    user_id = update.effective_user.id
+    if data == "terms_show":
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "terms_accept"), callback_data="terms_accept")],
+            [InlineKeyboardButton(get_text(lang, "terms_refuse"), callback_data="terms_refuse")],
+        ]
+        await query.edit_message_text(
+            get_text(lang, "terms_text"),
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.MARKDOWN
+        )
+    elif data == "terms_accept":
+        user_mgr.accept_terms(user_id)
+        await query.edit_message_text(get_text(lang, "terms_accepted"), parse_mode=ParseMode.MARKDOWN)
+        context.args = []
+        await start(update, context)
+    elif data == "terms_refuse":
+        await query.edit_message_text(get_text(lang, "terms_refused_msg"), parse_mode=ParseMode.MARKDOWN)
+
+# =========================================================
+# HELP & SUPPORT
+# =========================================================
 
 @check_limit
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -465,7 +531,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
     lang = user_mgr.get_setting(user_id, "lang", "en")
-    was_new = not user_mgr.user_exists(user_id)
+    was_new = str(user_id) not in user_mgr.users
     user_mgr.get_user(user_id)
     if was_new:
         await notify_admin_new_user(update, context)
@@ -1126,7 +1192,7 @@ async def pay_binance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================================================
 
 async def send_weekly_reports(bot):
-    pro_users = user_mgr.get_premium_users()
+    pro_users = [int(uid) for uid, u in user_mgr.users.items() if u.get("role") == "pro"]
     signals = history_mgr.get_recent_signals(50)
     completed = [s for s in signals if s.get("status") in ("win", "loss")]
     total = len(completed)
