@@ -315,3 +315,23 @@ class UserManager:
             (memo,)
         ).fetchone()
         return row["user_id"] if row else None
+
+    # =========================================================
+    # ADMIN: DELETE USER
+    # =========================================================
+
+    def delete_user(self, user_id: int) -> bool:
+        """Supprime un utilisateur et toutes ses données associées."""
+        user = self.get_user(user_id)
+        if not user:
+            return False
+        self.conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+        self.conn.execute("DELETE FROM usage WHERE user_id = ?", (user_id,))
+        self.conn.execute("DELETE FROM settings WHERE user_id = ?", (user_id,))
+        self.conn.execute("DELETE FROM watchlist WHERE user_id = ?", (user_id,))
+        self.conn.execute("DELETE FROM alerts WHERE user_id = ?", (user_id,))
+        self.conn.execute("DELETE FROM signals WHERE user_id = ?", (user_id,))
+        self.conn.execute("DELETE FROM paper_positions WHERE user_id = ?", (user_id,))
+        self.conn.execute("DELETE FROM paper_capitals WHERE user_id = ?", (user_id,))
+        self.conn.commit()
+        return True
