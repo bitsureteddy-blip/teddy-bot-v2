@@ -477,6 +477,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = user_mgr.get_setting(user_id, "lang", "en")
     was_new = not user_mgr.user_exists(user_id)
     user_mgr.get_user(user_id)
+    username = f"@{user.username}" if user.username else user.first_name
+    user_mgr.update_username(user_id, username)
     if was_new:
         await notify_admin_new_user(update, context)
     if not user_mgr.has_accepted_terms(user_id):

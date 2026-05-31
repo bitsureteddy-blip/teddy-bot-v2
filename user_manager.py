@@ -50,7 +50,7 @@ class UserManager:
         self.conn.execute(
             """
             INSERT INTO users (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at, approved, username)
-            VALUES (?, 'tester', 'en', '1h', 'medium', 0, ?, ?, 0, NULL)
+            VALUES (?, 'tester', 'en', '1h', 'medium', 0, ?, ?, 0, ?)
             """,
             (user_id, now, now)
         )
@@ -128,6 +128,11 @@ class UserManager:
     def has_accepted_terms(self, user_id: int) -> bool:
         user = self.get_user(user_id)
         return bool(user and user.get("terms_accepted", 0))
+
+    def update_username(self, user_id: int, username: str):
+        if username:
+            self.conn.execute("UPDATE users SET username = ? WHERE user_id = ?", (username, user_id))
+            self.conn.commit()
 
     def accept_terms(self, user_id: int):
         self.conn.execute(
