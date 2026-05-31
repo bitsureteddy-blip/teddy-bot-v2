@@ -151,6 +151,20 @@ async def notify_admin_new_premium(context: ContextTypes.DEFAULT_TYPE, user, rol
 @check_limit
 
 @check_limit
+# =========================================================
+# MY ID
+# =========================================================
+
+async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    username = f"@{user.username}" if user.username else user.first_name
+    await update.message.reply_text(
+        f"🆔 *Ton ID* : {user.id}\n"
+        f"👤 *Nom* : {username}\n\n"
+        f"_Envoie cet ID à l'admin pour recevoir une invitation._",
+        parse_mode="Markdown"
+    )
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(update)
     await update.message.reply_text(get_text(lang, "help_redirect"), parse_mode=ParseMode.MARKDOWN)

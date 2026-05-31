@@ -30,6 +30,7 @@ get_db()
 # =========================================================
 
 from bot_handlers import (
+    myid,
     start,
     help_command,
     analyse,
@@ -138,6 +139,7 @@ def main():
         # ================= USER =================
 
         ("start", start),
+        ("myid", myid),
         ("help", help_command),
         ("menu", menu_command),
 
