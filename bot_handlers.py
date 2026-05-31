@@ -92,7 +92,7 @@ def check_limit(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         user_id = update.effective_user.id
         lang = get_user_lang(update)
-        if not user_mgr.can_access_bot(user_id):
+        if func.__name__ != "myid" and not user_mgr.can_access_bot(user_id):
             if update.callback_query:
                 await update.callback_query.answer("🚧 Access by invitation only. Contact @btsr_teddy09", show_alert=True)
                 return
