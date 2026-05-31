@@ -54,12 +54,12 @@ class HistoryManager:
 
     def add_signal(self, symbol: str, direction: str, price: float, timeframe: str,
                    signal_type: str = "analyse", score: int = 0,
-                   sl: Optional[float] = None, tp: Optional[float] = None) -> str:
+                   sl: Optional[float] = None, tp: Optional[float] = None, user_id: int = None) -> str:
         signal_id = hashlib.md5(f"{symbol}{direction}{price}{timeframe}{time.time()}".encode()).hexdigest()[:8]
         now = time.time()
         self.conn.execute(
-            "INSERT OR REPLACE INTO signals (id, symbol, direction, entry_price, sl, tp, score, status, result_pct, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (signal_id, symbol.upper(), direction, price, sl, tp, score, "pending", None, now)
+            "INSERT OR REPLACE INTO signals (id, symbol, direction, entry_price, sl, tp, score, status, result_pct, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (signal_id, symbol.upper(), direction, price, sl, tp, score, "pending", None, now, user_id)
         )
         self.conn.commit()
         return signal_id
