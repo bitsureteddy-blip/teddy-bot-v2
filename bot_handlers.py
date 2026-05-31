@@ -924,7 +924,7 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     target_message = update.message if update.message else (update.callback_query.message if update.callback_query else None)
     if target_message is None:
         return
-    signals = history_mgr.get_recent_signals(10)
+    signals = history_mgr.get_recent_signals(10, user_id=update.effective_user.id)
     if not signals:
         await target_message.reply_text(get_text(lang, "history_empty"))
         return

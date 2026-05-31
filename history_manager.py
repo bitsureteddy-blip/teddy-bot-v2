@@ -68,8 +68,11 @@ class HistoryManager:
     # LECTURE
     # =========================================================
 
-    def get_recent_signals(self, limit: int = 10) -> List[Dict]:
-        rows = self.conn.execute("SELECT * FROM signals ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+    def get_recent_signals(self, limit: int = 10, user_id: int = None) -> List[Dict]:
+        if user_id:
+            rows = self.conn.execute("SELECT * FROM signals WHERE user_id = ? ORDER BY created_at DESC LIMIT ?", (user_id, limit)).fetchall()
+        else:
+            rows = self.conn.execute("SELECT * FROM signals ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
     def get_signal_by_id(self, signal_id: str) -> Optional[Dict]:
