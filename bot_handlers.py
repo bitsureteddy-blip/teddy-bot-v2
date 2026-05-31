@@ -159,9 +159,9 @@ async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     username = f"@{user.username}" if user.username else user.first_name
     await update.message.reply_text(
-        f"🆔 *Ton ID* : {user.id}\n"
-        f"👤 *Nom* : {username}\n\n"
-        f"_Envoie cet ID à l'admin pour recevoir une invitation._",
+        f"🆔 *Your ID* : {user.id}\n"
+        f"👤 *Name* : {username}\n\n"
+        f"_Send this ID to the admin to get an invitation._",
         parse_mode="Markdown"
     )
 
