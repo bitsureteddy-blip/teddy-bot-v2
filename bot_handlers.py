@@ -593,7 +593,8 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     if df is None or df.empty:
         await msg.edit_text(get_text(lang, "analyse_error", symbol=symbol))
         return
-    result = SignalEngine.analyze(df, lang, symbol=symbol)
+    trading_style = user_mgr.get_setting(update.effective_user.id, "trading_style", "day")
+    result = SignalEngine.analyze(df, lang, symbol=symbol, style=trading_style)
     ind = result['indicators']
     rsi_val = ind.get('rsi', 50)
     adx_val = ind.get('adx', 20)
@@ -989,7 +990,8 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if df is None or df.empty:
             await respond(update, get_text(lang, "data_unavailable"))
             return
-        result = SignalEngine.analyze(df, lang, symbol=symbol)
+        trading_style = user_mgr.get_setting(update.effective_user.id, "trading_style", "day")
+        result = SignalEngine.analyze(df, lang, symbol=symbol, style=trading_style)
         price = float(result["indicators"]["price"])
         atr_val = float(result["indicators"].get("atr", price * 0.01))
         sl = price - ATR_MULTIPLIER_SL * atr_val
