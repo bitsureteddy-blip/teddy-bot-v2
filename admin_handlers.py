@@ -115,7 +115,9 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text(get_text(lang, "broadcast_usage"))
         return
-    message = "📢 *Bitsure Teddy Announcement*\n\n" + " ".join(context.args)
+    user_text = " ".join(context.args)
+    header = "📢 *Bitsure Teddy \u2022 Announcement*\n━━━━━━━━━━━━━━━━━━━━━\n\n"
+    message = header + user_text
     users = user_mgr.get_all_users()
     success = 0
     errors = []
