@@ -669,18 +669,15 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     margin = price * 0.03
     ax.set_ylim(price - margin, price + margin)
 
-    # ── MACD en bas ──────────────────────────────────────────
-    if 'macd' in ind:
-        macd_series = pd.Series(ind['macd'], index=df.index).iloc[-120:]
-        macd_signal = pd.Series(ind.get('macd_signal', 0), index=df.index).iloc[-120:]
-        macd_hist = pd.Series(ind.get('macd_hist', 0), index=df.index).iloc[-120:]
-        ax_macd.plot(df_plot.index, macd_series, color='white', linewidth=1, label='MACD')
-        ax_macd.plot(df_plot.index, macd_signal, color='orange', linewidth=1, label='Signal')
-        colors = ['green' if v >= 0 else 'red' for v in macd_hist]
-        ax_macd.bar(df_plot.index, macd_hist, color=colors, alpha=0.6, width=0.8)
-        ax_macd.axhline(y=0, color='gray', linewidth=0.5)
-        ax_macd.legend(loc='upper left', fontsize=6)
-        ax_macd.set_ylabel('MACD', color='white', fontsize=8)
+    # ── Volume en bas ────────────────────────────────────────
+    if 'Volume' in df_plot.columns:
+        volume_plot = df_plot['Volume']
+        colors_vol = ['green' if close_plot.iloc[i] >= close_plot.iloc[i-1] else 'red' for i in range(1, len(close_plot))]
+        colors_vol.insert(0, 'gray')
+        ax_macd.bar(df_plot.index, volume_plot, color=colors_vol, alpha=0.5, width=0.8)
+        ax_macd.set_ylabel('Volume', color='white', fontsize=8)
+    else:
+        ax_macd.set_visible(False)
 
     plt.xticks(rotation=45, fontsize=7)
     fig.tight_layout()
