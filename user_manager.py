@@ -52,7 +52,7 @@ class UserManager:
             INSERT INTO users (user_id, role, lang, timeframe, risk, terms_accepted, trial_start, created_at, approved, username)
             VALUES (?, 'tester', 'en', '1h', 'medium', 0, ?, ?, 0, ?)
             """,
-            (user_id, now, now)
+            (user_id, now, now, None)
         )
         self.conn.commit()
         return self.get_user(user_id)
