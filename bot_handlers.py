@@ -633,37 +633,61 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     else:
         adx_state = get_text(lang, "adx_weak")
     plt.style.use('dark_background')
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(df.index, df['Close'], color='white', linewidth=1, label='Prix')
-    ax.plot(df.index, pd.Series(ind['sma20'], index=df.index) if ind['sma20'] else None, color='orange', linestyle='--', label='SMA20')
-    ax.plot(df.index, pd.Series(ind['sma50'], index=df.index) if ind['sma50'] else None, color='cyan', linestyle='--', label='SMA50')
+    # Zoom sur les 5 derniers jours
+    df_plot = df.iloc[-120:] if len(df) > 120 else df
+    close_plot = df_plot['Close']
+    # Indicateurs sur la meme periode
+    sma20_plot = pd.Series(ind['sma20'], index=df.index).iloc[-120:] if ind['sma20'] else None
+    sma50_plot = pd.Series(ind['sma50'], index=df.index).iloc[-120:] if ind['sma50'] else None
+
+    fig, (ax, ax_macd) = plt.subplots(2, 1, figsize=(10, 8), gridspec_kw={'height_ratios': [3, 1]})
+
+    # ── Graphique principal ──────────────────────────────────
+    ax.plot(df_plot.index, close_plot, color='white', linewidth=1.2, label='Prix')
+    if sma20_plot is not None:
+        ax.plot(df_plot.index, sma20_plot, color='orange', linestyle='--', linewidth=1, label='SMA20')
+    if sma50_plot is not None:
+        ax.plot(df_plot.index, sma50_plot, color='cyan', linestyle='--', linewidth=1, label='SMA50')
+
     bb_lower = ind.get('bb_lower')
     bb_upper = ind.get('bb_upper')
     if bb_lower is not None and bb_upper is not None:
-        ax.fill_between(df.index, bb_lower, bb_upper, alpha=0.1, color='gray')
-    ax.set_title(f"{symbol} – Teddy Score: {result['teddy_score']}/100", color='white')
-    ax.legend()
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    buf = io.BytesIO()
-    fig.text(0.5, 0.5, "Bitsure Teddy", fontsize=40, color='gray', ha='center', va='center', alpha=0.12, rotation=30)
+        ax.fill_between(df_plot.index, bb_lower, bb_upper, alpha=0.08, color='gray')
+
     if result.get('sl'):
         ax.axhline(y=result['sl'], color='red', linestyle='--', linewidth=1.2, alpha=0.8, label='SL')
     if result.get('tp'):
         ax.axhline(y=result['tp'], color='green', linestyle='--', linewidth=1.2, alpha=0.8, label='TP')
-    try:
-        recent_high = float(df['High'].iloc[-50:].max())
-        recent_low = float(df['Low'].iloc[-50:].min())
-        diff = recent_high - recent_low
-        for level_name, ratio in [("0.382", 0.382), ("0.500", 0.500), ("0.618", 0.618)]:
-            fib_price = recent_high - diff * ratio
-            ax.axhline(y=fib_price, color='yellow', linestyle=':', linewidth=0.8, alpha=0.5)
-            ax.text(df.index[-1], fib_price, f'Fib {level_name}', color='yellow', fontsize=7, alpha=0.7)
-    except:
-        pass
-    ax.scatter(df.index[-1], float(ind['price']), color='cyan', s=100, marker='v', zorder=5, label='Entrée')
+
+    ax.scatter(df_plot.index[-1], float(ind['price']), color='cyan', s=120, marker='v', zorder=5, label='Entree')
+    ax.set_title(f"{symbol} – Score: {result['teddy_score']}/100 | {result['signal_text']}", color='white', fontsize=12)
     ax.legend(loc='upper left', fontsize=7)
-    plt.savefig(buf, format='png')
+    ax.set_ylabel('Prix', color='white')
+
+    # Échelle serree : +/- 5% autour du prix actuel
+    price = float(ind['price'])
+    margin = price * 0.03
+    ax.set_ylim(price - margin, price + margin)
+
+    # ── MACD en bas ──────────────────────────────────────────
+    if 'macd' in ind:
+        macd_series = pd.Series(ind['macd'], index=df.index).iloc[-120:]
+        macd_signal = pd.Series(ind.get('macd_signal', 0), index=df.index).iloc[-120:]
+        macd_hist = pd.Series(ind.get('macd_hist', 0), index=df.index).iloc[-120:]
+        ax_macd.plot(df_plot.index, macd_series, color='white', linewidth=1, label='MACD')
+        ax_macd.plot(df_plot.index, macd_signal, color='orange', linewidth=1, label='Signal')
+        colors = ['green' if v >= 0 else 'red' for v in macd_hist]
+        ax_macd.bar(df_plot.index, macd_hist, color=colors, alpha=0.6, width=0.8)
+        ax_macd.axhline(y=0, color='gray', linewidth=0.5)
+        ax_macd.legend(loc='upper left', fontsize=6)
+        ax_macd.set_ylabel('MACD', color='white', fontsize=8)
+
+    plt.xticks(rotation=45, fontsize=7)
+    fig.tight_layout()
+    fig.text(0.5, 0.5, "Bitsure Teddy", fontsize=40, color='gray', ha='center', va='center', alpha=0.06, rotation=30)
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100)
     buf.seek(0)
     plt.close()
     sl_str = format_number(result['sl']) if result['sl'] else "N/A"
