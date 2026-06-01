@@ -74,7 +74,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(text) > 4000:
         text = text[:4000] + "\n... (truncated)"
     
-    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+    await update.message.reply_text(text)
 
 # =========================================================
 # APPROUVER UN TESTEUR
@@ -92,14 +92,14 @@ async def teddy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"✅ Paiement confirmé pour {uid}")
         try:
             await context.bot.send_message(chat_id=uid, text="✅ Your PRO subscription has been activated! Use /menu to start trading.")
-        except:
-            pass
+        except Exception as e:
+            errors.append(str(e))
     elif user_mgr.approve_user(uid):
         await update.message.reply_text(f"✅ Utilisateur {uid} approuvé comme testeur")
         try:
             await context.bot.send_message(chat_id=uid, text="✅ Your access has been approved! Use /menu to start.")
-        except:
-            pass
+        except Exception as e:
+            errors.append(str(e))
     else:
         await update.message.reply_text(f"❌ Utilisateur {uid} introuvable")
 
@@ -118,13 +118,17 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = "📢 *Bitsure Teddy Announcement*\n\n" + " ".join(context.args)
     users = user_mgr.get_all_users()
     success = 0
+    errors = []
     for uid in users:
         try:
-            await context.bot.send_message(chat_id=int(uid), text=message, parse_mode=ParseMode.MARKDOWN)
+            await context.bot.send_message(chat_id=int(uid), text=message)
             success += 1
-        except:
-            pass
-    await update.message.reply_text(get_text(lang, "broadcast_sent", success=success, total=len(users)))
+        except Exception as e:
+            errors.append(str(e))
+    result = f"Broadcast sent to {success}/{len(users)} users."
+    if errors:
+        result += f"\nErrors: {len(errors)}"
+    await update.message.reply_text(result)
 
 # =========================================================
 # SWITCH API
@@ -194,8 +198,8 @@ async def confirm_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(get_text(lang, "confirm_payment_ok", user_id=uid))
         try:
             await context.bot.send_message(chat_id=uid, text="✅ Your PRO subscription has been activated! Use /menu to start trading.")
-        except:
-            pass
+        except Exception as e:
+            errors.append(str(e))
     else:
         await update.message.reply_text(get_text(lang, "confirm_payment_missing", user_id=uid))
 
