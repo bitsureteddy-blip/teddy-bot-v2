@@ -968,20 +968,57 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
             total_pnl_value += float(s.get("result_pct") or 0)
         except (TypeError, ValueError):
             continue
+
+    def fmt_ts(ts):
+        if ts is None:
+            return "--:--"
+        try:
+            return datetime.utcfromtimestamp(float(ts)).strftime("%H:%M UTC")
+        except (TypeError, ValueError):
+            return "--:--"
+
+    def fmt_pnl(result_pct, result_price):
+        parts = []
+        if result_price is not None:
+            parts.append(f"@ {format_number(result_price)}")
+        if result_pct is not None:
+            try:
+                pct = float(result_pct)
+                sign = "+" if pct >= 0 else ""
+                parts.append(f"({sign}{pct:.2f}%)")
+            except (TypeError, ValueError):
+                pass
+        return " ".join(parts) if parts else ""
+
     lines = []
     for s in signals:
         status = s.get("status")
         emoji = "✅" if status == "win" else "❌" if status == "loss" else "⏳"
-        # Heure de clôture pour les trades terminés, heure d'ouverture pour les pending
-        ts = s.get("closed_at") if status in ("win", "loss") and s.get("closed_at") else s.get("created_at")
-        if ts:
-            time_str = datetime.utcfromtimestamp(ts).strftime('%H:%M UTC')
-        else:
-            time_str = "--:-- UTC"
         symbol = s.get("symbol", "?")
         direction = s.get("direction", "?")
-        price = format_number(s.get("entry_price", 0))
-        lines.append(f"{emoji} {time_str} {symbol} {direction} @ {price}")
+        entry = s.get("entry_price", 0)
+        sl_val = s.get("sl")
+        tp_val = s.get("tp")
+        open_ts = s.get("created_at")
+        close_ts = s.get("closed_at")
+        open_str = fmt_ts(open_ts)
+        sl_str = format_number(sl_val) if sl_val is not None else "—"
+        tp_str = format_number(tp_val) if tp_val is not None else "—"
+        target_str = f"SL {sl_str} | TP {tp_str}"
+
+        if status in ("win", "loss"):
+            close_str = fmt_ts(close_ts)
+            pnl_str = fmt_pnl(s.get("result_pct"), s.get("result_price"))
+            close_part = f"→ Closed: {close_str} {pnl_str}".strip()
+            lines.append(f"{emoji} {symbol} {direction}")
+            lines.append(f"   Open: {open_str} @ {format_number(entry)} {close_part}")
+            lines.append(f"   Target: {target_str}")
+        else:
+            lines.append(f"{emoji} {open_str} {symbol} {direction}")
+            lines.append(f"   Open: {open_str} @ {format_number(entry)}")
+            lines.append(f"   Target: {target_str}")
+        lines.append("")
+
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
         get_text(lang, "history_title", date=today_str),
@@ -990,6 +1027,8 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "━━━━━━━━━━━━━━━━━━━━━",
         get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
     ])
+    if len(text) > 4000:
+        text = text[:3997] + "…"
     await target_message.reply_text(text)
 # =========================================================
 # PAPER TRADING
