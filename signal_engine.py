@@ -32,9 +32,9 @@ SCORE_WEIGHTS = {
 
 # Seuils de rejet par style
 REJECTION_THRESHOLDS = {
-    "day":      {"min_score": 70, "min_adx": 22, "min_rr": 1.5},
-    "swing":    {"min_score": 68, "min_adx": 20, "min_rr": 1.7},
-    "position": {"min_score": 62, "min_adx": 18, "min_rr": 2.0},
+    "day":      {"min_score": 60, "min_adx": 15, "min_rr": 1.3},
+    "swing":    {"min_score": 58, "min_adx": 15, "min_rr": 1.5},
+    "position": {"min_score": 55, "min_adx": 15, "min_rr": 1.8},
 }
 
 # Buffer S/R par style (multiplicateur de l'ATR)
