@@ -1,4 +1,4 @@
-﻿celui la c'est celui que je dois mettre ? import pandas as pd
+import pandas as pd
 from typing import Dict, Optional, Tuple
 
 from indicators import rsi, macd, sma, atr, adx, bollinger_bands, support_resistance
