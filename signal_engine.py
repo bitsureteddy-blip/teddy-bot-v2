@@ -257,38 +257,56 @@ class SignalEngine:
         support: Optional[float],
         resistance: Optional[float],
         style: Optional[str],
+        min_rr: float = 1.0,
     ) -> Tuple[float, float]:
         """
         Ajuste SL et TP en fonction des niveaux Support/Résistance.
 
-        Si support_resistance() a retourné None, les valeurs ATR sont conservées.
-        Buffer = BUFFER_MULTIPLIERS[style] × ATR.
+        Guard : ne dégrade jamais le RR en dessous de min_rr.
+        Si l'ajustement casse le RR, retourne les valeurs ATR brutes.
         """
-        # Aucun niveau disponible → pas d'ajustement
         if support is None and resistance is None:
             return sl, tp1
 
+        # Validation des niveaux S/R : ignorer si trop proches du prix
+        min_dist = 0.5 * atr_val
+        if support is not None and abs(price - support) < min_dist:
+            support = None
+        if resistance is not None and abs(price - resistance) < min_dist:
+            resistance = None
+
         buffer = BUFFER_MULTIPLIERS.get(style, 0.20) * atr_val if style else 0.20 * atr_val
 
-        if signal == "BUY":
-            # SL : si un support est EN DESSOUS du SL ATR → l'utiliser
-            if support is not None and support < sl:
-                sl = support - buffer
+        new_sl, new_tp1 = sl, tp1
 
-            # TP : si une résistance est AVANT le TP → ramener le TP juste en dessous
-            if resistance is not None and resistance < tp1:
-                tp1 = resistance - buffer
+        if signal == "BUY":
+            if support is not None and sl < support < price:
+                new_sl = support - buffer
+            if resistance is not None and price < resistance < tp1:
+                new_tp1 = resistance - buffer
 
         elif signal == "SELL":
-            # SL : si une résistance est AU-DESSUS du SL ATR → l'utiliser
-            if resistance is not None and resistance > sl:
-                sl = resistance + buffer
+            if resistance is not None and price < resistance < sl:
+                new_sl = resistance + buffer
+            if support is not None and tp1 < support < price:
+                new_tp1 = support + buffer
 
-            # TP : si un support est AVANT le TP → ramener le TP juste au-dessus
-            if support is not None and support > tp1:
-                tp1 = support + buffer
+        # Guard : ne pas dégrader le RR en dessous du seuil
+        sl_dist = abs(price - new_sl)
+        tp_dist = abs(price - new_tp1)
 
-        return sl, tp1
+        if sl_dist > 0:
+            new_rr = tp_dist / sl_dist
+            if new_rr < min_rr:
+                return sl, tp1  # garder les valeurs ATR brutes
+
+        # Sanity check directionnel
+        if signal == "BUY" and (new_sl >= price or new_tp1 <= price):
+            return sl, tp1
+        if signal == "SELL" and (new_sl <= price or new_tp1 >= price):
+            return sl, tp1
+
+        return new_sl, new_tp1
 
     @staticmethod
     def _compute_score(
