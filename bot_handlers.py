@@ -245,6 +245,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "btn_settimeframe"), callback_data="cmd_settimeframe")],
             [InlineKeyboardButton(get_text(lang, "btn_setlanguage"), callback_data="cmd_setlanguage")],
+            [InlineKeyboardButton("⏱️ Trading Style", callback_data="cmd_setstyle")],
             [InlineKeyboardButton(get_text(lang, "btn_usage"), callback_data="cmd_usage")],
             [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique")],
             [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
@@ -276,6 +277,13 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if cmd.startswith("settimeframe_"):
             context.args = [cmd.split("_", 1)[1]]
             await settimeframe(update, context)
+            return
+
+        if cmd.startswith("setstyle_"):
+            style = cmd.split("_", 1)[1]
+            user_mgr.set_setting(update.effective_user.id, "trading_style", style)
+            style_names = {"day": "📊 Day Trader (1h)", "swing": "📈 Swing Trader (4h)", "position": "🏦 Position Trader (1d)"}
+            await query.message.reply_text(f"Style set to: {style_names.get(style, style)}")
             return
 
         if cmd.startswith("setlanguage_"):
@@ -335,6 +343,14 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif cmd == "settimeframe":
             kb = [[InlineKeyboardButton("1h", callback_data="cmd_settimeframe_1h"), InlineKeyboardButton("4h", callback_data="cmd_settimeframe_4h"), InlineKeyboardButton("1d", callback_data="cmd_settimeframe_1d")]]
             await query.message.reply_text(get_text(lang, "settimeframe_choose"), reply_markup=InlineKeyboardMarkup(kb))
+
+        elif cmd == "setstyle":
+            kb = [
+                [InlineKeyboardButton("📊 Day Trader (1h)", callback_data="cmd_setstyle_day")],
+                [InlineKeyboardButton("📈 Swing Trader (4h)", callback_data="cmd_setstyle_swing")],
+                [InlineKeyboardButton("🏦 Position Trader (1d)", callback_data="cmd_setstyle_position")],
+            ]
+            await query.message.reply_text("Choose your trading style:", reply_markup=InlineKeyboardMarkup(kb))
 
         elif cmd == "setlanguage":
             kb = [[InlineKeyboardButton("FR", callback_data="cmd_setlanguage_fr"), InlineKeyboardButton("EN", callback_data="cmd_setlanguage_en")]]
