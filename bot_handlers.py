@@ -707,6 +707,10 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callb
     if pending_signals >= 3:
         await msg.edit_text('🚫 Max 3 signals pending.')
         return
+    pending_signals = history_mgr.conn.execute("SELECT COUNT(*) FROM signals WHERE user_id = ? AND status = 'pending'", (update.effective_user.id,)).fetchone()[0]
+    if pending_signals >= 3:
+        await msg.edit_text('🚫 Max 3 signals pending.')
+        return
     signal_id = history_mgr.add_signal(symbol, result['signal'], ind['price'], DEFAULT_TIMEFRAME, "analyse", result['teddy_score'], sl=result.get('sl'), tp=result.get('tp'), user_id=update.effective_user.id) if result['signal'] in ('BUY', 'SELL') else 'N/A'
     caption += f"\n\n🔐 ID: `{signal_id}`"
     await msg.delete()
