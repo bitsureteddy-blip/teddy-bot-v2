@@ -242,18 +242,33 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_edit(f"*{get_text(lang, 'menu_watchlist')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
     elif data == "menu_parametres":
-        uid   = query.from_user.id
-        lang  = user_mgr.get_setting(uid, "lang", "en")
-        tf    = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
+        lang = get_user_lang(update)
+        uid  = update.effective_user.id
+        tf   = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
         style = user_mgr.get_setting(uid, "trading_style", "day")
-        await send_settings_menu(
-            lang=lang,
-            tf=tf,
-            style=style,
-            uid=uid,
-            send_fn=None,
-            edit_fn=safe_edit,
+        style_names = {"day": "Day Trader", "swing": "Swing Trader", "position": "Position Trader"}
+        style_display = style_names.get(style, style)
+        recap = (
+            "*" + get_text(lang, "settings_title") + "*
+"
+            + get_text(lang, "settings_timeframe") + " : " + tf + "
+"
+            + get_text(lang, "settings_style") + " : " + style_display + "
+"
+            + get_text(lang, "settings_lang") + " : " + lang.upper() + "
+
+"
+            + get_text(lang, "settings_edit")
         )
+        keyboard = [
+            [InlineKeyboardButton(get_text(lang, "btn_settimeframe"), callback_data="cmd_settimeframe")],
+            [InlineKeyboardButton(get_text(lang, "btn_setlanguage"),  callback_data="cmd_setlanguage")],
+            [InlineKeyboardButton("🎯 Trading Style", callback_data="cmd_setstyle")],
+            [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique")],
+            [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
+            [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")],
+        ]
+        await safe_edit(recap, keyboard)
     elif data == "menu_back":
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
