@@ -248,7 +248,12 @@ TEXTS = {
         "learn_stochastic": "*Stochastic*\nCompare le prix de clôture à la fourchette de prix. >80 surachat, <20 survente.",
         "learn_spread": "*Écart de prix*\nDifférence entre prix acheteur et vendeur.",
 
-        # ----- Paramètres -----
+        # ----- Paramètres -----        'settings_title': '⚙️ Vos paramètres actuels',
+        'settings_timeframe': '⏱️ Timeframe',
+        'settings_style': '🎯 Style de trading',
+        'settings_lang': '🌐 Langue',
+        'settings_edit': 'Que voulez-vous modifier ?',
+
         "settings_info": "⚙️ *Paramètres*\nTimeframe: {tf}\nRisque: {risk}\nLangue: {lang_name}\nRôle: {role}\nPremium: {prem}",
         "settimeframe_usage": "Usage: /settimeframe 1h|4h|1d",
         "settimeframe_invalid": "Timeframe invalide.",
@@ -639,7 +644,12 @@ TEXTS = {
         "learn_stochastic": "*Stochastic*\nCompares closing price to price range. >80 overbought, <20 oversold.",
         "learn_spread": "*Price gap*\nDifference between buyer and seller prices.",
 
-        # ----- Settings -----
+        # ----- Settings -----        'settings_title': '⚙️ Your current settings',
+        'settings_timeframe': '⏱️ Timeframe',
+        'settings_style': '🎯 Trading Style',
+        'settings_lang': '🌐 Language',
+        'settings_edit': 'What do you want to change?',
+
         "settings_info": "⚙️ *Settings*\nTimeframe: {tf}\nRisk: {risk}\nLanguage: {lang_name}\nRole: {role}\nPremium: {prem}",
         "settimeframe_usage": "Usage: /settimeframe 1h|4h|1d",
         "settimeframe_invalid": "Invalid timeframe.",

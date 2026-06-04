@@ -912,10 +912,27 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     lang = user_mgr.get_setting(uid, "lang", "en")
     tf = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
+    style = user_mgr.get_setting(uid, "trading_style", "day")
     role = user_mgr.get_role(uid)
-    prem = "✅" if role == "pro" else "❌"
-    await update.message.reply_text(get_text(lang, "settings_info", tf=tf, lang_name=lang.upper(), role=role.upper(), prem=prem), parse_mode=ParseMode.MARKDOWN)
 
+    style_names = {
+        "day":      "Day Trader",
+        "swing":    "Swing Trader",
+        "position": "Position Trader",
+    }
+    style_display = style_names.get(style, style)
+
+    lines = [
+        get_text(lang, "settings_title"),
+        get_text(lang, "settings_timeframe") + " : " + tf,
+        get_text(lang, "settings_style") + " : " + style_display,
+        get_text(lang, "settings_lang") + " : " + lang.upper(),
+        "",
+        get_text(lang, "settings_edit"),
+    ]
+    recap = "\n".join(lines)
+
+    await update.message.reply_text(recap)
 @check_limit
 async def settimeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):
