@@ -1223,7 +1223,7 @@ def start_signal_monitoring(app):
     if signal_scheduler is not None:
         return
     signal_scheduler = AsyncIOScheduler(timezone="UTC")
-    signal_scheduler.add_job(check_signal_outcomes, "interval", minutes=5, kwargs={"bot": app.bot}, id="signal_monitor", replace_existing=True)
+    signal_scheduler.add_job(check_signal_outcomes, "interval", minutes=15, kwargs={"bot": app.bot}, id="signal_monitor", replace_existing=True)
     signal_scheduler.start()
 
 signal_scheduler = None
