@@ -242,17 +242,18 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_edit(f"*{get_text(lang, 'menu_watchlist')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
 
     elif data == "menu_parametres":
-        keyboard = [
-            [InlineKeyboardButton(get_text(lang, "btn_settimeframe"), callback_data="cmd_settimeframe")],
-            [InlineKeyboardButton(get_text(lang, "btn_setlanguage"), callback_data="cmd_setlanguage")],
-            [InlineKeyboardButton("⏱️ Trading Style", callback_data="cmd_setstyle")],
-            [InlineKeyboardButton(get_text(lang, "btn_usage"), callback_data="cmd_usage")],
-            [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique")],
-            [InlineKeyboardButton(get_text(lang, "btn_support"), callback_data="cmd_support")],
-            [InlineKeyboardButton(get_text(lang, "back"), callback_data="menu_back")]
-        ]
-        await safe_edit(f"*{get_text(lang, 'menu_parametres')}*\n{get_text(lang, 'menu_choose_command')}", keyboard)
-
+        uid   = query.from_user.id
+        lang  = user_mgr.get_setting(uid, "lang", "en")
+        tf    = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
+        style = user_mgr.get_setting(uid, "trading_style", "day")
+        await send_settings_menu(
+            lang=lang,
+            tf=tf,
+            style=style,
+            uid=uid,
+            send_fn=None,
+            edit_fn=safe_edit,
+        )
     elif data == "menu_back":
         keyboard = [
             [InlineKeyboardButton(get_text(lang, "menu_analyse"), callback_data="menu_analyse")],
@@ -908,13 +909,15 @@ async def levels(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callba
 # =========================================================
 
 @check_limit
-async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    lang = user_mgr.get_setting(uid, "lang", "en")
-    tf = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
-    style = user_mgr.get_setting(uid, "trading_style", "day")
-    role = user_mgr.get_role(uid)
 
+async def send_settings_menu(lang: str, tf: str, style: str, uid: int,
+                             send_fn, edit_fn=None):
+    """
+    Construit le récapitulatif + les boutons settings.
+    - send_fn  : coroutine pour envoyer un nouveau message (ex: update.message.reply_text)
+    - edit_fn  : coroutine pour éditer un message existant (ex: safe_edit) — optionnel
+    Appelle edit_fn si fourni, sinon send_fn.
+    """
     style_names = {
         "day":      "Day Trader",
         "swing":    "Swing Trader",
@@ -922,17 +925,44 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
     style_display = style_names.get(style, style)
 
-    lines = [
-        get_text(lang, "settings_title"),
-        get_text(lang, "settings_timeframe") + " : " + tf,
-        get_text(lang, "settings_style") + " : " + style_display,
-        get_text(lang, "settings_lang") + " : " + lang.upper(),
+    recap_lines = [
+        f"*{get_text(lang, 'settings_title')}*",
+        f"{get_text(lang, 'settings_timeframe')} : `{tf}`",
+        f"{get_text(lang, 'settings_style')} : {style_display}",
+        f"{get_text(lang, 'settings_lang')} : {lang.upper()}",
         "",
         get_text(lang, "settings_edit"),
     ]
-    recap = "\n".join(lines)
+    recap = "\n".join(recap_lines)
 
-    await update.message.reply_text(recap)
+    keyboard = [
+        [InlineKeyboardButton(get_text(lang, "btn_settimeframe"), callback_data="cmd_settimeframe")],
+        [InlineKeyboardButton(get_text(lang, "btn_setlanguage"),  callback_data="cmd_setlanguage")],
+        [InlineKeyboardButton("🎯 Trading Style",                  callback_data="cmd_setstyle")],
+        [InlineKeyboardButton(get_text(lang, "btn_historique"),   callback_data="cmd_historique")],
+        [InlineKeyboardButton(get_text(lang, "btn_support"),      callback_data="cmd_support")],
+        [InlineKeyboardButton(get_text(lang, "back"),             callback_data="menu_back")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if edit_fn is not None:
+        await edit_fn(recap, keyboard)
+    else:
+        await send_fn(recap, parse_mode="Markdown", reply_markup=reply_markup)
+
+async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid  = update.effective_user.id
+    lang = user_mgr.get_setting(uid, "lang", "en")
+    tf   = user_mgr.get_setting(uid, "timeframe", DEFAULT_TIMEFRAME)
+    style = user_mgr.get_setting(uid, "trading_style", "day")
+
+    await send_settings_menu(
+        lang=lang,
+        tf=tf,
+        style=style,
+        uid=uid,
+        send_fn=update.message.reply_text,
+    )
 @check_limit
 async def settimeframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await handle_pending_alert_input(update, context):

@@ -249,6 +249,8 @@ TEXTS = {
         "learn_spread": "*Écart de prix*\nDifférence entre prix acheteur et vendeur.",
 
         # ----- Paramètres -----        'settings_title': '⚙️ Vos paramètres actuels',
+        'settings_title': '⚙️ Your current settings',
+        'settings_title': '⚙️ Vos paramètres actuels',
         'settings_timeframe': '⏱️ Timeframe',
         'settings_style': '🎯 Style de trading',
         'settings_lang': '🌐 Langue',
