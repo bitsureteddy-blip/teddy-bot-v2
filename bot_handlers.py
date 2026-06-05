@@ -340,12 +340,14 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not wl:
                 await query.message.reply_text(get_text(lang, "watchlist_scan_empty"))
             else:
+                tf = user_mgr.get_setting(user_id, "timeframe", DEFAULT_TIMEFRAME)
+                style = user_mgr.get_setting(user_id, "trading_style", "day")
                 results = []
                 engine = SignalEngine()
                 for sym in wl:
-                    df = await fetcher.get_historical_data(sym)
+                    df = await fetcher.get_historical_data(sym, timeframe=tf)
                     if df is not None and not df.empty:
-                        res = engine.analyze(df, lang, symbol=sym)
+                        res = engine.analyze(df, lang, symbol=sym, style=style)
                         results.append(f"{sym}: {res['signal_text']} (Score: {res['teddy_score']})")
                     else:
                         results.append(f"{sym}: {get_text(lang, 'data_unavailable')}")
@@ -1088,13 +1090,14 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
             lines.append(f"   Target: {target_str}")
         lines.append("")
 
+    open_count = total - len(completed)
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     text = "\n".join([
         get_text(lang, "history_title", date=today_str),
         "━━━━━━━━━━━━━━━━━━━━━",
         *lines,
         "━━━━━━━━━━━━━━━━━━━━━",
-        get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, total_pnl=f"{total_pnl_value:+.2f}%"),
+        get_text(lang, "history_summary", total=total, wins=wins, win_rate=f"{win_rate:.0f}", losses=losses, open_count=open_count, total_pnl=f"{total_pnl_value:+.2f}%"),
     ])
     if len(text) > 4000:
         text = text[:3997] + "…"
