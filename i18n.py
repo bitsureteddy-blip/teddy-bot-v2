@@ -296,7 +296,7 @@ TEXTS = {
 
         # ----- Historique -----
         "history_title": "📋 HISTORIQUE — {date}",
-        "history_summary": "📊 {total} signaux · {wins} gagnés ({win_rate}%) · {losses} perdus · {total_pnl}",
+        "history_summary": "📊 {total} signaux · {wins} gagnés ({win_rate}%) · {losses} perdus · {open_count} en cours · {total_pnl}",
         "history_empty": "Aucun signal enregistré.",
         "no_recent_analysis": "Aucune analyse récente.",
 
@@ -692,7 +692,7 @@ TEXTS = {
 
         # ----- History -----
         "history_title": "📋 HISTORY — {date}",
-        "history_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {total_pnl}",
+        "history_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {open_count} open · {total_pnl}",
         "history_empty": "No signals recorded.",
         "no_recent_analysis": "No recent analysis.",
 
