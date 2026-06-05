@@ -319,29 +319,26 @@ async def clearhistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================================================
 
 @check_limit
-async def quota(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        return
-    await update.message.reply_text("🔍 Vérification du quota...")
-    try:
-        from config import TWELVEDATA_API_KEY
-        url = f"https://api.twelvedata.com/api-usage?apikey={TWELVEDATA_API_KEY}"
-        r = requests.get(url, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            used = data.get("current_usage", "?")
-            limit = data.get("plan_limit", "?")
-            await update.message.reply_text(f"📊 Quota Twelve Data\n🔢 Utilisé : {used}\n📈 Limite : {limit}")
-        else:
-            await update.message.reply_text("❌ Impossible de vérifier le quota")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Erreur : {e}")
-
-# =========================================================
 # DELETE USER
 # =========================================================
 
 @check_limit
+
+# =========================================================
+# QUOTA
+# =========================================================
+
+@check_limit
+async def quota(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    data_fetcher = context.bot_data.get("data_fetcher")
+    if data_fetcher is None:
+        msg = "📊 Quota Twelve Data\n🔢 Données non disponibles"
+    else:
+        msg = data_fetcher.quota_tracker.format_message()
+    await update.message.reply_text(msg)
+
 async def deleteuser(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return

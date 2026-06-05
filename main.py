@@ -78,6 +78,7 @@ from bot_handlers import (
 
 from admin_handlers import (
     deleteuser,
+    quota,
     exportsignals,
     dbquery,
     cleanwaits,
@@ -89,7 +90,6 @@ from admin_handlers import (
     confirm_payment,
     refreshhistory,
     clearhistory,
-    quota,
 )
 
 # =========================================================
@@ -117,6 +117,7 @@ def main():
     alert_mgr = AlertManager.get_instance()
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    app.bot_data["data_fetcher"] = DataFetcher.get_instance()
 
     # =====================================================
     # BACKGROUND TASKS
@@ -177,7 +178,6 @@ def main():
         # ================= ADMIN =================
 
         ("stats", stats),
-        ("quota", quota),
         ("teddy", teddy),
         ("broadcast", broadcast),
         ("switchapi", switchapi),
@@ -186,6 +186,7 @@ def main():
         ("refreshhistory", refreshhistory),
         ("clearhistory", clearhistory),
         ("deleteuser", deleteuser),
+        ("quota", quota),
         ("exportsignals", exportsignals),
         ("dbquery", dbquery),
         ("cleanwaits", cleanwaits),

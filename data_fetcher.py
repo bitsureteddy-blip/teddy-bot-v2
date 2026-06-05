@@ -8,6 +8,7 @@ import websocket
 import threading
 import pandas as pd
 
+from quota_tracker import TwelveDataQuotaTracker
 from config import (
     TWELVEDATA_API_KEY,
     PRICE_CACHE_TTL, HISTORY_CACHE_TTL,
@@ -32,6 +33,7 @@ class DataFetcher:
         self.ws = None
         self.ws_thread = None
         self.active_source = "twelve"
+        self.quota_tracker = TwelveDataQuotaTracker(daily_limit=800)
 
     @classmethod
     def get_instance(cls):
@@ -110,6 +112,9 @@ class DataFetcher:
             }
         except Exception as e:
             logger.debug(f"Twelve WS parse error: {e}")
+
+    def _update_quota_from_response(self, response):
+        self.quota_tracker.update_from_headers(response.headers)
 
     # =========================================================
     # PRIX TEMPS RÉEL
