@@ -250,9 +250,8 @@ TEXTS = {
         "learn_stochastic": "*Stochastic*\nCompare le prix de clôture à la fourchette de prix. >80 surachat, <20 survente.",
         "learn_spread": "*Écart de prix*\nDifférence entre prix acheteur et vendeur.",
 
-        # ----- Paramètres -----        'settings_title': '⚙️ Vos paramètres actuels',
-        'settings_title': '⚙️ Your current settings',
-        'settings_title': '⚙️ Vos paramètres actuels',
+        # ----- Paramètres -----
+        "settings_title": "⚙️ Vos paramètres actuels",
         'settings_timeframe': '⏱️ Timeframe',
         'settings_style': '🎯 Style de trading',
         'settings_lang': '🌐 Langue',
@@ -650,8 +649,8 @@ TEXTS = {
         "learn_stochastic": "*Stochastic*\nCompares closing price to price range. >80 overbought, <20 oversold.",
         "learn_spread": "*Price gap*\nDifference between buyer and seller prices.",
 
-        # ----- Settings -----        'settings_title': '⚙️ Your current settings',
-        'settings_timeframe': '⏱️ Timeframe',
+        # ----- Settings -----
+        "settings_title": "⚙️ Your current settings",
         'settings_style': '🎯 Trading Style',
         'settings_lang': '🌐 Language',
         'settings_edit': 'What do you want to change?',
