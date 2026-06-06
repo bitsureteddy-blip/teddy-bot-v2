@@ -386,7 +386,20 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text(get_text(lang2, "settings_info", tf=tf, lang_name=lang2.upper(), role=role.upper(), prem=prem), parse_mode=ParseMode.MARKDOWN)
 
         elif cmd == "historique":
+            kb = [
+                [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique_view")],
+                [InlineKeyboardButton("🗑️ " + get_text(lang, "clearhistory_btn"), callback_data="cmd_historique_clear")],
+            ]
+            await query.message.reply_text(get_text(lang, "history_menu_title"), reply_markup=InlineKeyboardMarkup(kb))
+
+        elif cmd == "historique_view":
             await historique(update, context)
+
+        elif cmd == "historique_clear":
+            uid = update.effective_user.id
+            history_mgr.conn.execute("DELETE FROM signals WHERE user_id = ?", (uid,))
+            history_mgr.conn.commit()
+            await query.message.reply_text("🗑️ Your history has been cleared.")
 
         elif cmd == "usage":
             rem = user_mgr.get_remaining_requests(user_id)
