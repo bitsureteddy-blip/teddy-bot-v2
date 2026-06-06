@@ -973,7 +973,7 @@ async def send_settings_menu(lang: str, tf: str, style: str, uid: int,
     if edit_fn is not None:
         await edit_fn(recap, keyboard)
     else:
-        await send_fn(recap, parse_mode="Markdown", reply_markup=reply_markup)
+        await send_fn(recap, reply_markup=reply_markup)
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid  = update.effective_user.id
