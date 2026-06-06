@@ -187,7 +187,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     def safe_edit(text, keyboard):
         try:
-            return query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
+            return query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         except:
             return query.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
 
