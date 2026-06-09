@@ -17,7 +17,7 @@ TEXTS = {
         "status_free_ended": "🆓 Gratuit (essai terminé)",
         "status_pro": "💎 PRO",
         "international_payment_info": "",
-        "terms_title": "📋 Conditions d'utilisation",
+        "terms_title": "*📋 Conditions d'utilisation*",
         "terms_text": (
             "Avant d'utiliser Bitsure Teddy, tu dois lire et accepter les conditions suivantes :\n\n"
             "1. Ce bot fournit des signaux de trading à titre indicatif uniquement. Aucun conseil financier n'est donné.\n"
@@ -138,7 +138,7 @@ TEXTS = {
         "clearhistory_confirm": "Supprimer tout l'historique des signaux ?",
         "clearhistory_done": "✅ Historique effacé.",
         "clearhistory_btn": "Effacer mon historique",
-        "history_menu_title": "📋 Historique",
+        "history_menu_title": "*📋 Historique*",
         "confirm_yes": "✅ Oui",
         "confirm_no": "❌ Non",
         "delalert_usage": "Usage: /delalert ID",
@@ -251,7 +251,7 @@ TEXTS = {
         "learn_spread": "*Écart de prix*\nDifférence entre prix acheteur et vendeur.",
 
         # ----- Paramètres -----
-        "settings_title": "⚙️ Vos paramètres actuels",
+        "settings_title": "*⚙️ Vos paramètres actuels*",
         'settings_timeframe': '⏱️ Timeframe',
         'settings_style': '🎯 Style de trading',
         'settings_lang': '🌐 Langue',
@@ -296,7 +296,7 @@ TEXTS = {
         "refreshhistory_done": "✅ Historique mis à jour.",
 
         # ----- Historique -----
-        "history_title": "📋 HISTORIQUE — {date}",
+        "history_title": "*📋 HISTORIQUE — {date}*",
         "history_summary": "📊 {total} signaux · {wins} gagnés ({win_rate}%) · {losses} perdus · {open_count} en cours · {total_pnl}",
         "history_empty": "Aucun signal enregistré.",
         "no_recent_analysis": "Aucune analyse récente.",
@@ -366,7 +366,7 @@ TEXTS = {
         "backtest_downloading": "⬇️ Téléchargement des données pour {symbol}...",
         "backtest_no_data": "⚠️ Pas de données pour {symbol}",
         "backtest_no_trades": "ℹ️ {symbol}: Aucun trade.",
-        "backtest_title": "📊 {symbol} – Résultats du backtest",
+        "backtest_title": "*📊 {symbol} – Résultats du backtest*",
         "separator_line": "━━━━━━━━━━━━━━━━━━━━━━━━",
         "backtest_trades": "🔢 Trades        : {total}",
         "backtest_wins": "✅ Gagnants      : {wins} ({win_rate:.1f}%)",
@@ -388,7 +388,7 @@ TEXTS = {
         "paper_closed": "✅ Position fermée sur {symbol}.",
         "paper_no_open_position": "Aucune position ouverte sur {symbol}.",
         "paper_history_empty": "Aucun trade fermé.",
-        "paper_history_title": "📋 HISTORIQUE PAPER TRADING",
+        "paper_history_title": "*📋 HISTORIQUE PAPER TRADING*",
         "paper_choose_direction": "📈 {symbol} – Choisis la direction :",
         "paper_no_open_positions": "Aucune position ouverte.",
         "paper_stats": "📊 STATS PAPER TRADING\n💰 Capital: {capital}$\n📈 Équité: {equity}$\n💵 PnL: {total_pnl}$\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
@@ -416,7 +416,7 @@ TEXTS = {
         "status_free_ended": "🆓 Free (trial ended)",
         "status_pro": "💎 PRO",
         "international_payment_info": "",
-        "terms_title": "📋 Terms of Use",
+        "terms_title": "*📋 Terms of Use*",
         "terms_text": (
             "Before using Bitsure Teddy, you must read and accept the following terms:\n\n"
             "1. This bot provides trading signals for informational purposes only. No financial advice is given.\n"
@@ -537,7 +537,7 @@ TEXTS = {
         "clearhistory_confirm": "Delete all signal history?",
         "clearhistory_done": "✅ History cleared.",
         "clearhistory_btn": "Clear my history",
-        "history_menu_title": "📋 History",
+        "history_menu_title": "*📋 History*",
         "confirm_yes": "✅ Yes",
         "confirm_no": "❌ No",
         "delalert_usage": "Usage: /delalert ID",
@@ -650,7 +650,7 @@ TEXTS = {
         "learn_spread": "*Price gap*\nDifference between buyer and seller prices.",
 
         # ----- Settings -----
-        "settings_title": "⚙️ Your current settings",
+        "settings_title": "*⚙️ Your current settings*",
         'settings_style': '🎯 Trading Style',
         'settings_lang': '🌐 Language',
         'settings_edit': 'What do you want to change?',
@@ -694,7 +694,7 @@ TEXTS = {
         "refreshhistory_done": "✅ History updated.",
 
         # ----- History -----
-        "history_title": "📋 HISTORY — {date}",
+        "history_title": "*📋 HISTORY — {date}*",
         "history_summary": "📊 {total} signals · {wins} wins ({win_rate}%) · {losses} losses · {open_count} open · {total_pnl}",
         "history_empty": "No signals recorded.",
         "no_recent_analysis": "No recent analysis.",
@@ -764,7 +764,7 @@ TEXTS = {
         "backtest_downloading": "⬇️ Downloading data for {symbol}...",
         "backtest_no_data": "⚠️ No data available for {symbol}",
         "backtest_no_trades": "ℹ️ {symbol}: No trades.",
-        "backtest_title": "📊 {symbol} – Backtest Results",
+        "backtest_title": "*📊 {symbol} – Backtest Results*",
         "separator_line": "━━━━━━━━━━━━━━━━━━━━━━━━",
         "backtest_trades": "🔢 Trades        : {total}",
         "backtest_wins": "✅ Winners       : {wins} ({win_rate:.1f}%)",
@@ -786,7 +786,7 @@ TEXTS = {
         "paper_closed": "✅ Position closed on {symbol}.",
         "paper_no_open_position": "No open position on {symbol}.",
         "paper_history_empty": "No closed trades.",
-        "paper_history_title": "📋 PAPER TRADING HISTORY",
+        "paper_history_title": "*📋 PAPER TRADING HISTORY*",
         "paper_choose_direction": "📈 {symbol} – Choose direction:",
         "paper_no_open_positions": "No open positions.",
         "paper_stats": "📊 PAPER TRADING STATS\n💰 Capital: ${capital}\n📈 Equity: ${equity}\n💵 PnL: ${total_pnl}\n🔢 Trades: {total_trades}\n✅ Wins: {wins}\n❌ Losses: {losses}\n📊 Win rate: {win_rate:.1f}%",
