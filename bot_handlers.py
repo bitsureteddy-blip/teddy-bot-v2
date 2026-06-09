@@ -249,7 +249,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         style_names = {"day": "Day Trader", "swing": "Swing Trader", "position": "Position Trader"}
         style_display = style_names.get(style, style)
         recap = (
-            "*" + get_text(lang, "settings_title") + "*\n"
+            get_text(lang, "settings_title") + "\n"
             + get_text(lang, "settings_timeframe") + " : " + tf + "\n"
             + get_text(lang, "settings_style") + " : " + style_display + "\n"
             + get_text(lang, "settings_lang") + " : " + lang.upper() + "\n\n"
