@@ -390,7 +390,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton(get_text(lang, "btn_historique"), callback_data="cmd_historique_view")],
                 [InlineKeyboardButton("🗑️ " + get_text(lang, "clearhistory_btn"), callback_data="cmd_historique_clear")],
             ]
-            await query.message.reply_text(get_text(lang, "history_menu_title"), reply_markup=InlineKeyboardMarkup(kb))
+            await query.message.reply_text(get_text(lang, "history_menu_title"), reply_markup=InlineKeyboardMarkup(kb), parse_mode=ParseMode.MARKDOWN)
 
         elif cmd == "historique_view":
             await historique(update, context)
@@ -1114,7 +1114,7 @@ async def historique(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ])
     if len(text) > 4000:
         text = text[:3997] + "…"
-    await target_message.reply_text(text)
+    await target_message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 # =========================================================
 # PAPER TRADING
 # =========================================================
@@ -1187,7 +1187,7 @@ async def paper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for p in closed[-10:]:
             emoji = "🟢" if p.get("pnl_usdt", 0) > 0 else "🔴"
             msg += f"\n{emoji} {p['symbol']} @ {p['entry_price']:.4f} -> {p.get('exit_reason', '?')} ({p.get('pnl_usdt', 0):.4f}$)"
-        await respond(update, msg)
+        await respond(update, msg, parse_mode=ParseMode.MARKDOWN)
     elif action == "stats":
         stats = paper_trader.get_stats(user_id)
         await respond(update, get_text(lang, "paper_stats", capital=stats["capital"], equity=stats["equity"], total_pnl=stats["total_pnl"], total_trades=stats["total_trades"], wins=stats["wins"], losses=stats["losses"], win_rate=stats["win_rate"]))
