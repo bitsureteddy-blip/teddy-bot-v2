@@ -146,7 +146,10 @@ class SignalEngine:
         macd_sig_val          = float(macd_sig.iloc[-1])
         hist_val              = float(hist.iloc[-1])
 
-        adx_val  = float(adx(high, low, close, 14)[0].iloc[-1])
+        adx_series, plus_di_series, minus_di_series = adx(high, low, close, 14)
+        adx_val  = float(adx_series.iloc[-1])
+        plus_di_val  = float(plus_di_series.iloc[-1])
+        minus_di_val = float(minus_di_series.iloc[-1])
         atr_val  = float(atr(high, low, close, 14).iloc[-1])
 
         upper_bb, _, lower_bb = bollinger_bands(close, 20, 2)
@@ -192,6 +195,8 @@ class SignalEngine:
             "sma20":      sma20,
             "sma50":      sma50,
             "atr":        atr_val,
+            "plus_di":    plus_di_val,
+            "minus_di":   minus_di_val,
             "bb_upper":   upper_bb,
             "bb_lower":   lower_bb,
             "support":    support,
@@ -322,76 +327,126 @@ class SignalEngine:
         support: Optional[float],
         resistance: Optional[float],
         style: Optional[str],
+        indicators: Dict,
     ) -> Tuple[int, Dict]:
-        """
-        Calcule le teddy_score pondéré (0-100) et retourne le détail par critère.
-
-        Barème :
-          Trend  30  SMA20 > SMA50 (BUY) ou inverse (SELL)
-          RR     25  RR ≥ 2.0 = 25, RR ≥ min_rr_style = 15
-          S/R    20  graduel selon position du S/R par rapport au TP
-          ADX    15  ADX ≥ 30 = 15, ADX ≥ 25 = 10
-          RSI    10  RSI 40-60 = 10, RSI 30-70 = 5
-        """
-        detail = {"trend": 0, "rr": 0, "sr": 0, "adx": 0, "rsi": 0}
-
+        """Nouveau scoring V3 — 8 critères sur 100 points."""
+        detail = {"trend": 0, "pullback": 0, "momentum": 0, "adx": 0, "rr": 0, "rsi": 0, "sr": 0, "volume": 0}
+        
         if signal == "WAIT":
             return 0, detail
 
-        # ── Trend (30) ────────────────────────────────────────────────────────
-        if (signal == "BUY" and trend_bull) or (signal == "SELL" and trend_bear):
-            detail["trend"] = SCORE_WEIGHTS["trend"]
-        elif trend_bull or trend_bear:
-            detail["trend"] = 15  # tendance présente mais pas alignée
+        def clamp(x, low=0.0, high=1.0):
+            return max(low, min(high, x))
 
-        # ── RR (25) ───────────────────────────────────────────────────────────
-        min_rr = REJECTION_THRESHOLDS.get(style or "day", {}).get("min_rr", 1.5)
+        close = price
+        sma20 = indicators.get("sma20")
+        sma50 = indicators.get("sma50")
+        bb_mid = indicators.get("bb_mid", (indicators.get("bb_upper", 0) + indicators.get("bb_lower", 0)) / 2 if indicators.get("bb_upper") and indicators.get("bb_lower") else None)
+        plus_di = indicators.get("plus_di")
+        minus_di = indicators.get("minus_di")
+        macd_val = indicators.get("macd")
+        macd_sig = indicators.get("macd_signal")
+        macd_hist = indicators.get("macd_hist")
+        volume = indicators.get("volume")
+        volume_ma20 = indicators.get("volume_ma20")
+
+        # ── 1) Trend + Pullback (max 25) ────────────────────────
+        trend_score = 0
+        if close is not None and sma20 is not None and sma50 is not None:
+            sma_aligned = (signal == "BUY" and sma20 > sma50) or (signal == "SELL" and sma20 < sma50)
+            price_aligned = (signal == "BUY" and close > sma20) or (signal == "SELL" and close < sma20)
+            trend_score = 15 if sma_aligned and price_aligned else (10 if sma_aligned else 5)
+
+        pullback_score = 0
+        if close is not None and sma20 is not None and close > 0:
+            dist_pct = abs(close - sma20) / close * 100
+            if dist_pct <= 0.25:
+                pullback_score = 10
+            elif dist_pct <= 0.50:
+                pullback_score = 8
+            elif dist_pct <= 1.00:
+                pullback_score = 5
+            elif dist_pct <= 1.50:
+                pullback_score = 2
+
+        # ── 2) Momentum MACD (max 20) ───────────────────────────
+        momentum_score = 0
+        if macd_hist is not None:
+            hist_ok = (signal == "BUY" and macd_hist > 0) or (signal == "SELL" and macd_hist < 0)
+            if macd_val is not None and macd_sig is not None:
+                line_ok = (signal == "BUY" and macd_val > macd_sig) or (signal == "SELL" and macd_val < macd_sig)
+            else:
+                line_ok = hist_ok
+            if line_ok:
+                momentum_score += 12
+            if hist_ok:
+                momentum_score += 8
+
+        # ── 3) ADX directionnel (max 15) ────────────────────────
+        adx_score = 0
+        if adx_val is not None and plus_di is not None and minus_di is not None:
+            dir_ok = (signal == "BUY" and plus_di > minus_di) or (signal == "SELL" and minus_di > plus_di)
+            if dir_ok:
+                adx_score = 5 if adx_val >= 25 else (3 if adx_val >= 20 else 0)
+                di_gap = abs(plus_di - minus_di)
+                adx_score += 5 if di_gap > 10 else (3 if di_gap > 5 else 0)
+                adx_score += 5 if adx_val >= 35 else 0
+
+        # ── 4) RSI directionnel (max 10) ────────────────────────
+        rsi_score = 0
+        if rsi_val is not None:
+            if signal == "BUY":
+                if 50 < rsi_val <= 65:
+                    rsi_score = 10
+                elif 40 < rsi_val <= 50:
+                    rsi_score = 5
+                elif 65 < rsi_val <= 75:
+                    rsi_score = 3
+            else:
+                if 35 <= rsi_val < 50:
+                    rsi_score = 10
+                elif 50 <= rsi_val < 60:
+                    rsi_score = 5
+                elif 25 <= rsi_val < 35:
+                    rsi_score = 3
+
+        # ── 5) RR (max 10) ─────────────────────────────────────
+        rr_score = 0
         if rr is not None:
-            if rr >= 2.0:
-                detail["rr"] = SCORE_WEIGHTS["rr"]
-            elif rr >= min_rr:
-                detail["rr"] = 15
+            if rr >= 3.0:
+                rr_score = 10
+            elif rr >= 2.0:
+                rr_score = 7
+            elif rr >= 1.5:
+                rr_score = 4
 
-        # ── S/R (20) — graduel ────────────────────────────────────────────────
-        if signal == "BUY":
-            if resistance is not None and resistance > price and tp1 > price:
-                dist_to_tp = tp1 - price
-                dist_to_sr = resistance - price
-                ratio = dist_to_sr / dist_to_tp if dist_to_tp > 0 else 0
-                if ratio >= 0.8:
-                    detail["sr"] = 20
-                elif ratio >= 0.5:
-                    detail["sr"] = 10
-                # else 0 : résistance trop proche, bloque le TP
-            else:
-                # Pas de résistance gênante connue → bonus complet
-                detail["sr"] = 20 if (support is not None or resistance is not None) else 0
+        # ── 6) S/R (max 15) ────────────────────────────────────
+        sr_score = 0
+        relevant = support if signal == "BUY" else resistance
+        if relevant is not None and close is not None and close > 0:
+            dist_pct = abs(close - relevant) / close * 100
+            side_ok = (signal == "BUY" and relevant <= close) or (signal == "SELL" and relevant >= close)
+            if dist_pct <= 1.0 and side_ok:
+                sr_score = 15
+            elif dist_pct <= 2.0 and side_ok:
+                sr_score = 10
+            elif dist_pct <= 3.0:
+                sr_score = 5
 
-        elif signal == "SELL":
-            if support is not None and support < price and tp1 < price:
-                dist_to_tp = price - tp1
-                dist_to_sr = price - support
-                ratio = dist_to_sr / dist_to_tp if dist_to_tp > 0 else 0
-                if ratio >= 0.8:
-                    detail["sr"] = 20
-                elif ratio >= 0.5:
-                    detail["sr"] = 10
-            else:
-                detail["sr"] = 20 if (support is not None or resistance is not None) else 0
+        # ── 7) Volume bonus (max 5) ────────────────────────────
+        volume_score = 0
+        if volume is not None and volume_ma20 is not None and volume_ma20 > 0:
+            vr = volume / volume_ma20
+            if vr >= 1.5:
+                volume_score = 5
+            elif vr >= 1.2:
+                volume_score = 3
 
-        # ── ADX (15) ─────────────────────────────────────────────────────────
-        if adx_val >= 30:
-            detail["adx"] = SCORE_WEIGHTS["adx"]
-        elif adx_val >= 25:
-            detail["adx"] = 10
+        total = trend_score + pullback_score + momentum_score + adx_score + rr_score + rsi_score + sr_score + volume_score
+        total = max(0, min(100, total))
+        detail = {"trend": trend_score, "pullback": pullback_score, "momentum": momentum_score, "adx": adx_score, "rr": rr_score, "rsi": rsi_score, "sr": sr_score, "volume": volume_score}
 
-        # ── RSI (10) ─────────────────────────────────────────────────────────
-        if 40 <= rsi_val <= 60:
-            detail["rsi"] = SCORE_WEIGHTS["rsi"]
-        elif 30 <= rsi_val <= 70:
-            detail["rsi"] = 5
-
-        return sum(detail.values()), detail
+        return total, detail
 
     @staticmethod
     def _finalize(
