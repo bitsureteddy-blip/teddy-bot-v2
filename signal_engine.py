@@ -522,12 +522,12 @@ class SignalEngine:
         bb_lower = indicators.get("bb_lower")
         if signal in ("BUY", "SELL") and sma20 is not None and sma20 > 0:
             if signal == "BUY":
-                if price > sma20 * 1.02:
+                if price > sma20 * 1.03:
                     return SignalEngine._wait(lang, "Price extended, wait for pullback", indicators)
                 if bb_upper is not None and price > bb_upper:
                     return SignalEngine._wait(lang, "Price extended, wait for pullback", indicators)
             if signal == "SELL":
-                if price < sma20 * 0.98:
+                if price < sma20 * 0.97:
                     return SignalEngine._wait(lang, "Price extended, wait for pullback", indicators)
                 if bb_lower is not None and price < bb_lower:
                     return SignalEngine._wait(lang, "Price extended, wait for pullback", indicators)
