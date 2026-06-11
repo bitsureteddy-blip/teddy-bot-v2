@@ -185,6 +185,7 @@ class SignalEngine:
 
         # ── Indicators dict (toujours rempli pour le graphique) ───────────────
         indicators = {
+            "close_vals": list(close.iloc[-6:]),
             "price":      last_price,
             "rsi":        rsi_val,
             "adx":        adx_val,
@@ -433,6 +434,27 @@ class SignalEngine:
                 indicators=indicators,
                 score_detail={},
             )
+
+        # ── 1.5 Filtre de sur-extension (anti-chasing) ─────────────────────
+        if signal in ("BUY", "SELL") and atr_val > 0:
+            close_vals = indicators.get("close_vals", [])
+            if len(close_vals) >= 6:
+                close_5_ago = close_vals[-6]
+                recent_move = (price - close_5_ago) / atr_val
+                thresholds = {"day": 2.0, "swing": 2.5, "position": 3.0}
+                limit = thresholds.get(style, 2.0)
+                if signal == "BUY" and recent_move > limit:
+                    return SignalEngine._wait(
+                        lang,
+                        f"Entry too late — price already moved up {recent_move:.1f}xATR (max {limit})",
+                        indicators
+                    )
+                if signal == "SELL" and recent_move < -limit:
+                    return SignalEngine._wait(
+                        lang,
+                        f"Entry too late — price already moved down {abs(recent_move):.1f}xATR (max {limit})",
+                        indicators
+                    )
 
         # ── 2. Calcul SL/TP selon le style ────────────────────────────────────
         sl, tp1 = SignalEngine._compute_sl_tp(signal, price, atr_val, style)
