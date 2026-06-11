@@ -543,6 +543,7 @@ class SignalEngine:
             support=support,
             resistance=resistance,
             style=style,
+            indicators=indicators,
         )
 
         # ── 6. Filtres de rejet (retourne WAIT avec indicateurs conservés) ────
