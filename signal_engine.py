@@ -438,7 +438,9 @@ class SignalEngine:
         # ── 1.5 Filtre de sur-extension (anti-chasing) ─────────────────────
         if signal in ("BUY", "SELL") and atr_val > 0:
             close_vals = indicators.get("close_vals", [])
-            if len(close_vals) >= 6:
+            if len(close_vals) < 6:
+                pass  # pas assez de données, on skip le filtre
+            elif len(close_vals) >= 6:
                 close_5_ago = close_vals[-6]
                 recent_move = (price - close_5_ago) / atr_val
                 thresholds = {"day": 2.0, "swing": 2.5, "position": 3.0}
