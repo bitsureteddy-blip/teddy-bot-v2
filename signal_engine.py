@@ -158,6 +158,11 @@ class SignalEngine:
 
         atr_ratio = atr_val / last_price if last_price else 0
 
+        # Volume
+        volume_series = df["Volume"] if "Volume" in df.columns else None
+        volume_val = float(volume_series.iloc[-1]) if volume_series is not None and len(volume_series) > 0 else None
+        volume_ma20_val = float(sma(volume_series, 20).iloc[-1]) if volume_series is not None and len(volume_series) >= 20 else None
+
         # ── Support / Résistance (peut retourner None) ─────────────────────────
         sr_result = support_resistance(high, low, 50)
         if sr_result is not None:
@@ -200,6 +205,8 @@ class SignalEngine:
             "macd":       macd_val,
             "macd_signal": macd_sig_val,
             "macd_hist":  hist_val,
+            "volume":     volume_val,
+            "volume_ma20": volume_ma20_val,
             "bb_upper":   upper_bb,
             "bb_lower":   lower_bb,
             "support":    support,
@@ -222,6 +229,7 @@ class SignalEngine:
             trend_bull=trend_bull,
             trend_bear=trend_bear,
             style=style,
+            symbol=symbol,
         )
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -468,6 +476,7 @@ class SignalEngine:
         trend_bull: bool = False,
         trend_bear: bool = False,
         style: Optional[str] = "day",
+        symbol: str = "",
     ) -> Dict:
         """
         Finalise le signal : SL/TP, scoring pondéré, filtres de rejet.
@@ -516,18 +525,19 @@ class SignalEngine:
                         indicators
                     )
 
-        # ── 1.6 Pullback filter souple (non strict) ─────────────────────────
+        # ── 1.6 Pullback filter souple (par symbole) ──────────────────────
         sma20 = indicators.get("sma20")
         bb_upper = indicators.get("bb_upper")
         bb_lower = indicators.get("bb_lower")
         if signal in ("BUY", "SELL") and sma20 is not None and sma20 > 0:
+            pullback_pct = {"BTCUSD": 0.08, "ETHUSD": 0.07, "XAUUSD": 0.04, "AAPL": 0.05, "TSLA": 0.07, "NVDA": 0.06}.get(symbol, 0.03)
             if signal == "BUY":
-                if price > sma20 * 1.03:
+                if price > sma20 * (1 + pullback_pct):
                     return SignalEngine._wait(lang, "Price extended, wait for pullback", indicators)
                 if bb_upper is not None and price > bb_upper:
                     return SignalEngine._wait(lang, "Price extended, wait for pullback", indicators)
             if signal == "SELL":
-                if price < sma20 * 0.97:
+                if price < sma20 * (1 - pullback_pct):
                     return SignalEngine._wait(lang, "Price extended, wait for pullback", indicators)
                 if bb_lower is not None and price < bb_lower:
                     return SignalEngine._wait(lang, "Price extended, wait for pullback", indicators)
