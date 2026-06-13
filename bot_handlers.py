@@ -762,7 +762,7 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE, from_callbac
         await respond(update, get_text(lang, "symbole_invalide"))
         return
     symbol = normalize_symbol(symbol)
-    price_data = await fetcher.get_realtime_price(symbol)
+    price_data = await fetcher.get_realtime_price(symbol, force_fresh=True)
     if price_data:
         text = get_text(lang, "price_format", symbol=symbol, price=format_number(price_data['price']), bid=format_number(price_data['bid']), ask=format_number(price_data['ask']))
         await respond(update, text, parse_mode=ParseMode.MARKDOWN)

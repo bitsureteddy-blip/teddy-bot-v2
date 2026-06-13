@@ -127,11 +127,12 @@ class DataFetcher:
                 return self.price_cache[symbol]
         return None
 
-    async def get_realtime_price(self, symbol: str) -> Optional[Dict]:
+    async def get_realtime_price(self, symbol: str, force_fresh: bool = False) -> Optional[Dict]:
         symbol = normalize_symbol(symbol)
-        cached = self.get_cached_price(symbol)
-        if cached:
-            return cached
+        if not force_fresh:
+            cached = self.get_cached_price(symbol)
+            if cached:
+                return cached
         price = await self._fetch_price(symbol)
         if price:
             self.price_cache[symbol] = price
